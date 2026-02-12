@@ -9,6 +9,10 @@ interface SettingsContextType {
   setSoundEnabled: (enabled: boolean) => void;
   topScore: number;
   updateTopScore: (score: number) => void;
+  fontSize: number; // 폰트 크기 배율 (기본 1.0)
+  setFontSize: (size: number) => void;
+  currentLevel: number;
+  setCurrentLevel: (level: number) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -17,6 +21,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [difficulty, setDifficulty] = useLocalStorage<Difficulty>('game-difficulty', 'EASY');
   const [soundEnabled, setSoundEnabled] = useLocalStorage<boolean>('game-sound', true);
   const [topScore, setTopScore] = useLocalStorage<number>('game-top-score', 0);
+  const [fontSize, setFontSize] = useLocalStorage<number>('game-font-size', 1.0);
+  const [currentLevel, setCurrentLevel] = useLocalStorage<number>('game-level', 1);
 
   const updateTopScore = (score: number) => {
     if (score > topScore) {
@@ -31,7 +37,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       soundEnabled, 
       setSoundEnabled,
       topScore,
-      updateTopScore
+      updateTopScore,
+      fontSize,
+      setFontSize,
+      currentLevel,
+      setCurrentLevel
     }}>
       {children}
     </SettingsContext.Provider>

@@ -24,7 +24,7 @@ function GameContent() {
       */}
       {gameState === 'IDLE' && <RegionSelectScreen />}
       
-      {gameState === 'PLAYING' && <QuizPanel />}
+      {(gameState === 'PLAYING' || gameState === 'LOADING') && <QuizPanel />}
       
       <ResultModal />
     </div>
