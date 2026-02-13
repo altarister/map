@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, memo } from 'react';
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from '@vnedyalk0v/react19-simple-maps';
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from '@vnedyalk0v/react19-simple-maps';
+import { geoCentroid } from 'd3-geo';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapScale } from '../../hooks/useMapScale';
+import { useGeoData } from '../../hooks/useGeoData'; // Added missing import
 
 import { RegionLabel } from './RegionLabel';
 import { MapScale } from './MapScale';
@@ -76,14 +78,14 @@ const BaseMapItem = memo(({
           },
         } as any}
       />
-      <RegionLabel 
+      {/* <RegionLabel 
         feature={feature} 
         gameState={gameState as any} 
         answeredRegions={answeredRegions} 
         lastFeedback={lastFeedback}
         zoom={zoom}
         fontScale={fontSize}
-      />
+      /> */}
     </g>
   );
 }, (prev, next) => {
@@ -111,144 +113,127 @@ const BaseMapItem = memo(({
 });
 BaseMapItem.displayName = 'BaseMapItem';
 
+// 줌 설정 상수
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 8;
+const LOD_THRESHOLD = 2.5;
+
 export const Map = () => {
-    // ... (rest of the component)
+  const { data: mapData, level2Data, loading, error } = useGeoData();
+  const [showLevel3, setShowLevel3] = useState(false);
+  const [hoveredInfo, setHoveredInfo] = useState<string>('');
 
-  const { mapData, loading, gameState, checkAnswer, error, lastFeedback, answeredRegions, levelState, currentQuestion } = useGame();
-  const { fontSize, currentLevel } = useSettings();
-  const { getFillColor, getStrokeColor } = useMapStyles({ lastFeedback, answeredRegions });
-  const { scaleWidth, scaleDistance, scaleUnit, handleMove: handleScaleMove } = useMapScale();
-  
-  // Hover 상태 관리
-  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
-  const [currentZoom, setCurrentZoom] = useState(1);
+  // Debug: Track cursor for coordinate verification
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // 이벤트 핸들러
-  const handleRegionClick = useCallback((regionCode: string) => {
-    if (gameState !== 'PLAYING') return;
-    checkAnswer({ type: 'MAP_CLICK', regionCode });
-  }, [gameState, checkAnswer]);
-
-  const handleRegionEnter = useCallback((regionCode: string) => {
-    if (gameState === 'PLAYING') {
-      setHoveredRegion(regionCode);
-    }
-  }, [gameState]);
-
-  const handleRegionLeave = useCallback(() => {
-    setHoveredRegion(null);
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
   }, []);
-  
-  // 줌/이동 핸들러
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleMove = useCallback((position: any) => {
-    handleScaleMove(position);
-    if (position.zoom) {
-      setCurrentZoom(position.zoom);
-    }
-  }, [handleScaleMove]);
-  
-  // 초기 로드시 한 번 handleMove 호출하여 스케일 초기화
-  useEffect(() => {
-    handleMove({ zoom: 1 });
-  }, [handleMove]);
-
-
 
   if (loading) return <div className="flex justify-center items-center h-full">지도 로딩 중...</div>;
-  if (error) return <div className="flex justify-center items-center h-full text-red-500">지도 로딩 실패: {error.message}</div>;
-  if (!mapData) return null;
+  if (error) return <div className="flex justify-center items-center h-full text-red-500">에러: {error.message}</div>;
+
+  const currentData = showLevel3 ? mapData : level2Data;
+  
+  // DEBUG: Check what data we are actually rendering
+  useEffect(() => {
+    if (showLevel3 && currentData && currentData.features.length > 0) {
+      console.log("[Map Debug] Level 3 Data Loaded:", currentData.features.length);
+      console.log("[Map Debug] First 5 Features:", currentData.features.slice(0, 5).map((f: any) => ({
+        code: f.properties.code,
+        name: f.properties.name,
+        geometryType: f.geometry.type
+      })));
+    }
+  }, [showLevel3, currentData]);
+
+  const currentColor = showLevel3 ? '#fca5a5' : '#93c5fd'; // Red vs Blue
+  const currentBorder = showLevel3 ? '#ef4444' : '#3b82f6';
 
   return (
-    <div className="w-full h-full bg-slate-50 rounded-lg overflow-hidden border border-slate-200 shadow-inner">
+    <div className="w-full h-full bg-slate-50 rounded-lg overflow-hidden border border-slate-200 shadow-inner relative" onMouseMove={handleMouseMove}>
+      
+      {/* ---------------- DEGBUG CONTROLS ---------------- */}
+      <div className="absolute top-4 right-4 z-50 bg-white p-4 rounded shadow border space-y-2">
+        <h3 className="font-bold border-b pb-1">Map Debugger</h3>
+        <div className="text-xs text-gray-500">
+           Cursor: ({Math.round(cursorPos.x)}, {Math.round(cursorPos.y)})
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Level:</span>
+          <button 
+            onClick={() => setShowLevel3(false)}
+            className={`px-3 py-1 text-xs rounded border ${!showLevel3 ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+          >
+            Level 2 (Blue)
+          </button>
+          <button 
+            onClick={() => setShowLevel3(true)}
+            className={`px-3 py-1 text-xs rounded border ${showLevel3 ? 'bg-red-500 text-white' : 'bg-gray-100'}`}
+          >
+            Level 3 (Red)
+          </button>
+        </div>
+
+        <div className="text-xs mt-2">
+            <div>Files: {currentData?.features.length || 0} regions</div>
+            <div>Hover: {hoveredInfo || 'None'}</div>
+        </div>
+      </div>
+      {/* -------------------------------------------------- */}
+
       <ComposableMap
         projection="geoMercator"
         projectionConfig={PROJECTION_CONFIG}
         className="w-full h-full"
       >
-        <ZoomableGroup 
-          zoom={1} 
-          minZoom={0.5} 
-          maxZoom={8}
-          onMove={handleMove} // 줌/이동 시 스케일 및 줌 상태 업데이트
-        >
-          <Geographies geography={mapData}>
-            {({ geographies }) => {
-              return (
-                <>
-                  {/* 1. Base Layer: 모든 지역을 고정된 순서로 렌더링 (Re-mount 방지) */}
-                  {geographies.map((geo) => {
-                    const feature = geo as RegionFeature;
-                    const code = feature.properties?.code;
-                    if (!code) return null;
-                    
-                    return (
-                      <BaseMapItem
-                        key={(geo as any).rsmKey || code}
-                        geo={geo}
-                        code={code}
-                        feature={feature}
-                        fill={getFillColor(code, false)}
-                        stroke={getStrokeColor(code, false)}
-                        strokeWidth={1 / currentZoom}
-                        gameState={gameState}
-                        onEnter={handleRegionEnter}
-                        onLeave={handleRegionLeave}
-                        onClick={handleRegionClick}
-                        answeredRegions={answeredRegions}
-                        lastFeedback={lastFeedback}
-                        zoom={currentZoom}
-                        fontSize={fontSize}
-                      />
-                    );
-                  })}
-
-                  {/* 2. Feedback/Hover Overlay Layer: 강조해야 할 지역만 맨 위에 덧그리기 (Z-Index 효과) */}
-                  {geographies.map((geo) => {
-                     const feature = geo as RegionFeature;
-                     const code = feature.properties?.code;
-                     if (!code) return null;
-
-                     // 강조 대상인지 확인
-                     const isHovered = hoveredRegion === code;
-                     const isFeedback = lastFeedback && (lastFeedback.regionCode === code || lastFeedback.correctCode === code);
-                     
-                     if (!isHovered && !isFeedback) return null;
-
-                     return (
-                        <Geography
-                          key={`overlay-${code}`}
-                          geography={geo}
-                          style={{
-                            default: {
-                                fill: 'none', // 배경색은 아래 레이어에 맡김 (혹은 여기서 덮어써도 됨)
-                                stroke: isHovered ? '#6366f1' : getStrokeColor(code, false),
-                                strokeWidth: isHovered ? 3 / currentZoom : 2 / currentZoom, // 강조 두께
-                                outline: 'none',
-                                pointerEvents: 'none', // 이벤트는 아래 레이어가 받음
-                                vectorEffect: 'non-scaling-stroke',
-                            },
-                            hover: { fill: 'none', outline: 'none', stroke: '#6366f1', strokeWidth: 3 / currentZoom, vectorEffect: 'non-scaling-stroke' },
-                            pressed: { fill: 'none', outline: 'none', vectorEffect: 'non-scaling-stroke' }
-                          } as any}
-                        />
-                     );
-                  })}
-                </>
-              );
-            }}
+        <ZoomableGroup zoom={1} minZoom={0.5} maxZoom={8}>
+          <Geographies geography={currentData} key={showLevel3 ? 'level3-data' : 'level2-data'}>
+            {({ geographies }) => 
+              geographies.map((geo) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const feature = geo as any;
+                const code = feature.properties?.code;
+                const name = feature.properties?.name;
+                
+                return (
+                  <Geography
+                    key={feature.rsmKey || code}
+                    geography={geo}
+                    onMouseEnter={() => setHoveredInfo(`${code} (${name})`)}
+                    onMouseLeave={() => setHoveredInfo('')}
+                    style={{
+                      default: {
+                        // High contrast hash for sequential codes
+                        fill: showLevel3 ? `hsl(${(Number(code) * 13759) % 360}, 70%, 60%)` : currentColor,
+                        stroke: currentBorder,
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                      },
+                      hover: {
+                        fill: showLevel3 ? '#f87171' : '#60a5fa',
+                        stroke: '#000000',
+                        strokeWidth: 1,
+                        outline: 'none',
+                        cursor: 'pointer'
+                      },
+                      pressed: {
+                         fill: '#000000',
+                         outline: 'none'
+                      }
+                    }}
+                  />
+                );
+              })
+            }
           </Geographies>
-          
-          {/* 레벨별 오버레이 (예: 경로 그리기) */}
-          {mapData && currentQuestion && (
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-             getLevelStrategy(currentLevel).renderMapOverlay(currentQuestion, mapData.features as any, levelState)
-          )}
         </ZoomableGroup>
       </ComposableMap>
-      
-      {/* 축척 바 표시 */}
-      <MapScale width={scaleWidth} distance={scaleDistance} unit={scaleUnit} />
     </div>
   );
 };

@@ -16,74 +16,58 @@ import { memo } from 'react';
 
 // ... (existing helper function logic if any, or just memoize the component)
 
-export const RegionLabel = memo(({ feature, gameState, answeredRegions, lastFeedback, zoom, fontScale }: RegionLabelProps) => {
+export const RegionLabel = memo(({
+  feature,
+  gameState,
+  answeredRegions,
+  lastFeedback,
+  zoom,
+  fontScale
+}: RegionLabelProps) => {
   const code = feature.properties.code;
   const name = feature.properties.name;
+  const centroid = geoCentroid(feature); // [long, lat]
 
   const shouldShowLabel = () => {
-    if (gameState !== 'PLAYING') return true;
-    // LOD: 줌 레벨이 2.5 미만이면 라벨 숨김 (너무 빽빽함 방지)
-    // 단, 정답을 맞춘 지역이나 피드백 중인 지역은 항상 표시
-    if (zoom < 2.5 && !answeredRegions.has(code) && !lastFeedback) return false;
+    // LOD: 상세 지도 모드에서는 기본적으로 라벨 표시
+    // 성능 최적화가 필요하다면 여기서 줌 레벨에 따른 필터링 추가 가능
+    return true;
+  };
 
-    if (answeredRegions.has(code)) return true;
-    
-    if (lastFeedback) {
-      // 1. 사용자가 선택한 오답 지역만 라벨 표시 (이중 피드백)
-      if (!lastFeedback.isCorrect && lastFeedback.regionCode === code) return true;
-      
-      // 2. 실제 정답 지역은 이미 문제에 나와있으므로 라벨 숨김 (사용자 요청)
-      if (lastFeedback.correctCode === code) return false;
+  const getLabelColor = () => {
+    if (answeredRegions.has(code)) return '#1e293b';
+    if (lastFeedback?.regionCode === code) {
+      return lastFeedback.isCorrect ? '#15803d' : '#b91c1c';
     }
-    
-    return false;
+    return '#334155';
   };
 
   if (!shouldShowLabel()) return null;
 
-  const centroid = geoCentroid(feature);
-  if (!centroid || !isFinite(centroid[0]) || !isFinite(centroid[1])) return null;
-
-  const isWrongFeedback = lastFeedback && !lastFeedback.isCorrect && lastFeedback.regionCode === code;
-  const isAnswered = answeredRegions.has(code);
-
-  let labelColor = '#334155';
-  let fontWeight = '500';
-  // 줌 레벨에 따라 폰트 크기 조정 (줌이 커질수록 폰트 크기 비율을 줄임) + 사용자 설정 배율 적용
-  const baseSize = 4 * fontScale;
-  let fontSizeNum = baseSize / Math.max(1, zoom * 0.8); 
-  
-  // 정답 지역 라벨은 위 로직에서 숨겼으므로, 오답 라벨만 스타일 적용
-  if (isWrongFeedback) { 
-    labelColor = '#ffffff'; 
-    fontWeight = '700'; 
-    fontSizeNum = (5 * fontScale) / Math.max(1, zoom * 0.8);
-  }
-  else if (isAnswered) { 
-    labelColor = '#166534'; 
-    fontWeight = '600'; 
-  } 
-
-  const fontSize = `${fontSizeNum}px`; 
+  // 폰트 크기 계산 (줌 레벨 반비례)
+  const baseSize = fontScale || 12;
+  const baseFontSize = Math.max(8, baseSize / Math.max(1, zoom * 0.5));
 
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Marker coordinates={centroid as any}>
-      <text
-        textAnchor="middle"
-        dominantBaseline="central"
-        style={{
-          fontFamily: 'system-ui',
-          fontSize,
-          fontWeight,
-          fill: labelColor,
-          pointerEvents: 'none',
-          userSelect: 'none',
-          textShadow: isAnswered ? '0px 0px 2px rgba(255,255,255,0.8)' : 'none'
-        }}
-      >
-        {name}
-      </text>
+      <g style={{ pointerEvents: 'none' }}>
+        <text
+          textAnchor="middle"
+          dominantBaseline="central"
+          y={0}
+          style={{
+            fontFamily: 'system-ui',
+            fontSize: `${baseFontSize}px`,
+            fill: getLabelColor(),
+            fontWeight: '600',
+            textShadow: '0px 0px 2px rgba(255,255,255,0.8)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {name}
+        </text>
+      </g>
     </Marker>
   );
 });

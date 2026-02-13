@@ -58,8 +58,17 @@ export const useMapStyles = ({ lastFeedback, answeredRegions }: UseMapStylesProp
     if (answeredRegions.has(code)) return '#86efac'; // 정답 맞춤: 연한 초록
 
     // 4. 기본 지역 색상 (시/군 구분에 따른 색상)
-    const cityCode = code.substring(0, 4);
-    const colorIndex = parseInt(cityCode, 10) % CITY_COLORS.length;
+    // 코드가 5자리(시/군/구)면 앞 4자리로 그룹화 (기존 로직 유지)
+    // 코드가 7자리 이상(읍/면/동)이면 개별 코드로 색상 구분 (LOD 상세 보기 시 구분되도록)
+    const colorCode = code.length > 5 ? code : code.substring(0, 4);
+    
+    // 문자열 코드를 숫자로 해싱하여 안정적인 인덱스 생성
+    let hash = 0;
+    for (let i = 0; i < colorCode.length; i++) {
+      hash = colorCode.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % CITY_COLORS.length;
+    
     return CITY_COLORS[colorIndex];
   }, [lastFeedback, answeredRegions]);
 
@@ -77,12 +86,10 @@ export const useMapStyles = ({ lastFeedback, answeredRegions }: UseMapStylesProp
     }
 
     // 3. 이미 맞춘 지역
-    if (answeredRegions.has(code)) {
-      return '#cbd5e1'; // 정답 테두리: 진한 초록
-    }
+    if (answeredRegions.has(code)) return '#cbd5e1'; // 정답 테두리 (Slate-300)
     
     // 4. 기본 테두리 색상
-    return '#cbd5e1'; // Slate-300
+    return '#94a3b8'; // Slate-400 (기존 Slate-300보다 진하게)
   }, [lastFeedback, answeredRegions]);
 
   return { getFillColor, getStrokeColor };

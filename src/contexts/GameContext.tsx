@@ -15,7 +15,8 @@ interface GameContextType {
   startGame: (selectedCities?: string[]) => void;
   checkAnswer: (input: UserInput) => void; // string -> UserInput
   resetGame: () => void;
-  mapData: RegionCollection | null; // 원본 데이터
+  mapData: RegionCollection | null; // 원본 데이터 (Level 3 - Detailed)
+  mapDataLevel2: RegionCollection | null; // LOD Level 2 데이터 (Simple)
   filteredMapData: RegionCollection | null; // 필터링된 데이터
   loading: boolean;
   error: Error | null;
@@ -31,7 +32,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 전체 데이터 로드
-  const { data: fullMapData, loading, error } = useGeoData();
+  const { data: fullMapData, level2Data, loading, error } = useGeoData();
   // 선택된 지역만 담을 State
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
   
@@ -113,6 +114,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkAnswer,
     resetGame,
     mapData: fullMapData,
+    mapDataLevel2: level2Data,
     filteredMapData,
     loading,
     error,
