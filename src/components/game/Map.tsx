@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import { zoom, zoomIdentity } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
@@ -29,13 +29,13 @@ const THEME_COLORS = {
   },
   kids: {
     fill: '#ffffff',
-    stroke: '#cbd5e1', // Slate-300
+    stroke: '#94a3b8', // Slate-400 (Darker for better visibility)
     answeredFill: 'rgba(59, 130, 246, 0.4)', // Blue-500 tint
-    answeredStroke: '#cbd5e1', // Same as default stroke
+    answeredStroke: '#94a3b8', // Match default stroke
     correctFill: 'rgba(59, 130, 246, 0.6)',
-    correctStroke: '#cbd5e1', // Same as default stroke
+    correctStroke: '#94a3b8', // Match default stroke
     wrongFill: 'rgba(239, 68, 68, 0.6)', // Red-500 tint
-    wrongStroke: '#cbd5e1', // Same as default stroke
+    wrongStroke: '#94a3b8', // Match default stroke
     hoverFill: 'rgba(250, 204, 21, 0.4)', // Yellow-400 tint
     hoverStroke: '#f59e0b', // Amber-500 (Hover still highlighted)
     hoverDefaultFill: '#fef3c7', // Amber-100
@@ -68,8 +68,27 @@ export const Map = () => {
   const gRef = useRef<SVGGElement>(null);
   const previousGameState = useRef<string>(gameState);
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
-  const width = 800;
-  const height = 600;
+
+  // Responsive Dimensions
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setDimensions({ width: clientWidth, height: clientHeight });
+      }
+    };
+
+    window.addEventListener('resize', updateDimensions);
+    updateDimensions(); // Initial calculation
+
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  const width = dimensions.width;
+  const height = dimensions.height;
 
   // ... (keeping existing projection and pathGenerator logic)
   const projection = useMemo(() => {
@@ -80,7 +99,7 @@ export const Map = () => {
       proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
     }
     return proj;
-  }, [mapData]);
+  }, [mapData, width, height]);
 
   const pathGenerator = geoPath().projection(projection);
   const features = mapData?.features || [];
@@ -134,7 +153,7 @@ export const Map = () => {
   if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   return (
-    <div className="w-full h-full map-grid relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full map-grid relative overflow-hidden">
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
         <g ref={gRef}>
           {/* Context Layer: Silhouette of full Level 2 Map */}
@@ -143,7 +162,7 @@ export const Map = () => {
               key={`context-${feature.properties.code}`}
               d={pathGenerator(feature) || ''}
               fill="none"
-              stroke={theme === 'tactical' ? '#333333' : '#e2e8f0'}
+              stroke={theme === 'tactical' ? '#333333' : '#bbbbbb'} // Darker stroke for Kids theme (Slate-400)
               strokeWidth={0.5 / transform.k}
               style={{ pointerEvents: 'none' }}
             />
@@ -159,7 +178,7 @@ export const Map = () => {
             let fillColor = colors.fill;
             let strokeColor = colors.stroke;
             let strokeWidth = 1 / transform.k;
-
+            console.log(isAnswered)
             if (isAnswered) {
               fillColor = colors.answeredFill;
               strokeColor = colors.answeredStroke;

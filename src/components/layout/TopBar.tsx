@@ -18,7 +18,7 @@ export const TopBar = () => {
 
   return (
     <>
-      <header className="h-16 border-b border-border glass-panel flex items-center justify-between px-6 z-50 fixed top-0 w-full">
+      <header className="h-16 glass-header rounded-none border-none flex items-center justify-between px-6 z-50 fixed top-0 w-full">
         {/* Left: Title & Version */}
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
@@ -65,7 +65,7 @@ export const TopBar = () => {
             {gameState === 'INITIAL' && (
               <button
                 onClick={handleStart}
-                className="px-6 py-2 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity rounded-sm"
+                className="px-6 py-2 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
               >
                 ▶ START SESSION
               </button>

@@ -38,7 +38,7 @@ graph TD
 ```
 +-------------------------------------------------------+
 |  (1) Header Area                                      |
-|  [ SETTINGS ]         [ START ]              [ BACK ] |
+|  [ SETTINGS ]         [ START ]                       |
 +-------------------------------------------------------+
 |                                                       |
 |   (2) MAP AREA (Main Interactive Zone)                |
@@ -61,7 +61,6 @@ graph TD
 ### 2.3 요소별 명세 (Component Specs)
 
 #### (1) Header Area
-*   **SETTINGS**: 배경음/효과음 제어.
 *   **START**: 게임 시작 버튼. 클릭 시 **레벨 선택 레이어** 표시.
     *   *게임 중에는 숨김 처리.*
 *   **BACK**: 로비(Initial State)로 돌아가기.

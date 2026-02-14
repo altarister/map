@@ -13,7 +13,7 @@ function GameContent() {
   const { gameState } = useGame();
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] flex items-center justify-center p-4">
+    <div className="relative w-full h-full flex items-center justify-center pt-16">
       {/* Map (배경) - 항상 렌더링 */}
       <div className="absolute inset-0 w-full h-full">
         <Map />

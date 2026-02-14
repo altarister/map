@@ -353,6 +353,39 @@ D3 (d3-geo, d3-zoom, d3-selection)를 사용한 직접 SVG 렌더링으로 전�
 - `src/game/levels/Level2_Route/index.tsx`: Marker/Line 재구현 필요
 - `src/game/levels/Level3_Distance/index.tsx`: Marker/Line 재구현 필요
 
+### 8.2 AD-002: 지도 렌더링 최적화 - 계층형 아키텍처 (Layered Architecture)
+
+**날짜**: 2026-02-15  
+**대상**: `Map.tsx` 리팩토링 및 성능 최적화
+
+#### 문제 (Context)
+React의 Virtual DOM은 강력하지만, SVG 내의 수백/수천 개 `path` 요소가 빈번하게 업데이트되면 브라우저의 Layout/Paint 비용이 급증합니다.
+특히 `mousemove` 이벤트에 따라 `hoveredRegion` 상태가 변경될 때마다 전체 지도를 리렌더링하면, 마우스 커서를 따라갈 때 프레임 드랍(렉)이 발생할 수 있습니다.
+
+#### 해결 방안 (Solution)
+지도를 **변경 빈도(Frequency of Change)**에 따라 3개의 논리적 레이어로 분리하고, `React.memo`를 통해 불필요한 리렌더링을 차단합니다.
+
+1.  **Base Layer (정적 배경)**
+    -   **역할**: 전체 행정구역(Context Layer + Active Game Layer)을 그립니다.
+    -   **특징**: 가장 무거운 계층입니다.
+    -   **갱신 조건**: 오직 **정답을 맞췄을 때(`answeredRegions` 변경)**만 리렌더링됩니다.
+    -   **최적화**: `hoveredRegion` prop을 전달받지 않음으로써, 마우스 이동 시 리렌더링을 원천 차단합니다.
+
+2.  **Highlight Layer (동적 오버레이)**
+    -   **역할**: 현재 호버된 지역(하나의 `path`) 또는 오답 피드백(빨간색 채우기)을 그립니다.
+    -   **특징**: 매우 가볍습니다(Path 1~2개).
+    -   **갱신 조건**: `hoveredRegion` 또는 `lastFeedback` 변경 시 리렌더링됩니다.
+    -   **최적화**: 배경을 투명하게 처리하고, Base Layer 위에 덧그립니다(Z-Index).
+
+3.  **Interaction Layer (이벤트 핸들러)**
+    -   **역할**: 시각적 요소 없이 투명한 영역으로 마우스 이벤트를 감지합니다.
+    -   **특징**: 렌더링 비용이 거의 없습니다.
+    -   **최적화**: 이벤트 위임(Event Delegation)을 활용하거나, 단순히 좌표 계산만 수행합니다.
+
+#### 기대 효과
+-   **60FPS 보장**: 마우스 이동 시 연산량이 `O(N)`에서 `O(1)`로 감소합니다.
+-   **코드 가독성**: 렌더링 로직(Base)과 인터랙션 로직(Highlight/Event)이 분리되어 유지보수가 용이합니다.
+
 ---
 
 ## 9. 향후 확장 계획 (Roadmap)
