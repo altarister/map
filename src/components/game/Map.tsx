@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import { zoom, zoomIdentity } from 'd3-zoom';
-import type { ZoomBehavior, D3ZoomEvent } from 'd3-zoom';
+import type { D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
+import { useMapContext } from '../../contexts/MapContext';
 import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
 import { log } from '../../lib/debug';
@@ -23,8 +24,8 @@ export const Map = () => {
     answeredRegions
   } = useGame();
 
-  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
-  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+  // MapContext에서 transform, hoveredRegion 가져오기
+  const { transform, setTransform, hoveredRegion, setHoveredRegion } = useMapContext();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);

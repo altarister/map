@@ -8,6 +8,7 @@ import type { GameQuestion, UserInput } from '../game/core/types';
 
 interface GameContextType {
   gameState: GameState;
+  setGameState: (state: GameState) => void; // 추가
   currentQuestion: GameQuestion | null; // QuizQuestion -> GameQuestion
   score: GameScore;
   startTime: number | null;
@@ -45,6 +46,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const {
     gameState,
+    setGameState, // 추가
     score,
     currentQuestion,
     startTime,
@@ -106,6 +108,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const value = {
     gameState,
+    setGameState, // 추가
     currentQuestion,
     score,
     startTime,
