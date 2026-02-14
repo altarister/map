@@ -6,21 +6,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Button: React.FC<ButtonProps> = ({ 
-  className, 
-  variant = 'primary', 
-  size = 'md', 
+export const Button: React.FC<ButtonProps> = ({
+  className,
+  variant = 'primary',
+  size = 'md',
   children,
-  ...props 
+  ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
-  
+
   const variants = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm',
-    outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-    ghost: 'hover:bg-accent hover:text-accent-foreground',
-    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+    primary: 'bg-green-600 text-black hover:bg-green-500 shadow-[0_0_10px_rgba(22,163,74,0.5)] font-bold tracking-wide',
+    secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700',
+    outline: 'border border-green-500/50 text-green-500 hover:bg-green-500/10 hover:border-green-500 hover:shadow-[0_0_10px_rgba(22,163,74,0.3)] bg-transparent',
+    ghost: 'text-slate-400 hover:text-white hover:bg-white/5',
+    danger: 'bg-red-600/90 text-white hover:bg-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]',
   };
 
   const sizes = {

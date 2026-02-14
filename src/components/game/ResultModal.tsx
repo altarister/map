@@ -11,40 +11,43 @@ export const ResultModal = () => {
   return (
     <Modal
       isOpen={gameState === 'RESULT'}
-      onClose={() => {}} // 강제로 닫지 못하게 함
-      title="GAME OVER"
+      onClose={() => { }} // 강제로 닫지 못하게 함
+      title="MISSION DEBRIEF"
       footer={
-        <Button onClick={() => startGame()} className="w-full">
-          다시 도전하기
+        <Button onClick={() => startGame()} className="w-full" size="lg">
+          RE-INITIALIZE OPERATION
         </Button>
       }
     >
-      <div className="text-center space-y-6 py-4">
+      <div className="text-center space-y-8 py-4">
         <div className="space-y-2">
-          <p className="text-slate-500">최종 점수</p>
-          <div className="text-5xl font-black text-indigo-600 tracking-tighter">
+          <p className="text-muted-foreground font-mono tracking-widest text-xs uppercase">Total Performance Score</p>
+          <div className="text-6xl font-black text-foreground tracking-tighter" style={{ textShadow: '0 0 30px rgba(var(--primary),0.2)' }}>
             {totalScore.toLocaleString()}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
+        <div className="grid grid-cols-2 gap-4 bg-muted/30 p-6 rounded-xl border border-border">
           <div className="space-y-1">
-            <span className="text-sm text-slate-500">맞춘 지역</span>
-            <div className="text-2xl font-bold text-green-600">{score.correct}</div>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Targets Secured</span>
+            <div className="text-3xl font-bold text-primary">{score.correct}</div>
           </div>
           <div className="space-y-1">
-            <span className="text-sm text-slate-500">틀린 횟수</span>
-            <div className="text-2xl font-bold text-red-500">{score.incorrect}</div>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Errors</span>
+            <div className="text-3xl font-bold text-destructive">{score.incorrect}</div>
           </div>
         </div>
 
-        <div className="p-3 bg-blue-50 text-blue-700 rounded text-sm font-medium">
-          {(() => {
-            const seconds = Math.floor(score.duration / 1000);
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return `${m > 0 ? `${m}분 ` : ''}${s}초`;
-          })()} 동안 플레이했습니다.
+        <div className="p-4 bg-secondary/10 border border-secondary/30 text-secondary-foreground rounded text-sm font-mono flex flex-col gap-1">
+          <span className="text-[10px] opacity-70 uppercase">Mission Duration</span>
+          <span className="text-lg font-bold">
+            {(() => {
+              const seconds = Math.floor(score.duration / 1000);
+              const m = Math.floor(seconds / 60);
+              const s = seconds % 60;
+              return `${m > 0 ? `${m}m ` : ''}${s}s`;
+            })()}
+          </span>
         </div>
       </div>
     </Modal>

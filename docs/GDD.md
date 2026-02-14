@@ -95,29 +95,28 @@ stateDiagram-v2
 
 ## 3. 화면 구성 (Screen Layout)
 
-### 3.1 전체 레이아웃 (Overall Layout)
+### 3.1 전체 레이아웃 (Overall Layout) - **Tactical Dark Mode**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ (1) HEADER                                                      │
-│ h: 64px, bg: #0f172a (slate-900), border-bottom: #334155       │
+│ (1) HEADER (Glass Panel)                                        │
+│ h: 64px, z-index: 50, border-b: #262626                        │
 ├─────────────────────────────────────────────────────────────────┤
-│ (5) ACTION BAR (Slide Down from top, z-index: 30)              │
-│ h: auto, py: 24px, border-bottom: 2px green, translate-y: -100%│
+│ (5) ACTION BAR (Slide Down, z-index: 40)                       │
+│ border-b: Green/Red based on status                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ ┌─────────────┐  (2) MAP AREA (Fullscreen)                     │
-│ │ (3) DEBUG   │       - SVG Interactive Map                     │
-│ │ INFO PANEL  │       - bg: black (#000000)                     │
-│ │ top: 80px   │       - Zoom/Pan enabled                        │
-│ │ left: 16px  │                                                 │
+│ │ (3) DEBUG   │       - bg: #050505 (Dark)                      │
+│ │ INFO PANEL  │       - Grid Pattern: radial-gradient(#262626)  │
+│ │ top: 80px   │       - Regions: Dark Gray Outline              │
 │ └─────────────┘                                                 │
 │ ┌─────────────┐                                                 │
 │ │ (4) GAME    │                                                 │
 │ │ INFO PANEL  │                                                 │
 │ │ bottom: 16px│                                                 │
-│ │ left: 16px  │                                                 │
 │ └─────────────┘                                                 │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -134,8 +133,6 @@ stateDiagram-v2
 ---
 
 ## 4. 컴포넌트 상세 명세 (Component Specification)
-
-### 4.1 Header (TopBar.tsx)
 
 **역할**: 전역 네비게이션, 시스템 상태 표시, 게임 정보 표시
 

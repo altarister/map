@@ -3,6 +3,7 @@ import { geoCentroid } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';
 import type { AnswerFeedback, GameState } from '../../types/game';
 import type { RegionFeature } from '../../types/geo';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface RegionLabelProps {
   feature: RegionFeature;
@@ -15,6 +16,26 @@ interface RegionLabelProps {
   baseArea?: number;
 }
 
+// Theme Color Definitions for Labels
+const THEME_LABEL_COLORS = {
+  tactical: {
+    cityText: '#e5e7eb', // gray-200
+    districtText: '#9ca3af', // gray-400
+    answered: '#22c55e', // green-500
+    correct: '#4ade80', // green-400
+    wrong: '#ef4444', // red-500
+    shadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' // Black outline
+  },
+  kids: {
+    cityText: '#1e3a8a', // blue-900 (High Contrast)
+    districtText: '#475569', // slate-600
+    answered: '#2563eb', // blue-600
+    correct: '#3b82f6', // blue-500
+    wrong: '#ef4444', // red-500
+    shadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' // White outline
+  }
+};
+
 export const RegionLabel = memo(({
   feature,
   projection,
@@ -25,6 +46,9 @@ export const RegionLabel = memo(({
   fontScale = 1,
   baseArea = 0
 }: RegionLabelProps) => {
+  const { theme } = useSettings();
+  const colors = THEME_LABEL_COLORS[theme];
+
   const code = feature.properties.code;
   const name = feature.properties.name;
   const centroid = geoCentroid(feature);
@@ -48,21 +72,39 @@ export const RegionLabel = memo(({
   }
 
   // Visibility is controlled by parent (Map.tsx)
-  // based on Zoom Level (Macro vs Micro View)
+  // 4. 스타일 계산 (Tactical Dark Mode)
+  const isCity = fontScale > 1.2; // City labels are larger
 
-  const getLabelColor = () => {
-    if (answeredRegions.has(code)) return '#1e293b';
-    if (lastFeedback?.regionCode === code) {
-      return lastFeedback.isCorrect ? '#15803d' : '#b91c1c';
-    }
-    return '#334155';
-  };
+  // Base Style
+  let textColor = isCity ? colors.cityText : colors.districtText;
+  let fontWeight = isCity ? 'bold' : 'normal';
+  let zIndex = isCity ? 10 : 1;
+
+  // Highlight Logic
+  const isAnswered = answeredRegions.has(code);
+  const isCorrectFeedback = lastFeedback?.regionCode === code && lastFeedback?.isCorrect;
+  const isWrongFeedback = lastFeedback?.regionCode === code && !lastFeedback?.isCorrect;
+
+  if (isAnswered) {
+    textColor = colors.answered;
+    fontWeight = 'bold';
+  }
+  if (isCorrectFeedback) {
+    textColor = colors.correct;
+    fontWeight = '900'; // font-black
+    zIndex = 20;
+  }
+  if (isWrongFeedback) {
+    textColor = colors.wrong;
+    fontWeight = '900'; // font-black
+    zIndex = 20;
+  }
 
   // 2. Fixed Screen Font Size Logic
   // 줌 레벨이 변해도 텍스트는 항상 스크린 기준 12px~14px 크기로 보여야 함
   // SVG 내부에서는 scale이 적용되므로, 폰트 크기를 역으로 나눠줘야 함
   const TARGET_SCREEN_FONT_SIZE = 14 * fontScale; // px
-  const fontSize = TARGET_SCREEN_FONT_SIZE / transform.k;
+  const finalFontSize = TARGET_SCREEN_FONT_SIZE / transform.k;
 
   return (
     <text
@@ -70,14 +112,15 @@ export const RegionLabel = memo(({
       y={y}
       textAnchor="middle"
       dominantBaseline="central"
-      fontSize={fontSize}
-      fill={getLabelColor()}
-      fontWeight="600"
+      fontSize={finalFontSize}
+      fill={textColor}
+      fontWeight={fontWeight}
       fontFamily="system-ui"
       style={{
         pointerEvents: 'none',
-        textShadow: '0px 0px 3px rgba(255,255,255,0.9), 0px 0px 1px rgba(255,255,255,1)', // 하얀색 테두리 효과 강화
-        transition: 'fill 0.2s ease, opacity 0.2s ease'
+        textShadow: colors.shadow, // Outline for contrast
+        transition: 'fill 0.2s ease, opacity 0.2s ease',
+        zIndex: zIndex,
       }}
     >
       {name}

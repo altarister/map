@@ -61,48 +61,57 @@ export const RegionSelectScreen = () => {
     startGame(Array.from(selectedCities));
   };
 
-  if (loading || !mapDataLevel2) return <div>Loading data...</div>;
+  if (loading || !mapDataLevel2) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING GEODATA...</div>;
 
   return (
-    <div className="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center p-8 overflow-y-auto">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-4xl w-full border border-slate-200">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2 text-center">지역 선택</h1>
-        <p className="text-slate-600 mb-6 text-center">게임을 진행할 지역을 선택해주세요.</p>
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8 overflow-y-auto bg-background/80 backdrop-blur-sm">
+      <div className="glass-panel p-8 rounded-2xl shadow-2xl max-w-5xl w-full border border-border relative overflow-hidden">
+        {/* Decorative Grid Background for the Panel */}
+        <div className="absolute inset-0 map-grid opacity-20 pointer-events-none" />
 
-        <div className="flex flex-wrap gap-2 justify-center mb-6">
-          <Button variant="outline" size="sm" onClick={handleSelectAll}>전체 선택</Button>
-          <Button variant="outline" size="sm" onClick={handleDeselectAll}>전체 해제</Button>
-          <Button variant="primary" size="sm" onClick={handleSelectKeyCities}>주요 6개 도시 (추천)</Button>
-        </div>
+        <div className="relative z-10">
+          <h1 className="text-3xl font-black text-foreground mb-2 text-center tracking-tighter uppercase" style={{ textShadow: '0 0 20px rgba(var(--primary),0.3)' }}>
+            Sector Selection
+          </h1>
+          <p className="text-muted-foreground mb-8 text-center font-mono text-sm tracking-widest uppercase">
+            Select operational areas for this session
+          </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8 max-h-[400px] overflow-y-auto p-2">
-          {availableCities.map(city => (
-            <label
-              key={city}
-              className={`
-                flex items-center p-3 rounded-lg border cursor-pointer transition-all
-                ${selectedCities.has(city)
-                  ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500'
-                  : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50'}
-              `}
-            >
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={selectedCities.has(city)}
-                onChange={() => toggleCity(city)}
-              />
-              <span className={`text-sm font-medium ${selectedCities.has(city) ? 'text-indigo-700' : 'text-slate-700'}`}>
-                {city}
-              </span>
-            </label>
-          ))}
-        </div>
+          <div className="flex flex-wrap gap-3 justify-center mb-8">
+            <Button variant="outline" size="sm" onClick={handleSelectAll} className="uppercase font-mono text-xs tracking-wider">Select All</Button>
+            <Button variant="outline" size="sm" onClick={handleDeselectAll} className="uppercase font-mono text-xs tracking-wider">Clear All</Button>
+            <Button variant="primary" size="sm" onClick={handleSelectKeyCities} className="uppercase font-mono text-xs tracking-wider">Priority Code: 6-CITY</Button>
+          </div>
 
-        <div className="flex justify-center">
-          <Button size="lg" onClick={handleStart} disabled={selectedCities.size === 0}>
-            게임 시작 ({selectedCities.size}개 지역)
-          </Button>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8 max-h-[400px] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            {availableCities.map(city => (
+              <label
+                key={city}
+                className={`
+                  flex items-center justify-center p-3 rounded cursor-pointer transition-all duration-200
+                  ${selectedCities.has(city)
+                    ? 'text-primary font-black scale-110'
+                    : 'text-muted-foreground hover:text-foreground hover:scale-105 opacity-60 hover:opacity-100'}
+                `}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={selectedCities.has(city)}
+                  onChange={() => toggleCity(city)}
+                />
+                <span className="text-sm tracking-tight">
+                  {city}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex justify-center pt-4 border-t border-border">
+            <Button size="lg" onClick={handleStart} disabled={selectedCities.size === 0} className="min-w-[200px] text-lg">
+              INITIALIZE OP ({selectedCities.size})
+            </Button>
+          </div>
         </div>
       </div>
     </div>

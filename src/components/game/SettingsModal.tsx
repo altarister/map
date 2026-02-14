@@ -1,15 +1,26 @@
 import { useRef, useEffect } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 interface SettingsModalProps {
   onClose: () => void;
 }
 
 export const SettingsModal = ({ onClose }: SettingsModalProps) => {
-  const { fontSize, setFontSize, currentLevel, setCurrentLevel } = useSettings();
-  const modalRef = useRef<HTMLDivElement>(null);
+  const {
+    fontSize, setFontSize,
+    currentLevel, setCurrentLevel,
+    showDebugInfo, setShowDebugInfo,
+    showGameInfo, setShowGameInfo,
+    theme, setTheme
+  } = useSettings();
+  const modalRef = useRef<HTMLDivElement>(null); // modalRef is no longer directly used for click outside, as Modal component handles it. Keeping it for now as it was not explicitly removed.
 
   useEffect(() => {
+    // This useEffect for handleClickOutside is likely redundant if Modal component handles it.
+    // However, the instruction was to refactor the contents, not remove existing logic outside the return.
+    // If Modal handles click outside, this can be removed. For now, keeping it as per strict instruction interpretation.
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
@@ -20,80 +31,110 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div 
-        ref={modalRef}
-        className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden"
-      >
-        <div className="bg-slate-50 border-b border-slate-100 p-4 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-slate-800">설정</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <Modal isOpen={true} onClose={onClose} title="SYSTEM CONFIGURATION" footer={
+      <Button onClick={onClose} className="w-full">
+        APPLY CONFIGURATION
+      </Button>
+    }>
+      <div className="space-y-8 py-2">
+        <div>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">Visual Theme</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setTheme('tactical')}
+              className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${theme === 'tactical'
+                ? 'bg-green-900/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(22,163,74,0.3)]'
+                : 'bg-black/20 border-white/10 text-slate-500 hover:bg-white/5 hover:text-slate-300'
+                }`}
+            >
+              <span className="font-bold text-xs uppercase tracking-widest">Tactical OS</span>
+              <span className="text-[10px] opacity-60">Dark / High Contrast</span>
+            </button>
+            <button
+              onClick={() => setTheme('kids')}
+              className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${theme === 'kids'
+                ? 'bg-blue-100 border-blue-500 text-blue-600 shadow-md'
+                : 'bg-black/20 border-white/10 text-slate-500 hover:bg-white/5 hover:text-slate-300'
+                }`}
+            >
+              <span className="font-bold text-xs uppercase tracking-widest">Kids Explorer</span>
+              <span className="text-[10px] opacity-60">Bright / Playful</span>
+            </button>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-semibold text-slate-700">지도 글자 크기</label>
-              <span className="text-sm text-indigo-600 font-bold">{fontSize.toFixed(1)}x</span>
-            </div>
-            <input 
-              type="range" 
-              min="0.5" 
-              max="2.0" 
-              step="0.1" 
-              value={fontSize} 
-              onChange={(e) => setFontSize(parseFloat(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>작게</span>
-              <span>표준</span>
-              <span>크게</span>
-            </div>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Map Label Scale</label>
+            <span className="text-sm text-green-400 font-mono font-bold">{fontSize.toFixed(1)}x</span>
           </div>
+          <input
+            type="range"
+            min="0.5"
+            max="2.0"
+            step="0.1"
+            value={fontSize}
+            onChange={(e) => setFontSize(parseFloat(e.target.value))}
+            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+          />
+          <div className="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-widest">
+            <span>Compact</span>
+            <span>Standard</span>
+            <span>Max</span>
+          </div>
+        </div>
 
-          <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-2">게임 단계</label>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5].map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setCurrentLevel(level)}
-                  disabled={level > 3} // 1, 2, 3단계 구현됨
-                  className={`py-2 rounded-lg text-sm font-bold transition-all ${
-                    currentLevel === level
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : level > 3
-                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300'
+        <div>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">HUD Visibility</label>
+          <div className="space-y-3 bg-black/20 p-4 rounded-lg border border-white/5">
+            <label className="flex items-center justify-between cursor-pointer group">
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Session Data (Bottom Left)</span>
+              <input
+                type="checkbox"
+                checked={showGameInfo}
+                onChange={(e) => setShowGameInfo(e.target.checked)}
+                className="accent-green-500 w-4 h-4 rounded bg-slate-700 border-slate-600"
+              />
+            </label>
+            <label className="flex items-center justify-between cursor-pointer group">
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Debug Params (Right Center)</span>
+              <input
+                type="checkbox"
+                checked={showDebugInfo}
+                onChange={(e) => setShowDebugInfo(e.target.checked)}
+                className="accent-green-500 w-4 h-4 rounded bg-slate-700 border-slate-600"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">Operation Level</label>
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <button
+                key={level}
+                onClick={() => setCurrentLevel(level)}
+                disabled={level > 3}
+                className={`py-2 rounded text-xs font-bold transition-all border ${currentLevel === level
+                  ? 'bg-green-500 text-black border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.5)]'
+                  : level > 3
+                    ? 'bg-transparent text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
+                    : 'bg-transparent text-slate-500 border-slate-600 hover:border-green-500/50 hover:text-green-400'
                   }`}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-slate-400 mt-2">
-              {currentLevel === 1 && "1단계: 지역 위치 익히기"}
-              {currentLevel === 2 && "2단계: 상/하차 경로 시각화"}
-              {currentLevel === 3 && "3단계: 거리 추정 (km)"}
-              {currentLevel > 3 && `${currentLevel}단계: (준비중)`}
-            </p>
+              >
+                LV.{level}
+              </button>
+            ))}
           </div>
-        </div>
-
-        <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
-          >
-            확인
-          </button>
+          <p className="text-xs text-slate-500 mt-3 font-mono text-center">
+            {currentLevel === 1 && "Start Point: Location Familiarization"}
+            {currentLevel === 2 && "Visualizing Logistics Routes"}
+            {currentLevel === 3 && "Distance Estimation (km)"}
+            {currentLevel > 3 && `Level ${currentLevel} (LOCKED)`}
+          </p>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

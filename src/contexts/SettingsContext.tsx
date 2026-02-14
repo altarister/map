@@ -13,6 +13,12 @@ interface SettingsContextType {
   setFontSize: (size: number) => void;
   currentLevel: number;
   setCurrentLevel: (level: number) => void;
+  showDebugInfo: boolean;
+  setShowDebugInfo: (show: boolean) => void;
+  showGameInfo: boolean;
+  setShowGameInfo: (show: boolean) => void;
+  theme: 'tactical' | 'kids';
+  setTheme: (theme: 'tactical' | 'kids') => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -23,6 +29,16 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [topScore, setTopScore] = useLocalStorage<number>('game-top-score', 0);
   const [fontSize, setFontSize] = useLocalStorage<number>('game-font-size', 1.0);
   const [currentLevel, setCurrentLevel] = useLocalStorage<number>('game-level', 1);
+  const [showDebugInfo, setShowDebugInfo] = useLocalStorage<boolean>('game-debug-info', false);
+  const [showGameInfo, setShowGameInfo] = useLocalStorage<boolean>('game-game-info', true);
+  const [theme, setTheme] = useLocalStorage<'tactical' | 'kids'>('game-theme', 'tactical');
+
+  // Apply theme class to body
+  React.useEffect(() => {
+    const root = window.document.body;
+    root.classList.remove('theme-tactical', 'theme-kids');
+    root.classList.add(`theme-${theme}`);
+  }, [theme]);
 
   const updateTopScore = (score: number) => {
     if (score > topScore) {
@@ -31,17 +47,23 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   return (
-    <SettingsContext.Provider value={{ 
-      difficulty, 
-      setDifficulty, 
-      soundEnabled, 
+    <SettingsContext.Provider value={{
+      difficulty,
+      setDifficulty,
+      soundEnabled,
       setSoundEnabled,
       topScore,
       updateTopScore,
       fontSize,
       setFontSize,
       currentLevel,
-      setCurrentLevel
+      setCurrentLevel,
+      showDebugInfo,
+      setShowDebugInfo,
+      showGameInfo,
+      setShowGameInfo,
+      theme,
+      setTheme
     }}>
       {children}
     </SettingsContext.Provider>

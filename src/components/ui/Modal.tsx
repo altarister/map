@@ -38,11 +38,11 @@ export const Modal = ({ isOpen, onClose, title, children, footer, className }: M
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={cn("w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all", className)}>
+              <Dialog.Panel className={cn("w-full max-w-md transform overflow-hidden rounded-2xl glass-panel border border-slate-700 p-6 text-left align-middle shadow-2xl transition-all", className)}>
                 {title && (
                   <Dialog.Title
                     as="h3"
-                    className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                    className="text-lg font-bold leading-6 text-slate-100 mb-4 tracking-wide uppercase"
                   >
                     {title}
                   </Dialog.Title>

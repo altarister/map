@@ -3,7 +3,7 @@ import { GameProvider, useGame } from './contexts/GameContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
 import { RegionSelectScreen } from './components/game/RegionSelectScreen';
-import { QuizPanel } from './components/game/QuizPanel';
+
 import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 import { DebugInfoPanel } from './components/game/DebugInfoPanel';
@@ -33,8 +33,7 @@ function GameContent() {
       {/* LEVEL_SELECT: 레벨/지역 선택 모달 */}
       {gameState === 'LEVEL_SELECT' && <RegionSelectScreen />}
 
-      {/* PLAYING: 게임 진행 중 */}
-      {gameState === 'PLAYING' && <QuizPanel />}
+
 
       {/* RESULT: 결과 모달 */}
       <ResultModal />
