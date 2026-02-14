@@ -6,25 +6,33 @@ import { Button } from '../ui/Button';
 const KEY_CITIES = ['고양시', '파주시', '김포시', '화성시', '오산시', '광주시'];
 
 export const RegionSelectScreen = () => {
-  const { mapData, startGame } = useGame();
+  // mapDataLevel2를 가져와서 시/군/구 목록 생성에 사용
+  const { mapDataLevel2, startGame, loading } = useGame();
   const [selectedCities, setSelectedCities] = useState<Set<string>>(new Set(KEY_CITIES));
 
-  // mapData에서 사용 가능한 모든 시/군 추출
+  // 사용 가능한 모든 시/군 추출 (Level 2 데이터 기반)
   const availableCities = useMemo(() => {
-    if (!mapData) return [];
-    
+    if (!mapDataLevel2) return [];
+
     // Feature 이름에서 시/군 이름 추출 (예: "안산시 단원구" -> "안산시")
     const cities = new Set<string>();
-    mapData.features.forEach(f => {
+    mapDataLevel2.features.forEach(f => {
       const name = f.properties.name;
+      // 공백을 기준으로 첫 번째 단어가 "시"나 "군"으로 끝나면 그것만 추출
+      // 예: "수원시 장안구" -> "수원시"
+      // 예: "가평군" -> "가평군"
+      // 예: "광명시" -> "광명시"
       const match = name.match(/^(\S+[시군])/);
       if (match) {
         cities.add(match[1]);
+      } else {
+        // 매치 안 되면 (예: 혹시라도 "무슨무슨구"만 있다면) 전체 이름 사용
+        cities.add(name.split(' ')[0]);
       }
     });
-    
+
     return Array.from(cities).sort();
-  }, [mapData]);
+  }, [mapDataLevel2]);
 
   const toggleCity = (city: string) => {
     const newSelected = new Set(selectedCities);
@@ -53,7 +61,7 @@ export const RegionSelectScreen = () => {
     startGame(Array.from(selectedCities));
   };
 
-  if (!mapData) return <div>Loading data...</div>;
+  if (loading || !mapDataLevel2) return <div>Loading data...</div>;
 
   return (
     <div className="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center p-8 overflow-y-auto">
@@ -69,12 +77,12 @@ export const RegionSelectScreen = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8 max-h-[400px] overflow-y-auto p-2">
           {availableCities.map(city => (
-            <label 
+            <label
               key={city}
               className={`
                 flex items-center p-3 rounded-lg border cursor-pointer transition-all
-                ${selectedCities.has(city) 
-                  ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' 
+                ${selectedCities.has(city)
+                  ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500'
                   : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50'}
               `}
             >

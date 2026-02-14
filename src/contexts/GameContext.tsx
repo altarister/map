@@ -35,7 +35,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { data: fullMapData, level2Data, loading, error } = useGeoData();
   // 선택된 지역만 담을 State
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
-  
+
   const { difficulty, updateTopScore, currentLevel } = useSettings(); // currentLevel 추가
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
@@ -43,22 +43,22 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateTopScore(calculatedScore);
   }, [updateTopScore]);
 
-  const { 
-    gameState, 
-    score, 
-    currentQuestion, 
-    startTime, 
-    endTime, 
-    startGame: startGameLogic, 
-    checkAnswer, 
-    resetGame, 
-    lastFeedback, 
+  const {
+    gameState,
+    score,
+    currentQuestion,
+    startTime,
+    endTime,
+    startGame: startGameLogic,
+    checkAnswer,
+    resetGame,
+    lastFeedback,
     answeredRegions,
-    levelState 
+    levelState
   } = useGameLogic(
     // 게임 로직은 필터링된 데이터를 기반으로 동작
     // filteredMapData가 없으면 안정적인 EMPTY_REGIONS 참조 전달
-    filteredMapData?.features || EMPTY_REGIONS, 
+    filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
     currentLevel, // level 전달
     handleGameEnd
@@ -70,24 +70,24 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFilteredMapData(fullMapData);
     }
   }, [fullMapData, filteredMapData]);
-  
+
   // 게임 시작 시 선택된 도시들로 데이터 필터링 후 게임 시작
   const startGame = (selectedCities?: string[]) => {
     if (!fullMapData) return;
 
     if (selectedCities && selectedCities.length > 0) {
       // 선택된 시/군 이름으로 시작하는 Feature만 필터링
-      const filteredFeatures = fullMapData.features.filter(f => {
-        const name = f.properties.name;
+      const filteredFeatures = fullMapData.features.filter((f: any) => { // any 타입 임시 허용 (RegionFeature 타입 확인 필요)
+        const parentName = f.properties.SIG_KOR_NM || f.properties.name;
         // 예: "안산시 단원구" -> "안산시"로 시작하는지
-        return selectedCities.some(city => name.startsWith(city));
+        return selectedCities.some(city => parentName.startsWith(city));
       });
 
       setFilteredMapData({
         ...fullMapData, // type 등 나머지 속성 유지
         features: filteredFeatures
       });
-      
+
       // 상태 업데이트 반영을 위해 잠시 대기할 수도 있지만, 
       // 리액트 상태 업데이트 배칭으로 인해 startGameLogic이 이전 데이터를 참조할 수도 있음.
       // 하지만 useGameLogic 내부에서 regions prop이 바뀌면 내부 상태(totalRegions 등)를 업데이트하도록 되어 있다면 괜찮음.

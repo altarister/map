@@ -1,37 +1,45 @@
-import { Marker } from '@vnedyalk0v/react19-simple-maps';
+import { memo } from 'react';
 import { geoCentroid } from 'd3-geo';
+import type { GeoProjection } from 'd3-geo';
 import type { AnswerFeedback, GameState } from '../../types/game';
 import type { RegionFeature } from '../../types/geo';
 
 interface RegionLabelProps {
   feature: RegionFeature;
+  projection: GeoProjection;
+  transform: { x: number; y: number; k: number };
   gameState: GameState;
   answeredRegions: Set<string>;
   lastFeedback: AnswerFeedback | null;
-  zoom: number; // 줌 레벨 추가
-  fontScale: number; // 사용자 설정 폰트 크기 배율
+  fontScale?: number;
 }
-
-import { memo } from 'react';
-
-// ... (existing helper function logic if any, or just memoize the component)
 
 export const RegionLabel = memo(({
   feature,
+  projection,
+  transform,
   gameState,
   answeredRegions,
   lastFeedback,
-  zoom,
-  fontScale
+  fontScale = 1
 }: RegionLabelProps) => {
   const code = feature.properties.code;
   const name = feature.properties.name;
-  const centroid = geoCentroid(feature); // [long, lat]
+  const centroid = geoCentroid(feature);
+
+  // Convert GeoJSON coordinates to SVG coordinates
+  const coords = projection(centroid);
+  if (!coords) return null;
+
+  const [x, y] = coords;
 
   const shouldShowLabel = () => {
-    // LOD: 상세 지도 모드에서는 기본적으로 라벨 표시
-    // 성능 최적화가 필요하다면 여기서 줌 레벨에 따른 필터링 추가 가능
-    return true;
+    // Show labels in Level 2 (시/군) always
+    // In Level 3 (읍/면/동), show only for answered or feedback regions
+    if (transform.k < 1.5) return true; // Level 2
+
+    // Level 3: show only important labels
+    return answeredRegions.has(code) || lastFeedback?.regionCode === code;
   };
 
   const getLabelColor = () => {
@@ -44,31 +52,28 @@ export const RegionLabel = memo(({
 
   if (!shouldShowLabel()) return null;
 
-  // 폰트 크기 계산 (줌 레벨 반비례)
-  const baseSize = fontScale || 12;
-  const baseFontSize = Math.max(8, baseSize / Math.max(1, zoom * 0.5));
+  // Font size calculation (inverse to zoom level)
+  const baseSize = 12 * fontScale;
+  const fontSize = Math.max(8, Math.min(16, baseSize / transform.k));
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Marker coordinates={centroid as any}>
-      <g style={{ pointerEvents: 'none' }}>
-        <text
-          textAnchor="middle"
-          dominantBaseline="central"
-          y={0}
-          style={{
-            fontFamily: 'system-ui',
-            fontSize: `${baseFontSize}px`,
-            fill: getLabelColor(),
-            fontWeight: '600',
-            textShadow: '0px 0px 2px rgba(255,255,255,0.8)',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {name}
-        </text>
-      </g>
-    </Marker>
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={fontSize}
+      fill={getLabelColor()}
+      fontWeight="600"
+      fontFamily="system-ui"
+      style={{
+        pointerEvents: 'none',
+        textShadow: '0px 0px 2px rgba(255,255,255,0.8)',
+        transition: 'fill 0.2s ease'
+      }}
+    >
+      {name}
+    </text>
   );
 });
 
