@@ -116,8 +116,13 @@ export const Map = () => {
         g.attr('transform', `translate(${x},${y}) scale(${k})`);
         setTransform({ x, y, k });
         handleMove({ zoom: k });
+        handleMove({ zoom: k });
       });
-    svg.call(zoomBehavior);
+
+    // Initialize zoom behavior and disable double-click to zoom
+    svg.call(zoomBehavior)
+      .on("dblclick.zoom", null); // <--- Key Fix: Disable auto-zoom on dblclick
+
     previousGameState.current = gameState;
   }, [handleMove, mapData, gameState]);
 
@@ -129,6 +134,19 @@ export const Map = () => {
     <div className="w-full h-full map-grid relative overflow-hidden">
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
         <g ref={gRef}>
+          {/* Context Layer: Silhouette of full Level 2 Map */}
+          {level2Data?.features.map((feature: any) => (
+            <path
+              key={`context-${feature.properties.code}`}
+              d={pathGenerator(feature) || ''}
+              fill="none"
+              stroke={theme === 'tactical' ? '#333333' : '#e2e8f0'}
+              strokeWidth={0.5 / transform.k}
+              style={{ pointerEvents: 'none' }}
+            />
+          ))}
+
+          {/* Active Game Layer */}
           {featuresToRender.map((feature: any, index: number) => {
             const code = feature.properties.code;
             const isAnswered = answeredRegions.has(code);

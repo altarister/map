@@ -513,6 +513,7 @@ const zoomBehavior = zoom<SVGSVGElement, unknown>()
 - 줌 범위: `1.0x ~ 8.0x`
 - 커서 위치 기준 줌 (D3 기본 동작)
 - 드래그 팬 지원
+- **Double Click Zoom 비활성화**: 사용자의 의도치 않은 줌인 방지
 
 **2. Hover**
 
