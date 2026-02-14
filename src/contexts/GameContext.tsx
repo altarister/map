@@ -63,7 +63,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
     currentLevel, // level 전달
-    handleGameEnd
+    handleGameEnd,
+    level2Data?.features || EMPTY_REGIONS // ✅ BUG-003 FIX: Level 2 데이터 전달
   );
 
   // 초기 로딩 완료 시 filteredMapData를 전체 데이터로 초기화 (IDLE 상태 표시용)

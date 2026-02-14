@@ -1,31 +1,49 @@
 import type { RegionFeature } from '../../../types/geo';
 import type { GameQuestion, LocateSingleQuestion, LevelContext } from '../../core/types';
 
+/**
+ * Level 1 (위치 찾기) 문제 생성 함수
+ * 
+ * ✅ BUG-003 FIX: Level 2 (시군구) 문제만 출제
+ * - Level 2 코드: 5자리 (예: "41135" - 안산시)
+ * - Level 3 코드: 10자리 (예: "4113511000" - 안산시 단원구 초지동)
+ * - 이유: Zoom 1.0에서도 항상 클릭 가능하도록 하기 위함
+ * - GDD Section 6.1 예시 "안산시 단원구"와 일치
+ */
 export const generateLevel1Question = (context: LevelContext): LocateSingleQuestion => {
   const { mapData, difficulty } = context;
 
-  // 랜덤 지역 선택
-  const randomIndex = Math.floor(Math.random() * mapData.length);
-  const targetFeature = mapData[randomIndex];
+  // ✅ BUG-003 FIX: Level 2 (시군구) 지역만 필터링
+  // Level 2 코드 특징: 5자리 (예: "41135")
+  const level2Regions = mapData.filter(
+    f => f.properties.code && f.properties.code.length === 5
+  );
+
+  // Fallback: Level 2 지역이 없으면 전체 데이터 사용 (경고 로그)
+  if (level2Regions.length === 0) {
+    console.warn('[Level1] No Level 2 regions found. Using all regions as fallback.');
+    const randomIndex = Math.floor(Math.random() * mapData.length);
+    const targetFeature = mapData[randomIndex];
+    const props = targetFeature.properties;
+
+    return {
+      id: crypto.randomUUID(),
+      type: 'LOCATE_SINGLE',
+      target: {
+        code: props.code,
+        name: props.name || props.SIG_KOR_NM || '알 수 없는 지역'
+      }
+    };
+  }
+
+  // Level 2 지역 중 랜덤 선택
+  const randomIndex = Math.floor(Math.random() * level2Regions.length);
+  const targetFeature = level2Regions[randomIndex];
   const props = targetFeature.properties;
 
-  // 문제 텍스트 생성 (상위 행정구역 + 하위 행정구역)
-  // 예: "광주시 초월읍"
-  let displayName = props.name;
-
-  if (props.SIG_KOR_NM && props.EMD_KOR_NM) {
-    displayName = `${props.SIG_KOR_NM} ${props.EMD_KOR_NM}`;
-  } else if (props.name.indexOf(' ') === -1) {
-    // name에 공백이 없는 경우 (예: "초월읍"), 상위 지역 정보를 찾아야 함
-    // 데이터에 상위 지역 코드가 있거나 매핑이 필요한데,
-    // 일단 GeoJSON에 SIG_KOR_NM이 있다고 가정하고 위 분기를 탔을 것임.
-    // 만약 없다면... 
-    // 임시로 name 사용하거나, code를 기반으로 상위 지역 찾기 로직 필요.
-    // 현재는 name 그대로 사용 (데이터 확인 후 개선)
-
-    // 만약 name이 "초월읍" 같은 형식이라면 그대로 둠.
-    // 하지만 사용자가 "시군구 + 읍면동"을 원하므로, 데이터 확인이 중요.
-  }
+  // 문제 텍스트 생성
+  // Level 2는 "시군구" 단위이므로 name 또는 SIG_KOR_NM 사용
+  const displayName = props.SIG_KOR_NM || props.name || '알 수 없는 지역';
 
   return {
     id: crypto.randomUUID(),

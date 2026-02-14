@@ -23,7 +23,8 @@ export const useGameLogic = (
   regions: RegionFeature[],
   difficulty: Difficulty,
   currentLevel: number, // 현재 레벨 추가
-  onGameEnd: (score: GameScore) => void
+  onGameEnd: (score: GameScore) => void,
+  mapDataLevel2: RegionFeature[] = [] // ✅ BUG-003 FIX: Level 2 데이터 추가
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('LEVEL_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0 });
@@ -61,29 +62,40 @@ export const useGameLogic = (
 
   // 다음 문제 출제
   const setNextQuestion = useCallback((currentAnsweredRegions: Set<string>) => {
-    // 아직 정답을 맞추지 않은 지역들만 필터링 (1단계 기준 로직이긴 함. 2단계부터는 조금 다를 수 있음)
-    // 하지만 generateQuestion에게 mapData를 통째로 넘기고, strategy 안에서 필터링하는게 더 맞을 수도 있음.
-    // 일단 기존 로직 유지를 위해 '남은 지역'을 계산해서 넘겨주거나, 
-    // Strategy가 'answeredRegions'를 알게 하는게 좋음. 
-    // 현재 LevelContext에는 mapData만 있음. answeredRegions도 필요할 수 있음.
-    // 하지만 간단하게 가기 위해, 여기서 필터링된 mapData를 넘기는 방식으로 처리.
+    // ✅ BUG-003 FIX: Level 1은 Level 2 데이터 사용
+    // Level 1: 위치 찾기 (시군구) → mapDataLevel2 사용
+    // Level 2+: 경로, 거리 등 → regions (Level 3) 사용
+    let mapDataToUse: RegionFeature[];
 
-    const availableRegions = regions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+    if (currentLevel === 1) {
+      // Level 1: Level 2 (시군구) 데이터 사용
+      // 이미 맞춘 지역 필터링 (Level 2 코드로 비교)
+      mapDataToUse = mapDataLevel2.filter(r => !currentAnsweredRegions.has(r.properties.code));
 
-    if (availableRegions.length === 0) {
+      if (mapDataToUse.length === 0) {
+        // Level 2 데이터가 없으면 fallback to Level 3
+        console.warn('[GameLogic] No Level 2 data available, falling back to Level 3');
+        mapDataToUse = regions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+      }
+    } else {
+      // Level 2+: 기존 로직 (Level 3 데이터 사용)
+      mapDataToUse = regions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+    }
+
+    if (mapDataToUse.length === 0) {
       endGame();
       return;
     }
 
     const strategy = getLevelStrategy(currentLevel);
     const question = strategy.generateQuestion({
-      mapData: availableRegions, // 아직 안 맞춘 지역들만 전달
+      mapData: mapDataToUse, // ✅ Level에 맞는 데이터 전달
       difficulty
     });
 
     setCurrentQuestion(question);
     setLevelState(null); // 문제 바뀌면 레벨 상태 초기화
-  }, [regions, currentLevel, difficulty, endGame]);
+  }, [regions, currentLevel, difficulty, endGame, mapDataLevel2]);
 
   // 게임 시작
   const startGame = useCallback(() => {
@@ -115,15 +127,11 @@ export const useGameLogic = (
     setStartTime(null);
     setEndTime(null);
 
-    // 2. Start New Game (Next Tick)
-    // regions 데이터가 있어야 게임을 시작할 수 있음.
-    if (regions.length > 0) {
-      const initTimer = setTimeout(() => {
-        startGame();
-      }, 100);
-      return () => clearTimeout(initTimer);
-    }
-  }, [currentLevel, startGame, regions.length]); // regions.length 추가하여 데이터 로드 시 리셋 감지(UserInput 처리)
+    // ✅ BUG-001 FIX: 자동 게임 시작 제거
+    // 사용자가 START 버튼을 명시적으로 클릭해야만 게임이 시작되도록 변경
+    // GDD Section 2.1의 GameState 전환 흐름을 준수
+    // INITIAL → (START 버튼 클릭) → LEVEL_SELECT → (레벨 선택) → PLAYING
+  }, [currentLevel]); // startGame, regions.length 의존성 제거(UserInput 처리)
 
   // 정답 확인 (UserInput 처리)
   const checkAnswer = useCallback((input: UserInput) => {
