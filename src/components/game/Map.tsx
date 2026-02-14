@@ -18,27 +18,27 @@ const THEME_COLORS = {
   tactical: {
     fill: '#1a1a1a',
     stroke: '#444444',
-    answeredFill: 'rgba(22, 163, 74, 0.2)',
-    answeredStroke: '#16a34a',
-    correctFill: 'rgba(22, 163, 74, 0.4)',
-    correctStroke: '#16a34a',
-    wrongFill: 'rgba(220, 38, 38, 0.4)',
-    wrongStroke: '#dc2626',
-    hoverFill: 'rgba(22, 163, 74, 0.3)',
-    hoverStroke: '#ffffff',
+    answeredFill: 'rgba(22, 163, 74, 0.4)', // Slightly more opaque for visibility without border
+    answeredStroke: '#444444', // Same as default stroke
+    correctFill: 'rgba(22, 163, 74, 0.6)', // Bright green fill
+    correctStroke: '#444444', // Same as default stroke
+    wrongFill: 'rgba(220, 38, 38, 0.6)', // Bright red fill
+    wrongStroke: '#444444', // Same as default stroke
+    hoverFill: 'rgba(255, 255, 255, 0.1)', // Subtle light fill
+    hoverStroke: '#ffffff', // Hover still needs highlight (handled by overlay)
     hoverDefaultFill: '#333333',
   },
   kids: {
     fill: '#ffffff',
     stroke: '#cbd5e1', // Slate-300
-    answeredFill: 'rgba(59, 130, 246, 0.2)', // Blue-500 tint
-    answeredStroke: '#3b82f6',
-    correctFill: 'rgba(59, 130, 246, 0.4)',
-    correctStroke: '#3b82f6',
-    wrongFill: 'rgba(239, 68, 68, 0.4)', // Red-500 tint
-    wrongStroke: '#ef4444',
-    hoverFill: 'rgba(250, 204, 21, 0.3)', // Yellow-400 tint
-    hoverStroke: '#f59e0b', // Amber-500
+    answeredFill: 'rgba(59, 130, 246, 0.4)', // Blue-500 tint
+    answeredStroke: '#cbd5e1', // Same as default stroke
+    correctFill: 'rgba(59, 130, 246, 0.6)',
+    correctStroke: '#cbd5e1', // Same as default stroke
+    wrongFill: 'rgba(239, 68, 68, 0.6)', // Red-500 tint
+    wrongStroke: '#cbd5e1', // Same as default stroke
+    hoverFill: 'rgba(250, 204, 21, 0.4)', // Yellow-400 tint
+    hoverStroke: '#f59e0b', // Amber-500 (Hover still highlighted)
     hoverDefaultFill: '#fef3c7', // Amber-100
   }
 };
@@ -164,17 +164,15 @@ export const Map = () => {
             if (isCorrectFeedback) {
               fillColor = colors.correctFill;
               strokeColor = colors.correctStroke;
-              strokeWidth = 2 / transform.k;
             }
             if (isWrongFeedback) {
               fillColor = colors.wrongFill;
               strokeColor = colors.wrongStroke;
-              strokeWidth = 2 / transform.k;
             }
 
+            // Hover logic (fill only, stroke handled by overlay)
             if (hoveredRegion === code && gameState === 'PLAYING') {
               fillColor = isAnswered ? colors.hoverFill : colors.hoverDefaultFill;
-              strokeColor = colors.hoverStroke;
             }
 
             return (
@@ -203,6 +201,24 @@ export const Map = () => {
               />
             );
           })}
+
+          {/* Highlight Overlay Layer: Render Hovered Region on Top for Z-Index Fix */}
+          {/* Must be rendered BEFORE labels but AFTER the main map layer */}
+          {gameState === 'PLAYING' && hoveredRegion && (() => {
+            const targetFeature = featuresToRender.find((f: any) => f.properties.code === hoveredRegion);
+            if (!targetFeature) return null;
+
+            return (
+              <path
+                key={`highlight-${hoveredRegion}`}
+                d={pathGenerator(targetFeature as any) || ''}
+                fill="none"
+                stroke={colors.hoverStroke}
+                strokeWidth={2 / transform.k}
+                style={{ pointerEvents: 'none' }}
+              />
+            );
+          })()}
 
           {/* Label Rendering: Dual Layer System (Visual Hierarchy) */}
           {gameState === 'PLAYING' && (
