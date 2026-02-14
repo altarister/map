@@ -1,8 +1,8 @@
 # [TC] 1DAL Trainer - 테스트 케이스 문서
 
 **문서 코드**: TC-001  
-**작성일**: 2026-02-14  
-**버전**: 1.0.0  
+**작성일**: 2026-02-15  
+**버전**: 1.0.1 (Map Resize Bug Fix)  
 **상태**: Active  
 **참조 문서**: GDD v2.0.0, saved.html (Technical Specification)
 
@@ -703,10 +703,48 @@
 
 ---
 
+### 2.6 Layout & Responsiveness
+
+#### TC-UI-015: Map Resize Alignment (Map 좌표 동기화)
+**Priority**: P0
+**Precondition**: Map 표시
+**Steps**:
+1. 브라우저 창 크기를 변경 (Resize)
+2. 마우스로 특정 지역 Hover
+3. 지역 하이라이트 위치 확인
+
+**Expected Result**:
+- ✅ Map 크기가 창 크기에 맞춰 자동 조절될 것
+- ✅ 마우스 커서 위치와 하이라이트되는 지역이 **정확히 일치**할 것
+- ✅ (버그 회귀) Resize 후 클릭/호버 위치가 틀어지지 않아야 함
+
+**Status**: [ ] Pass / [ ] Fail
+**Tested By**: ___________
+**Date**: ___________
+
+#### TC-UI-016: Answered Region Interaction (기정답 영역 클릭 방지)
+**Priority**: P1
+**Precondition**: 문제 하나 정답 처리 (예: 파주시)
+**Steps**:
+1. 정답 처리된 지역(파주시)을 다시 클릭
+2. 피드백 및 점수 확인
+
+**Expected Result**:
+- ✅ 클릭 이벤트가 무시되어야 함
+- ✅ '정답입니다' 또는 '틀렸습니다' 피드백이 발생하지 않아야 함
+- ✅ 점수 변화 없어야 함
+- ✅ 커서가 'pointer'가 아닌 'default' 또는 'not-allowed'여야 함 (시각적 힌트)
+
+**Status**: [ ] Pass / [ ] Fail
+**Tested By**: ___________
+**Date**: ___________
+
+---
+
 ## 7. 알려진 이슈 (Known Issues)
 
 ### 현재 이슈 없음
-- 최초 버전 (v1.0.0)
+- v1.0.1 (Map Resize 버그 수정됨) -> v1.0.2 (기정답 중복 클릭 버그 수정됨)
 
 ---
 

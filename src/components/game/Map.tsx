@@ -10,6 +10,9 @@ import { useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
+import { BaseMapLayer } from './BaseMapLayer';
+import { HighlightOverlay } from './HighlightOverlay';
+import { InteractionLayer } from './InteractionLayer';
 import { log } from '../../lib/debug';
 
 // Theme Color Definitions
@@ -101,7 +104,7 @@ export const Map = () => {
     return proj;
   }, [mapData, width, height]);
 
-  const pathGenerator = geoPath().projection(projection);
+  const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
   const features = mapData?.features || [];
 
   // ... (keeping existing areas calculation)
@@ -156,91 +159,48 @@ export const Map = () => {
     <div ref={containerRef} className="w-full h-full map-grid relative overflow-hidden">
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
         <g ref={gRef}>
-          {/* Context Layer: Silhouette of full Level 2 Map */}
-          {level2Data?.features.map((feature: any) => (
-            <path
-              key={`context-${feature.properties.code}`}
-              d={pathGenerator(feature) || ''}
-              fill="none"
-              stroke={theme === 'tactical' ? '#333333' : '#bbbbbb'} // Darker stroke for Kids theme (Slate-400)
-              strokeWidth={0.5 / transform.k}
-              style={{ pointerEvents: 'none' }}
-            />
-          ))}
+          {/* Layer 1: Base Context & Answered Regions (Heavy, Static) */}
+          <BaseMapLayer
+            features={featuresToRender}
+            level2Data={level2Data}
+            pathGenerator={pathGenerator}
+            theme={theme}
+            themeColors={colors}
+            transform={transform}
+            answeredRegions={answeredRegions}
+            lastFeedback={lastFeedback}
+          />
 
-          {/* Active Game Layer */}
-          {featuresToRender.map((feature: any, index: number) => {
-            const code = feature.properties.code;
-            const isAnswered = answeredRegions.has(code);
-            const isCorrectFeedback = lastFeedback?.regionCode === code && lastFeedback?.isCorrect;
-            const isWrongFeedback = lastFeedback?.regionCode === code && !lastFeedback?.isCorrect;
+          {/* Layer 2: Highlight Overlay (Light, Dynamic) */}
+          {/* Handles Hover state and Wrong Feedback flash */}
+          <HighlightOverlay
+            features={featuresToRender}
+            pathGenerator={pathGenerator}
+            hoveredRegion={gameState === 'PLAYING' ? hoveredRegion : null}
+            themeColors={colors}
+            transform={transform}
+            lastFeedback={lastFeedback}
+          />
 
-            let fillColor = colors.fill;
-            let strokeColor = colors.stroke;
-            let strokeWidth = 1 / transform.k;
-            console.log(isAnswered)
-            if (isAnswered) {
-              fillColor = colors.answeredFill;
-              strokeColor = colors.answeredStroke;
-            }
-            if (isCorrectFeedback) {
-              fillColor = colors.correctFill;
-              strokeColor = colors.correctStroke;
-            }
-            if (isWrongFeedback) {
-              fillColor = colors.wrongFill;
-              strokeColor = colors.wrongStroke;
-            }
+          {/* Layer 3: Interaction Layer (Invisible, Event Handling) */}
+          <InteractionLayer
+            features={featuresToRender}
+            pathGenerator={pathGenerator}
+            gameState={gameState}
+            isGeometryLevel3={isGeometryLevel3}
+            onRegionHover={setHoveredRegion}
+            answeredRegions={answeredRegions}
+            onRegionClick={(code) => {
+              if (gameState !== 'PLAYING') return;
 
-            // Hover logic (fill only, stroke handled by overlay)
-            if (hoveredRegion === code && gameState === 'PLAYING') {
-              fillColor = isAnswered ? colors.hoverFill : colors.hoverDefaultFill;
-            }
-
-            return (
-              <path
-                key={code || index}
-                d={pathGenerator(feature as any) || ''}
-                fill={fillColor}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
-                onMouseEnter={() => setHoveredRegion(code)}
-                onMouseLeave={() => setHoveredRegion(null)}
-                onClick={() => {
-                  if (gameState === 'PLAYING' && code) {
-                    const isLevel1 = currentLevel === 1;
-                    if (!isLevel1 && !isGeometryLevel3) {
-                      log.game('[Map] Cannot answer at Zoom Level 2. Zoom in to Level 3.');
-                      return;
-                    }
-                    checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-                  }
-                }}
-                style={{
-                  transition: 'fill 0.15s, stroke 0.15s',
-                  cursor: gameState === 'PLAYING' ? (isGeometryLevel3 ? 'pointer' : 'not-allowed') : 'default'
-                }}
-              />
-            );
-          })}
-
-          {/* Highlight Overlay Layer: Render Hovered Region on Top for Z-Index Fix */}
-          {/* Must be rendered BEFORE labels but AFTER the main map layer */}
-          {gameState === 'PLAYING' && hoveredRegion && (() => {
-            const targetFeature = featuresToRender.find((f: any) => f.properties.code === hoveredRegion);
-            if (!targetFeature) return null;
-
-            return (
-              <path
-                key={`highlight-${hoveredRegion}`}
-                d={pathGenerator(targetFeature as any) || ''}
-                fill="none"
-                stroke={colors.hoverStroke}
-                strokeWidth={1 / transform.k} // Dynamic width: Thinner at low zoom (1.4px), thicker at high zoom (up to 2.8px)
-                style={{ pointerEvents: 'none' }}
-              />
-            );
-          })()}
+              const isLevel1 = currentLevel === 1;
+              if (!isLevel1 && !isGeometryLevel3) {
+                log.game('[Map] Cannot answer at Zoom Level 2. Zoom in to Level 3.');
+                return;
+              }
+              checkAnswer({ type: 'MAP_CLICK', regionCode: code });
+            }}
+          />
 
           {/* Label Rendering: Dual Layer System (Visual Hierarchy) */}
           {gameState === 'PLAYING' && (

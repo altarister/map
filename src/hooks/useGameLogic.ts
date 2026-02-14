@@ -42,6 +42,8 @@ export const useGameLogic = (
 
   // eslint-disable-next-line no-undef
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProcessingRef = useRef<boolean>(false); // Concurrency control
+
 
   // 게임 종료
   const endGame = useCallback(() => {
@@ -116,6 +118,11 @@ export const useGameLogic = (
 
     setCurrentQuestion(question);
     setLevelState(null); // 문제 바뀌면 레벨 상태 초기화
+
+    // Unlock processing for next question
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 100); // Slight delay to ensure UI updates
   }, [regions, currentLevel, difficulty, endGame, mapDataLevel2]);
 
   // 게임 시작
@@ -160,6 +167,12 @@ export const useGameLogic = (
     // PLAYING 상태가 아니거나 문제가 없으면 입력 무시 (안전장치)
     if (gameState !== 'PLAYING' || !currentQuestion) return;
 
+    // Concurrency Check: Prevent double processing
+    if (isProcessingRef.current) {
+      console.warn("[GameLogic] Validation skipped: Already processing an answer.");
+      return;
+    }
+
     const strategy = getLevelStrategy(currentLevel);
 
     // [Defensive] 현재 레벨의 전략이 지원하는 문제 타입인지 확인
@@ -183,6 +196,9 @@ export const useGameLogic = (
       }
 
       if (result.status === 'CORRECT') {
+        // Lock processing immediately to prevent double scoring
+        isProcessingRef.current = true;
+
         // 정답 처리
         setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
 
@@ -192,11 +208,7 @@ export const useGameLogic = (
           newAnswered.add(currentQuestion.target.code);
           setAnsweredRegions(newAnswered);
         }
-        // 2단계 등 다른 레벨도 정답 처리 후 다음 문제
-        // answeredRegions 상태 업데이트가 비동기이므로, 
-        // 다음 문제 생성 시에는 현재 스냅샷 + 방금 맞춘 것(필요시)을 고려해야 함.
-        // 하지만 setNextQuestion은 의존성 배열에 answeredRegions를 가지고 있지 않고,
-        // 인자로 받아서 처리함.
+        // ...
 
         // LOCATE_SINGLE인 경우 방금 추가된 것을 포함해서 넘겨야 함.
         const nextAnswered = new Set(answeredRegions);
