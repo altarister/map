@@ -6,7 +6,6 @@ import { RegionSelectScreen } from './components/game/RegionSelectScreen';
 
 import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
-import { DebugInfoPanel } from './components/game/DebugInfoPanel';
 import { GameInfoPanel } from './components/game/GameInfoPanel';
 import { ActionBar } from './components/game/ActionBar';
 
@@ -39,7 +38,6 @@ function GameContent() {
       <ResultModal />
 
       {/* Info Panels (항상 표시) */}
-      <DebugInfoPanel />
       <GameInfoPanel />
     </div>
   );

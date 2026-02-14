@@ -7,11 +7,10 @@ import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
 import { useMapContext } from '../../contexts/MapContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
 import { log } from '../../lib/debug';
-
-import { useSettings } from '../../contexts/SettingsContext';
 
 // Theme Color Definitions
 const THEME_COLORS = {
@@ -62,6 +61,7 @@ export const Map = () => {
 
   // MapContext에서 transform, hoveredRegion 가져오기
   const { transform, setTransform, hoveredRegion, setHoveredRegion } = useMapContext();
+  const { showDebugInfo } = useSettings();
 
   // ... (keeping existing refs and scale hooks)
   const svgRef = useRef<SVGSVGElement>(null);
@@ -121,7 +121,10 @@ export const Map = () => {
 
     // Initialize zoom behavior and disable double-click to zoom
     svg.call(zoomBehavior)
-      .on("dblclick.zoom", null); // <--- Key Fix: Disable auto-zoom on dblclick
+      .on("dblclick.zoom", null);
+
+    // Initial scale calculation
+    handleMove({ zoom: transform.k });
 
     previousGameState.current = gameState;
   }, [handleMove, mapData, gameState]);
@@ -214,7 +217,7 @@ export const Map = () => {
                 d={pathGenerator(targetFeature as any) || ''}
                 fill="none"
                 stroke={colors.hoverStroke}
-                strokeWidth={2 / transform.k}
+                strokeWidth={1 / transform.k} // Dynamic width: Thinner at low zoom (1.4px), thicker at high zoom (up to 2.8px)
                 style={{ pointerEvents: 'none' }}
               />
             );
@@ -262,9 +265,10 @@ export const Map = () => {
         distance={scaleDistance}
         unit={scaleUnit}
         zoom={transform.k}
+        hoveredRegion={featuresToRender.find((f: any) => f.properties.code === hoveredRegion)?.properties.name}
+        renderedCount={featuresToRender.length}
+        showDebug={showDebugInfo}
       />
-
-
 
       {!isGeometryLevel3 && gameState === 'PLAYING' && currentLevel !== 1 && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
