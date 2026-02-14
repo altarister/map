@@ -12,6 +12,7 @@ interface RegionLabelProps {
   answeredRegions: Set<string>;
   lastFeedback: AnswerFeedback | null;
   fontScale?: number;
+  baseArea?: number;
 }
 
 export const RegionLabel = memo(({
@@ -21,7 +22,8 @@ export const RegionLabel = memo(({
   gameState,
   answeredRegions,
   lastFeedback,
-  fontScale = 1
+  fontScale = 1,
+  baseArea = 0
 }: RegionLabelProps) => {
   const code = feature.properties.code;
   const name = feature.properties.name;
@@ -33,14 +35,20 @@ export const RegionLabel = memo(({
 
   const [x, y] = coords;
 
-  const shouldShowLabel = () => {
-    // Show labels in Level 2 (시/군) always
-    // In Level 3 (읍/면/동), show only for answered or feedback regions
-    if (transform.k < 1.5) return true; // Level 2
+  // 1. Area-based Visibility Check (Performance Optimized)
+  // 화면상 면적이 너무 작으면 라벨을 그리지 않음 (Clutter 방지)
+  // 기준: 50x50px (2500px²)
+  const screenArea = baseArea * transform.k * transform.k;
+  const VISIBILITY_THRESHOLD = 2500;
 
-    // Level 3: show only important labels
-    return answeredRegions.has(code) || lastFeedback?.regionCode === code;
-  };
+  if (baseArea > 0 && screenArea < VISIBILITY_THRESHOLD) {
+    // 단, 정답을 맞췄거나 피드백이 있는 경우는 예외적으로 보여줄 수 있음 (기획에 따라 결정)
+    // 현재는 "좁은 땅에는 글씨를 쓰지 않는다" 원칙 고수
+    return null;
+  }
+
+  // Visibility is controlled by parent (Map.tsx)
+  // based on Zoom Level (Macro vs Micro View)
 
   const getLabelColor = () => {
     if (answeredRegions.has(code)) return '#1e293b';
@@ -50,11 +58,11 @@ export const RegionLabel = memo(({
     return '#334155';
   };
 
-  if (!shouldShowLabel()) return null;
-
-  // Font size calculation (inverse to zoom level)
-  const baseSize = 12 * fontScale;
-  const fontSize = Math.max(8, Math.min(16, baseSize / transform.k));
+  // 2. Fixed Screen Font Size Logic
+  // 줌 레벨이 변해도 텍스트는 항상 스크린 기준 12px~14px 크기로 보여야 함
+  // SVG 내부에서는 scale이 적용되므로, 폰트 크기를 역으로 나눠줘야 함
+  const TARGET_SCREEN_FONT_SIZE = 14 * fontScale; // px
+  const fontSize = TARGET_SCREEN_FONT_SIZE / transform.k;
 
   return (
     <text
@@ -68,8 +76,8 @@ export const RegionLabel = memo(({
       fontFamily="system-ui"
       style={{
         pointerEvents: 'none',
-        textShadow: '0px 0px 2px rgba(255,255,255,0.8)',
-        transition: 'fill 0.2s ease'
+        textShadow: '0px 0px 3px rgba(255,255,255,0.9), 0px 0px 1px rgba(255,255,255,1)', // 하얀색 테두리 효과 강화
+        transition: 'fill 0.2s ease, opacity 0.2s ease'
       }}
     >
       {name}

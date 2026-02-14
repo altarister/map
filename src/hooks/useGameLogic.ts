@@ -9,7 +9,7 @@ interface UseGameLogicReturn {
   setGameState: (state: GameState) => void; // 추가
   currentQuestion: GameQuestion | null;
   score: GameScore;
-  startGame: () => void;
+  startGame: (overrideRegions?: RegionFeature[]) => void;
   checkAnswer: (input: UserInput) => void; // string code -> UserInput 객체로 변경
   resetGame: () => void;
   lastFeedback: AnswerFeedback | null;
@@ -61,26 +61,47 @@ export const useGameLogic = (
   }, [onGameEnd]);
 
   // 다음 문제 출제
-  const setNextQuestion = useCallback((currentAnsweredRegions: Set<string>) => {
+  const setNextQuestion = useCallback((currentAnsweredRegions: Set<string>, regionsOverride?: RegionFeature[]) => {
     // ✅ BUG-003 FIX: Level 1은 Level 2 데이터 사용
     // Level 1: 위치 찾기 (시군구) → mapDataLevel2 사용
     // Level 2+: 경로, 거리 등 → regions (Level 3) 사용
     let mapDataToUse: RegionFeature[];
 
+    // ✅ FIX: Use override regions if provided (for game start), otherwise use current regions prop
+    const targetRegions = regionsOverride || regions;
+
     if (currentLevel === 1) {
       // Level 1: Level 2 (시군구) 데이터 사용
-      // 이미 맞춘 지역 필터링 (Level 2 코드로 비교)
-      mapDataToUse = mapDataLevel2.filter(r => !currentAnsweredRegions.has(r.properties.code));
 
-      if (mapDataToUse.length === 0) {
-        // Level 2 데이터가 없으면 fallback to Level 3
-        console.warn('[GameLogic] No Level 2 data available, falling back to Level 3');
-        mapDataToUse = regions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+      console.log('[GameLogic] setNextQuestion Level 1');
+      console.log('[GameLogic] targetRegions length:', targetRegions?.length);
+      if (targetRegions?.length > 0) {
+        console.log('[GameLogic] Sample targetRegion code:', targetRegions[0].properties.code);
       }
+
+      // 1. 현재 regions(Level 3)에 포함된 Level 2 코드 추출 (유효성 검증용)
+      const validLevel2Codes = new Set<string>();
+      targetRegions.forEach(r => {
+        if (r.properties.code && r.properties.code.length >= 5) {
+          validLevel2Codes.add(r.properties.code.substring(0, 5));
+        }
+      });
+
+      // GDD v2.0 Update: 항상 읍/면/동(Level 3) 단위로 문제 출제
+      // 시/군(Level 2) 선택 여부와 관계없이 상세 지역 학습 유도
+      mapDataToUse = targetRegions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+
     } else {
       // Level 2+: 기존 로직 (Level 3 데이터 사용)
-      mapDataToUse = regions.filter(r => !currentAnsweredRegions.has(r.properties.code));
+      mapDataToUse = targetRegions.filter(r => !currentAnsweredRegions.has(r.properties.code));
     }
+
+    if (mapDataToUse.length === 0) {
+      endGame();
+      return;
+    }
+
+    /* Debug logs removed */
 
     if (mapDataToUse.length === 0) {
       endGame();
@@ -98,7 +119,7 @@ export const useGameLogic = (
   }, [regions, currentLevel, difficulty, endGame, mapDataLevel2]);
 
   // 게임 시작
-  const startGame = useCallback(() => {
+  const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
     setScore({ correct: 0, incorrect: 0, duration: 0 });
     const newAnsweredRegions = new Set<string>();
     setAnsweredRegions(newAnsweredRegions);
@@ -112,7 +133,8 @@ export const useGameLogic = (
 
     setGameState('PLAYING');
 
-    setNextQuestion(newAnsweredRegions);
+    // ✅ FIX: Pass overrideRegions to setNextQuestion to ensure correct initial question
+    setNextQuestion(newAnsweredRegions, overrideRegions);
   }, [setNextQuestion]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)

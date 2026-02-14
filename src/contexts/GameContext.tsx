@@ -23,7 +23,8 @@ interface GameContextType {
   error: Error | null;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
-  levelState: any; // 추가
+  levelState: any;
+  currentLevel: number; // 추가
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -86,24 +87,22 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return selectedCities.some(city => parentName.startsWith(city));
       });
 
-      setFilteredMapData({
+      const newFilteredData = {
         ...fullMapData, // type 등 나머지 속성 유지
         features: filteredFeatures
-      });
+      };
 
-      // 상태 업데이트 반영을 위해 잠시 대기할 수도 있지만, 
-      // 리액트 상태 업데이트 배칭으로 인해 startGameLogic이 이전 데이터를 참조할 수도 있음.
-      // 하지만 useGameLogic 내부에서 regions prop이 바뀌면 내부 상태(totalRegions 등)를 업데이트하도록 되어 있다면 괜찮음.
-      // useGameLogic을 확인해봐야 함. 
-      // 만약 useGameLogic이 regions prop 변경에 반응하지 않는다면(useEffect 없으면), 
-      // 여기서 setFilteredMapData 직후에 startGameLogic을 불러도 소용 없을 수 수 있음.
-      // 안전하게 setTimeout 0 사용.
-      setTimeout(() => startGameLogic(), 0);
+      setFilteredMapData(newFilteredData);
+
+      // ✅ BUG FIX: 비동기 Update 문제 해결
+      // useGameLogic의 startGame에 필터링된 데이터를 직접 전달하여
+      // 즉시 그 데이터를 기반으로 첫 문제를 생성하도록 함.
+      startGameLogic(filteredFeatures);
 
     } else {
       // 선택 없으면 전체 데이터 사용
       setFilteredMapData(fullMapData);
-      setTimeout(() => startGameLogic(), 0);
+      startGameLogic(fullMapData.features);
     }
   };
 
@@ -124,7 +123,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     error,
     lastFeedback,
     answeredRegions,
-    levelState
+    levelState,
+    currentLevel // 추가
   };
 
   return (
