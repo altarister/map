@@ -748,7 +748,26 @@
 
 ---
 
-## 8. 테스트 실행 가이드 (Test Execution Guide)
+## 8. 탐색적 테스트 및 엣지 케이스 (Exploratory Testing & Edge Cases)
+
+QA 전문가로서 예상되는 잠재적 버그 시나리오입니다. 다음 항목들을 중점적으로 테스트해 보시기를 권장합니다.
+
+### 8.1 입력 및 인터랙션 (Input & Interaction)
+- [ ] **TC-EX-001 (Rapid Re-click)**: 정답 판정 직후(0.1초 내) 다른 지역을 매우 빠르게 클릭했을 때 오답 처리되는가? (Concurrency Guard 확인)
+- [ ] **TC-EX-002 (Double Click)**: 정답 지역을 더블 클릭했을 때, 두 번째 클릭이 다음 문제의 오답으로 처리되지 않는가?
+- [ ] **TC-EX-003 (Simultaneous Input)**: (터치스크린/멀티터치) 두 지역을 동시에 터치했을 때 동작은?
+
+### 8.2 화면 및 렌더링 (Display & Rendering)
+- [ ] **TC-EX-004 (Browser Zoom)**: 브라우저 자체 줌(`Cmd +/-`)을 150% 이상 변경했을 때, 마우스 좌표와 맵 하이라이트가 일치하는가? (CSS transform vs SVG coordinate)
+- [ ] **TC-EX-005 (Background Throttle)**: 브라우저 탭을 비활성화했다가 다시 돌아왔을 때, 타이머나 애니메이션이 튀지 않는가?
+
+### 8.3 게임 로직 (Game Logic)
+- [ ] **TC-EX-006 (Level Transition)**: 마지막 문제를 맞추자마자 다른 버튼(예: 그만하기)을 눌렀을 때 상태 꼬임은 없는가?
+- [ ] **TC-EX-007 (Quick Restart)**: 결과 창이 뜨자마자 빠르게 '다시하기'를 눌렀을 때 점수 초기화가 올바른가?
+
+---
+
+## 9. 테스트 실행 가이드 (Test Execution Guide)
 
 ### 8.1 로컬 환경 설정
 
