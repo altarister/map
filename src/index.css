@@ -143,4 +143,21 @@
     /* Fun border */
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
+
+  /* Road Layer Styles */
+  .stroke-road-motorway {
+    @apply stroke-slate-500/40;
+  }
+
+  .stroke-road-trunk {
+    @apply stroke-slate-600/30;
+  }
+
+  .theme-kids .stroke-road-motorway {
+    @apply stroke-yellow-400/90;
+  }
+
+  .theme-kids .stroke-road-trunk {
+    @apply stroke-orange-300/70;
+  }
 }

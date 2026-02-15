@@ -13,6 +13,7 @@ import { RegionLabel } from './RegionLabel';
 import { BaseMapLayer } from './BaseMapLayer';
 import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
+import { RoadLayer } from './RoadLayer';
 import { log } from '../../lib/debug';
 
 // Theme Color Definitions
@@ -76,6 +77,22 @@ export const Map = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
+  // Road Data State
+  const [roadData, setRoadData] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch road data asynchronously
+    fetch('/data/korea-roads.json')
+      .then(res => res.json())
+      .then(data => {
+        console.log('[Map] Road data loaded:', data.features.length);
+        setRoadData(data);
+      })
+      .catch(err => {
+        console.error('[Map] Failed to load road data:', err);
+      });
+  }, []);
+
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -83,12 +100,16 @@ export const Map = () => {
         setDimensions({ width: clientWidth, height: clientHeight });
       }
     };
-
-    window.addEventListener('resize', updateDimensions);
-    updateDimensions(); // Initial calculation
-
+    // ... existing ...
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  // ... existing code ...
+
+
+
+  {/* Layer 2: Highlight Overlay (Light, Dynamic) */ }
+  // ... existing code ...
 
   const width = dimensions.width;
   const height = dimensions.height;
@@ -170,6 +191,14 @@ export const Map = () => {
             answeredRegions={answeredRegions}
             lastFeedback={lastFeedback}
           />
+
+          {/* Layer 1.5: Road Layer (Contextual) */}
+          {roadData && (
+            <RoadLayer
+              features={roadData.features}
+              pathGenerator={pathGenerator}
+            />
+          )}
 
           {/* Layer 2: Highlight Overlay (Light, Dynamic) */}
           {/* Handles Hover state and Wrong Feedback flash */}
