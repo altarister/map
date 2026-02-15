@@ -19,7 +19,9 @@ interface GameContextType {
   mapData: RegionCollection | null; // 원본 데이터 (Level 3 - Detailed)
   mapDataLevel2: RegionCollection | null; // LOD Level 2 데이터 (Simple)
   filteredMapData: RegionCollection | null; // 필터링된 데이터
+  roadData: any; // 추가: 도로 데이터
   loading: boolean;
+  progress: number; // 추가: 로딩 진행률 (0-100)
   error: Error | null;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
@@ -33,8 +35,8 @@ const EMPTY_REGIONS: any[] = [];
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // 전체 데이터 로드
-  const { data: fullMapData, level2Data, loading, error } = useGeoData();
+  // 전체 데이터 로드 (이제 roadData와 progress도 반환됨)
+  const { data: fullMapData, level2Data, roadData, loading, progress, error } = useGeoData();
   // 선택된 지역만 담을 State
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
 
@@ -119,7 +121,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     mapData: fullMapData,
     mapDataLevel2: level2Data,
     filteredMapData,
+    roadData, // 추가
     loading,
+    progress, // 추가
     error,
     lastFeedback,
     answeredRegions,

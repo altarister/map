@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from 'react';
+import { useRef, useMemo } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
@@ -14,7 +14,6 @@ import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapZoom } from '../../hooks/useMapZoom';
-import * as topojson from 'topojson-client';
 import { log } from '../../lib/debug';
 
 // Theme Color Definitions
@@ -52,6 +51,7 @@ export const Map = () => {
   const {
     filteredMapData: mapData,
     mapDataLevel2: level2Data,
+    roadData, // Consume preloaded road data
     loading,
     error,
     gameState,
@@ -86,23 +86,6 @@ export const Map = () => {
     },
     roadLayerRef // Pass ref to hook
   });
-
-  // Road Data State
-  const [roadData, setRoadData] = useState<any>(null);
-
-  useEffect(() => {
-    // Fetch road data asynchronously (TopoJSON)
-    fetch('/data/korea-roads-topo.json?v=3')
-      .then(res => res.json())
-      .then(topology => {
-        const geojson = topojson.feature(topology, topology.objects.roads) as any;
-        console.log('[Map] Road data loaded (TopoJSON):', geojson.features.length);
-        setRoadData(geojson);
-      })
-      .catch(err => {
-        console.error('[Map] Failed to load road data:', err);
-      });
-  }, []);
 
   // --- Derived State (Restored) ---
   const projection = useMemo(() => {
