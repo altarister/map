@@ -156,7 +156,7 @@ export const Map = () => {
         <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <BaseMapLayer
             features={featuresToRender}
-            level2Data={level2Data}
+            level2Data={{ features: filteredLevel2Features }}
             pathGenerator={pathGenerator}
             theme={theme}
             themeColors={colors}

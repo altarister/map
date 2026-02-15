@@ -26,29 +26,15 @@ export const BaseMapLayer = memo(({
 }: BaseMapLayerProps) => {
 
     const strokeWidth = 1 / transform.k;
-    const contextStrokeWidth = 0.5 / transform.k;
-    const contextStrokeColor = theme === 'tactical' ? '#333333' : '#94a3b8';
+
 
     return (
         <>
-            {/* Context Layer: Silhouette of full Level 2 Map */}
-            {level2Data?.features.map((feature: any) => (
-                <path
-                    key={`context-${feature.properties.code}`}
-                    d={pathGenerator(feature) || ''}
-                    fill="none"
-                    stroke={contextStrokeColor}
-                    strokeWidth={contextStrokeWidth}
-                    style={{ pointerEvents: 'none' }}
-                />
-            ))}
-
             {/* Active Game Layer */}
             {features.map((feature: any, index: number) => {
                 const code = feature.properties.code;
                 const isAnswered = answeredRegions.has(code);
                 const isCorrectFeedback = lastFeedback?.regionCode === code && lastFeedback?.isCorrect;
-                // Wrong feedback is handled by HighlightOverlay to avoid re-rendering base layer on wrong answer
 
                 let fillColor = themeColors.fill;
                 let strokeColor = themeColors.stroke;
@@ -71,29 +57,23 @@ export const BaseMapLayer = memo(({
                         strokeWidth={strokeWidth}
                         style={{
                             transition: 'fill 0.15s, stroke 0.15s',
-                            // Base layer doesn't handle events directly for better performance separation,
-                            // but we keep visual properties here. events are handled by a transparent layer on top.
-                            // Wait, previous plan was to use Interaction Layer.
-                            // However, typically SVG structure requires the element to be present to receive events.
-                            // If we use a separate transparent layer on top, we duplicate DOM nodes.
-                            // For now, let's keep pointer-events here but NOT passing event handlers.
-                            // Actually, if we don't pass onClick here, how do we click?
-                            // Optimization Strategy:
-                            // 1. Base Layer renders visual state.
-                            // 2. Interaction Layer renders transparent copies with event handlers.
-                            // But doubling DOM nodes (2x paths) is also a cost.
-
-                            // Revised Strategy for Base Layer:
-                            // Render visual state. DO NOT re-render on hover.
-                            // Re-render only on answeRed/Theme change.
-                            // We need to decide where to put event handlers.
-                            // If we put handlers here, we don't need to pass hoveredRegion, so it won't re-render on hover.
-                            // But we need to pass setHoveredRegion callback. That's fine.
-                            // The key is: this component props should NOT change on hover.
                         }}
                     />
                 );
             })}
+
+            {/* Context Layer: Level 2 Borders (Rendered ON TOP for visibility) */}
+            {level2Data?.features.map((feature: any) => (
+                <path
+                    key={`context-${feature.properties.code}`}
+                    d={pathGenerator(feature) || ''}
+                    fill="none"
+                    // Tactical: Lighter gray for visibility on top of dark map
+                    stroke={theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b'}
+                    strokeWidth={theme === 'tactical' ? 2.0 / transform.k : 1.5 / transform.k}
+                    style={{ pointerEvents: 'none' }}
+                />
+            ))}
         </>
     );
 }, (prev, next) => {
