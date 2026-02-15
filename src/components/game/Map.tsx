@@ -49,7 +49,8 @@ const THEME_COLORS = {
 export const Map = () => {
   // 1. Hooks (Must be called unconditionally)
   const {
-    filteredMapData: mapData,
+    mapData: fullMapData, // Use full data for projection
+    filteredMapData: mapData, // Use filtered data for gameplay
     mapDataLevel2: level2Data,
     roadData, // Consume preloaded road data
     loading,
@@ -90,13 +91,14 @@ export const Map = () => {
   // --- Derived State (Restored) ---
   const projection = useMemo(() => {
     const proj = geoMercator();
-    if (mapData && mapData.features && mapData.features.length > 0) {
-      proj.fitExtent([[50, 50], [width - 50, height - 50]], mapData as any);
+    // Always fit to FULL map data (Gyeonggi-do), not the filtered (selected) data
+    if (fullMapData && fullMapData.features && fullMapData.features.length > 0) {
+      proj.fitExtent([[50, 50], [width - 50, height - 50]], fullMapData as any);
     } else {
       proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
     }
     return proj;
-  }, [mapData, width, height]);
+  }, [fullMapData, width, height]);
 
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
   const features = mapData?.features || [];

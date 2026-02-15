@@ -18,7 +18,7 @@ interface UseMapZoomProps {
     onZoom?: (transform: Transform) => void;
     minZoom?: number;
     maxZoom?: number;
-    roadLayerRef?: RefObject<RoadLayerHandle>;
+    roadLayerRef?: RefObject<RoadLayerHandle | null>;
 }
 
 export const useMapZoom = ({
