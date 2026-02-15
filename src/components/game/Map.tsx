@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
-import { zoom, zoomIdentity } from 'd3-zoom';
+import { zoom } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
 import 'd3-transition';
@@ -14,6 +14,7 @@ import { BaseMapLayer } from './BaseMapLayer';
 import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
+import * as topojson from 'topojson-client';
 import { log } from '../../lib/debug';
 
 // Theme Color Definitions
@@ -80,13 +81,19 @@ export const Map = () => {
   // Road Data State
   const [roadData, setRoadData] = useState<any>(null);
 
+
+
+  // ...
+
   useEffect(() => {
-    // Fetch road data asynchronously
-    fetch('/data/korea-roads.json')
+    // Fetch road data asynchronously (TopoJSON)
+    fetch('/data/korea-roads-topo.json')
       .then(res => res.json())
-      .then(data => {
-        console.log('[Map] Road data loaded:', data.features.length);
-        setRoadData(data);
+      .then(topology => {
+        // Convert TopoJSON back to GeoJSON FeatureCollection
+        const geojson = topojson.feature(topology, topology.objects.roads) as any;
+        console.log('[Map] Road data loaded (TopoJSON):', geojson.features.length);
+        setRoadData(geojson);
       })
       .catch(err => {
         console.error('[Map] Failed to load road data:', err);
@@ -197,6 +204,13 @@ export const Map = () => {
             <RoadLayer
               features={roadData.features}
               pathGenerator={pathGenerator}
+              zoom={transform.k}
+              viewport={{
+                x: -transform.x / transform.k,
+                y: -transform.y / transform.k,
+                width: width / transform.k,
+                height: height / transform.k
+              }}
             />
           )}
 
