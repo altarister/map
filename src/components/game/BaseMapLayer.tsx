@@ -63,17 +63,26 @@ export const BaseMapLayer = memo(({
             })}
 
             {/* Context Layer: Level 2 Borders (Rendered ON TOP for visibility) */}
-            {level2Data?.features.map((feature: any) => (
-                <path
-                    key={`context-${feature.properties.code}`}
-                    d={pathGenerator(feature) || ''}
-                    fill="none"
-                    // Tactical: Lighter gray for visibility on top of dark map
-                    stroke={theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b'}
-                    strokeWidth={theme === 'tactical' ? 2.0 / transform.k : 1.5 / transform.k}
-                    style={{ pointerEvents: 'none' }}
-                />
-            ))}
+            {level2Data?.features.map((feature: any) => {
+                // Determine if this Level 2 feature corresponds to ANY currently active Level 3 features
+                // Efficiently check if any feature starts with this code
+                const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
+
+                return (
+                    <path
+                        key={`context-${feature.properties.code}`}
+                        d={pathGenerator(feature) || ''}
+                        fill="none"
+                        // Tactical: Lighter gray for visibility on top of dark map
+                        stroke={theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b'}
+                        strokeWidth={theme === 'tactical' ? 2.0 / transform.k : 1.5 / transform.k}
+                        style={{
+                            pointerEvents: 'none',
+                            opacity: isActiveSector ? 1 : 0.15 // Dim unselected sectors significantly
+                        }}
+                    />
+                );
+            })}
         </>
     );
 }, (prev, next) => {
