@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useLayoutEffect, useRef } from 'react';
 
 interface Dimensions {
     width: number;
@@ -6,29 +6,40 @@ interface Dimensions {
 }
 
 export const useMapDimensions = <T extends HTMLElement>() => {
-    const ref = useRef<T>(null);
     const [dimensions, setDimensions] = useState<Dimensions>({ width: 0, height: 0 });
+    const [node, setNode] = useState<T | null>(null);
+    const observerRef = useRef<ResizeObserver | null>(null);
 
-    useEffect(() => {
-        if (!ref.current) return;
+    const ref = useCallback((node: T | null) => {
+        setNode(node);
+    }, []);
 
-        const observer = new ResizeObserver((entries) => {
+    useLayoutEffect(() => {
+        if (!node) return;
+
+        // Measure immediately
+        const measure = () => {
+            const { clientWidth, clientHeight } = node;
+            setDimensions({ width: clientWidth, height: clientHeight });
+        };
+        measure();
+
+        observerRef.current = new ResizeObserver((entries) => {
             if (!entries[0]) return;
-
             const { width, height } = entries[0].contentRect;
-
-            // Use requestAnimationFrame to debounce and sync with render cycle
             requestAnimationFrame(() => {
                 setDimensions({ width, height });
             });
         });
 
-        observer.observe(ref.current);
+        observerRef.current.observe(node);
 
         return () => {
-            observer.disconnect();
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
         };
-    }, []);
+    }, [node]);
 
     return { ref, ...dimensions };
 };
