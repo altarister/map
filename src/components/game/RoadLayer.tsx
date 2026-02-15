@@ -18,7 +18,6 @@ export interface RoadLayerHandle {
 
 export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ features, projection, transform, width, height }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
     // 1. Spatial Indexing: Build Quadtree
     const boundsGenerator = useMemo(() => geoPath(projection), [projection]);
 
@@ -128,7 +127,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                                     ctx.strokeStyle = 'rgba(234, 179, 8, 0.9)'; // Brighter
                                 } else if (isTrunk) {
                                     ctx.lineWidth = 1.2;
-                                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
                                 } else {
                                     ctx.lineWidth = 0.8;
                                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -200,7 +199,10 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         ctx.translate(x, y);
         ctx.scale(k, k);
 
-        const canvasPath = geoPath(projection).context(ctx);
+        // Disabled Clipping for smooth panning (avoid "jumping" at edges)
+        // Disabled Clipping for smooth panning (avoid "jumping" at edges)
+        const localProjection = (projection as any).copy ? (projection as any).copy().clipExtent(null) : projection;
+        const canvasPath = geoPath(localProjection).context(ctx);
         const invertX = (px: number) => (px - x) / k;
         const invertY = (py: number) => (py - y) / k;
         const vp = { x0: invertX(0), y0: invertY(0), x1: invertX(width), y1: invertY(height) };
@@ -230,13 +232,13 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                             canvasPath(feature as any);
                             if (isMotorway) {
                                 ctx.lineWidth = 1.5;
-                                ctx.strokeStyle = 'rgba(234, 179, 8, 0.9)';
+                                ctx.strokeStyle = 'rgba(234, 179, 8, 0.2)'; // Keep Yellow (User approved)
                             } else if (isTrunk) {
                                 ctx.lineWidth = 1.2;
-                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                                ctx.strokeStyle = 'rgba(176, 138, 34, 0.2)'; // Soft White for Trunks
                             } else {
                                 ctx.lineWidth = 0.8;
-                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                                ctx.strokeStyle = 'rgba(224, 81, 19, 0.2)'; // Faint White for Others
                             }
                             ctx.stroke();
                         }
@@ -260,7 +262,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 10 }}
+            style={{ zIndex: 10, opacity: 0.7 }}
         />
     );
 }));

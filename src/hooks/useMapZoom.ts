@@ -61,7 +61,6 @@ export const useMapZoom = ({
                 // 3. Status update (Async/React)
                 setTransform({ x, y, k });
 
-                // IMPORTANT: Pass full transform so parent can sync Context
                 if (onZoom) onZoom({ x, y, k });
             })
             .filter((event) => !event.ctrlKey && event.type !== 'dblclick');
