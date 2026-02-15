@@ -8,6 +8,7 @@ import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 import { GameInfoPanel } from './components/game/GameInfoPanel';
 import { ActionBar } from './components/game/ActionBar';
+import { LayerControl } from './components/game/LayerControl';
 
 import { useState } from 'react';
 import { LoadingScreen } from './components/game/LoadingScreen';
@@ -31,8 +32,12 @@ function GameContent() {
       {/* State별 UI Overlay (게임 시작 후에만 표시) */}
       {hasStarted && (
         <>
+
           {/* ActionBar (PLAYING 상태에서 Accordion 애니메이션) */}
           <ActionBar />
+
+          {/* Layer Control (Top Right) */}
+          <LayerControl />
 
           {/* INITIAL: 최초 진입 (Map만 표시, 반투명 오버레이) */}
           {gameState === 'INITIAL' && (

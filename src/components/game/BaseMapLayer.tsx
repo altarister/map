@@ -12,6 +12,7 @@ interface BaseMapLayerProps {
     transform: { k: number };
     answeredRegions: Set<string>;
     lastFeedback: AnswerFeedback | null;
+    showBoundaries: boolean;
 }
 
 export const BaseMapLayer = memo(({
@@ -22,7 +23,8 @@ export const BaseMapLayer = memo(({
     themeColors,
     transform,
     answeredRegions,
-    lastFeedback
+    lastFeedback,
+    showBoundaries
 }: BaseMapLayerProps) => {
 
     const strokeWidth = 1 / transform.k;
@@ -78,7 +80,8 @@ export const BaseMapLayer = memo(({
                         strokeWidth={theme === 'tactical' ? 2.0 / transform.k : 1.5 / transform.k}
                         style={{
                             pointerEvents: 'none',
-                            opacity: isActiveSector ? 1 : 0.15 // Dim unselected sectors significantly
+                            opacity: isActiveSector ? 1 : 0.15, // Dim unselected sectors significantly
+                            visibility: showBoundaries ? 'visible' : 'hidden'
                         }}
                     />
                 );
@@ -93,9 +96,9 @@ export const BaseMapLayer = memo(({
         prev.features === next.features &&
         prev.level2Data === next.level2Data &&
         prev.answeredRegions === next.answeredRegions &&
-        prev.pathGenerator === next.pathGenerator && // Critical for resize handling
-        // Only re-render base layer if feedback is CORRECT (permanent change)
-        // WRONG feedback is transient and handled by Overlay
+        prev.pathGenerator === next.pathGenerator &&
+        prev.showBoundaries === next.showBoundaries &&
+        prev.themeColors === next.themeColors &&
         (prev.lastFeedback === next.lastFeedback || next.lastFeedback?.isCorrect === false)
     );
 });

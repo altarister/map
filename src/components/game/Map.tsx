@@ -66,7 +66,7 @@ export const Map = () => {
   const colors = THEME_COLORS[theme];
 
   // MapContext에서 transform, hoveredRegion 가져오기
-  const { transform, setTransform, hoveredRegion, setHoveredRegion } = useMapContext();
+  const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { showDebugInfo } = useSettings();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
@@ -128,7 +128,7 @@ export const Map = () => {
   if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   return (
-    <div ref={containerRef} className="w-full h-full map-grid relative overflow-hidden">
+    <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}>
       {/* === Layer 1: Base Map (Bottom SVG) === */}
       <svg
         width="100%"
@@ -148,12 +148,13 @@ export const Map = () => {
             transform={transform}
             answeredRegions={answeredRegions}
             lastFeedback={lastFeedback}
+            showBoundaries={layerVisibility.boundaries}
           />
         </g>
       </svg>
 
       {/* === Layer 2: Roads (Middle Canvas) === */}
-      {roadData && (
+      {roadData && layerVisibility.roads && (
         <RoadLayer
           ref={roadLayerRef}
           features={roadData.features}
@@ -161,6 +162,7 @@ export const Map = () => {
           transform={transform}
           width={width}
           height={height}
+          theme={theme}
         />
       )}
 
@@ -206,7 +208,7 @@ export const Map = () => {
           />
 
           {/* Labels */}
-          {gameState === 'PLAYING' && (
+          {gameState === 'PLAYING' && layerVisibility.labels && (
             <>
               {!showDistrictLabels && filteredLevel2Features.map((feature: any) => (
                 <RegionLabel

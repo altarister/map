@@ -10,13 +10,31 @@ interface RoadLayerProps {
     transform: { x: number, y: number, k: number };
     width: number;
     height: number;
+    theme: string;
 }
 
 export interface RoadLayerHandle {
     draw: (transform: { x: number, y: number, k: number }) => void;
 }
 
-export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ features, projection, transform, width, height }, ref) => {
+const ROAD_THEME = {
+    tactical: {
+        motorway: { color: '#f6893b', width: 1.8, minK: 0 },
+        trunk: { color: '#fbbf24', width: 1.5, minK: 1.2 },
+        primary: { color: '#ffffff', width: 1.2, minK: 1.8 },
+        secondary: { color: '#9ca3af', width: 0.9, minK: 2.5 },
+        other: { color: '#4b5563', width: 0.6, minK: 2.5 }
+    },
+    kids: {
+        motorway: { color: '#fbbf24', width: 3.0, minK: 0 }, // Amber-400
+        trunk: { color: '#fcd34d', width: 2.5, minK: 1.0 }, // Amber-300
+        primary: { color: '#ffffff', width: 2.0, minK: 1.5 },
+        secondary: { color: '#cbd5e1', width: 1.5, minK: 2.0 }, // Slate-300
+        other: { color: '#94a3b8', width: 1.0, minK: 2.0 } // Slate-400
+    }
+} as const;
+
+export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ features, projection, transform, width, height, theme }, ref) => {
     // Wrapper Ref for CSS Transform
     const containerRef = useRef<HTMLDivElement>(null);
     const lastDrawTransform = useRef<{ x: number, y: number, k: number } | null>(null);
@@ -95,17 +113,10 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         const canvasPath = geoPath(localProjection);
 
         // Inverse transform for culling
-        // px = (world_x * k) + x + offsetX
-        // world_x = (px - x - offsetX) / k ??
-        // Wait, standard D3 transform is: screen_x = world_x * k + tx
         const invertX = (px: number) => (px - x) / k;
         const invertY = (py: number) => (py - y) / k;
 
-        // Visible viewport in World Coordinates (relative to projection center/scale 1)
-        // We draw into a canvas of size width*2, height*2. 
-        // We want to draw everything that *could* be visible in that area.
-        // Canvas (0,0) corresponds to screen (-offsetX, -offsetY)
-        // Canvas (w*2, h*2) corresponds to screen (width+offsetX, height+offsetY)
+        // Visible viewport in World Coordinates
         const vp = {
             x0: invertX(-offsetX),
             y0: invertY(-offsetY),
@@ -117,6 +128,9 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         const vpHeight = (height / k);
         const cullBuffer = Math.max(vpWidth, vpHeight) * 0.5;
 
+        // Select Styles based on Theme
+        const currentTheme = ROAD_THEME[theme as keyof typeof ROAD_THEME] || ROAD_THEME.tactical;
+
         tree.visit((node, x1, y1, x2, y2) => {
             if (x1 > vp.x1 + cullBuffer || x2 < vp.x0 - cullBuffer || y1 > vp.y1 + cullBuffer || y2 < vp.y0 - cullBuffer) return true;
             if (!node.length) {
@@ -127,30 +141,23 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                     const type = feature.properties?.highway;
 
                     let targetCtx = null;
-                    let minK = 0;
-                    let color = '';
-                    let lineWidth = 0;
+                    let style = null;
 
                     switch (type) {
-                        case 'motorway':
-                            targetCtx = ctxM; minK = 0; color = '#f6893b'; lineWidth = 1.8; break;
-                        case 'trunk':
-                            targetCtx = ctxT; minK = 1.2; color = '#fbbf24'; lineWidth = 1.5; break;
-                        case 'primary':
-                            targetCtx = ctxP; minK = 1.8; color = '#ffffff'; lineWidth = 1.2; break;
-                        case 'secondary':
-                            targetCtx = ctxS; minK = 2.5; color = '#9ca3af'; lineWidth = 0.9; break;
-                        default:
-                            targetCtx = ctxO; minK = 2.5; color = '#4b5563'; lineWidth = 0.6; break;
+                        case 'motorway': targetCtx = ctxM; style = currentTheme.motorway; break;
+                        case 'trunk': targetCtx = ctxT; style = currentTheme.trunk; break;
+                        case 'primary': targetCtx = ctxP; style = currentTheme.primary; break;
+                        case 'secondary': targetCtx = ctxS; style = currentTheme.secondary; break;
+                        default: targetCtx = ctxO; style = currentTheme.other; break;
                     }
 
-                    if (targetCtx && k >= minK) {
+                    if (targetCtx && style && k >= style.minK) {
                         if (bx1 >= vp.x0 - cullBuffer && bx0 <= vp.x1 + cullBuffer && by1 >= vp.y0 - cullBuffer && by0 <= vp.y1 + cullBuffer) {
                             targetCtx.beginPath();
                             canvasPath.context(targetCtx);
                             canvasPath(feature as any);
-                            targetCtx.lineWidth = lineWidth;
-                            targetCtx.strokeStyle = color;
+                            targetCtx.lineWidth = style.width;
+                            targetCtx.strokeStyle = style.color;
                             targetCtx.stroke();
                         }
                     }
@@ -169,7 +176,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
             // Force synchronous draw
             drawCanvas(t.x, t.y, t.k);
         }
-    }), [width, height, tree, projection]);
+    }), [width, height, tree, projection, theme]); // Added theme dependency
 
     // Initial Draw (LayoutEffect to match initial render)
     useLayoutEffect(() => {
@@ -188,16 +195,13 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
             }
         });
         drawCanvas(transform.x, transform.y, transform.k);
-    }, [width, height]); // Re-init on resize
+    }, [width, height, theme]); // Added theme dependency
 
     // NOTE: We do NOT use useEffect(draw) for 'transform' prop anymore.
-    // Why? Because 'transform' prop updates async via React state.
-    // d3-zoom calls ref.current.draw() synchronously.
-    // If we also draw on prop change, we double-draw or draw stale frames.
     // However, we MUST draw if the road data (tree) loads for the first time while transformed.
     useLayoutEffect(() => {
         drawCanvas(transform.x, transform.y, transform.k);
-    }, [tree]);
+    }, [tree, theme]); // Added theme dependency
 
     return (
         <div
