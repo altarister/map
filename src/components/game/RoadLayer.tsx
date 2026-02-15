@@ -1,77 +1,127 @@
-import { memo, useMemo } from 'react';
-import type { GeoPath, GeoPermissibleObjects } from 'd3-geo';
+import { memo, useEffect, useRef, useMemo } from 'react';
+import { geoPath } from 'd3-geo';
+import type { GeoProjection } from 'd3-geo';
 import { quadtree } from 'd3-quadtree';
-import type { Feature } from 'geojson'; // Fix: type-only import
+import type { Feature } from 'geojson';
 
 interface RoadLayerProps {
     features: Feature[];
-    pathGenerator: GeoPath<any, GeoPermissibleObjects>;
-    zoom: number; // For LOD
-    viewport?: { x: number, y: number, width: number, height: number }; // For Culling
+    projection: GeoProjection; // Needed for local path generation
+    transform: { x: number, y: number, k: number };
+    width: number;
+    height: number;
 }
 
-export const RoadLayer = memo(({ features, pathGenerator, zoom, viewport }: RoadLayerProps) => {
-    // 1. Spatial Indexing: Build Quadtree (Memoized)
-    // This runs once when features/projection load.
+export const RoadLayer = memo(({ features, projection, transform, width, height }: RoadLayerProps) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    // 1. Spatial Indexing: Build Quadtree
+    // Use a temporary path generator for bounds calculation during indexing
+    const boundsGenerator = useMemo(() => geoPath(projection), [projection]);
+
     const tree = useMemo(() => {
+        if (!features || features.length === 0) return null;
+
         const q = quadtree<any>()
             .x(d => d.centroid[0])
             .y(d => d.centroid[1]);
 
-        // Calculate centroids and add to quadtree
         const data = features.map(f => {
-            // We need a stable point for Quadtree. Centroid is good.
-            // pathGenerator.centroid usually returns [x, y].
-            const centroid = pathGenerator.centroid(f as any);
+            const centroid = boundsGenerator.centroid(f as any);
             return {
                 feature: f,
                 centroid: centroid,
-                bounds: pathGenerator.bounds(f as any) // Keep bounds for precise checking
+                bounds: boundsGenerator.bounds(f as any)
             };
         });
 
         q.addAll(data);
         return q;
-    }, [features, pathGenerator]);
+    }, [features, boundsGenerator]);
 
-    // 2. Filter features based on Viewport and LOD using Quadtree
-    const visibleFeatures = useMemo(() => {
-        // If no viewport provided, return all (fallback)
-        if (!viewport) return features.map(f => ({ feature: f }));
+    // 2. Rendering Loop
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !tree) return;
 
-        const { x, y, width, height } = viewport;
-        const x0 = x, y0 = y, x3 = x + width, y3 = y + height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-        // Quadtree Search (O(logN))
-        const found: { feature: Feature }[] = [];
+        // High DPI Support
+        const pixelRatio = window.devicePixelRatio || 1;
+        canvas.width = width * pixelRatio;
+        canvas.height = height * pixelRatio;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
 
-        // Use strict visiting for precise culling
+        ctx.scale(pixelRatio, pixelRatio);
+        ctx.clearRect(0, 0, width, height);
+
+        // Apply Transform
+        ctx.save();
+        ctx.translate(transform.x, transform.y);
+        ctx.scale(transform.k, transform.k);
+
+        // Path Generator for this context
+        const canvasPath = geoPath(projection).context(ctx);
+
+        // Viewport Culling
+        const invertX = (x: number) => (x - transform.x) / transform.k;
+        const invertY = (y: number) => (y - transform.y) / transform.k;
+
+        const vp = {
+            x0: invertX(0),
+            y0: invertY(0),
+            x1: invertX(width),
+            y1: invertY(height)
+        };
+
+        const buffer = 50 / transform.k;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
         tree.visit((node, x1, y1, x2, y2) => {
-            // If current node's bounding box is outside viewport, skip children (return true)
-            if (x1 > x3 || x2 < x0 || y1 > y3 || y2 < y0) return true;
+            if (x1 > vp.x1 + buffer || x2 < vp.x0 - buffer || y1 > vp.y1 + buffer || y2 < vp.y0 - buffer) return true;
 
-            // If leaf node, check points
             if (!node.length) {
-                // Iterate over leaf data (d3-quadtree can store multiple points in a linked list structure in 'data' prop)
                 let d = (node as any).data;
                 while (d) {
                     const { feature, bounds } = d;
                     const [[bx0, by0], [bx1, by1]] = bounds;
                     const type = feature.properties?.highway;
 
-                    // LOD Check first (Cheapest)
-                    const isVisibleLOD = (zoom >= 1.2) || (type === 'motorway');
+                    // LOD Check
+                    const isMotorway = type === 'motorway';
+                    const isTrunk = type === 'trunk';
 
-                    if (isVisibleLOD) {
-                        // Precise Bounds Intersection Check
-                        const BUFFER = 50; // Standard buffer is enough with fast lookups
+                    let isVisible = false;
+                    if (transform.k < 1.2) isVisible = isMotorway;
+                    else if (transform.k < 2.5) isVisible = isMotorway || isTrunk;
+                    else isVisible = true;
+
+                    if (isVisible) {
+                        // Exact Bounds Check
                         if (
-                            bx1 >= x0 - BUFFER &&
-                            bx0 <= x3 + BUFFER &&
-                            by1 >= y0 - BUFFER &&
-                            by0 <= y3 + BUFFER
+                            bx1 >= vp.x0 - buffer &&
+                            bx0 <= vp.x1 + buffer &&
+                            by1 >= vp.y0 - buffer &&
+                            by0 <= vp.y1 + buffer
                         ) {
-                            found.push({ feature });
+                            ctx.beginPath();
+                            canvasPath(feature as any);
+
+                            // Style
+                            if (isMotorway) {
+                                ctx.lineWidth = 1.5;
+                                ctx.strokeStyle = 'rgba(234, 179, 8, 0.8)'; // Yellow-500
+                            } else if (isTrunk) {
+                                ctx.lineWidth = 1.0;
+                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                            } else {
+                                ctx.lineWidth = 0.5;
+                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                            }
+                            ctx.stroke();
                         }
                     }
                     d = d.next;
@@ -80,30 +130,14 @@ export const RoadLayer = memo(({ features, pathGenerator, zoom, viewport }: Road
             return false;
         });
 
-        return found;
-    }, [tree, viewport, zoom, features]);
-
-    if (!features || features.length === 0) return null;
+        ctx.restore();
+    }, [width, height, transform, tree, projection]);
 
     return (
-        <g className="road-layer pointer-events-none">
-            {visibleFeatures.map(({ feature }, index) => {
-                const type = feature.properties?.highway;
-                const d = pathGenerator(feature as any);
-                if (!d) return null;
-
-                return (
-                    <path
-                        key={`road-${feature.properties?.id || index}`}
-                        d={d}
-                        className={`fill-none stroke-linecap-round stroke-linejoin-round transition-colors duration-300
-              ${type === 'motorway' ? 'stroke-road-motorway' : 'stroke-road-trunk'}
-              ${type === 'motorway' ? 'stroke-[1.5px]' : 'stroke-[0.8px]'}
-              opacity-60
-            `}
-                    />
-                );
-            })}
-        </g>
+        <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            style={{ zIndex: 10 }} // Layer 2: Middle
+        />
     );
 });

@@ -71,6 +71,7 @@ export const Map = () => {
   // ... (keeping existing refs and scale hooks)
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
+  const baseMapGRef = useRef<SVGGElement>(null);
   const previousGameState = useRef<string>(gameState);
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
@@ -155,29 +156,36 @@ export const Map = () => {
   const featuresToRender = isGeometryLevel3 ? features : filteredLevel2Features;
   const showDistrictLabels = isSingleRegion || transform.k >= 1.5;
 
+  // ...
+
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return;
     const svg = select(svgRef.current);
     const g = select(gRef.current);
+    const baseMapG = baseMapGRef.current ? select(baseMapGRef.current) : null;
+
     const zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 8])
       .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
         const { x, y, k } = event.transform;
+        // Synchronize both SVG layers immediately for smooth panning without tearing
         g.attr('transform', `translate(${x},${y}) scale(${k})`);
+        if (baseMapG) {
+          baseMapG.attr('transform', `translate(${x},${y}) scale(${k})`);
+        }
         setTransform({ x, y, k });
-        handleMove({ zoom: k });
         handleMove({ zoom: k });
       });
 
-    // Initialize zoom behavior and disable double-click to zoom
+    // Initialize zoom behavior and disable double-click
     svg.call(zoomBehavior)
       .on("dblclick.zoom", null);
 
-    // Initial scale calculation
+    // Initial sync
     handleMove({ zoom: transform.k });
 
     previousGameState.current = gameState;
-  }, [handleMove, mapData, gameState]);
+  }, [handleMove, mapData, gameState, transform.k, setTransform]);
 
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
   if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
@@ -185,9 +193,16 @@ export const Map = () => {
 
   return (
     <div ref={containerRef} className="w-full h-full map-grid relative overflow-hidden">
-      <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
-        <g ref={gRef}>
-          {/* Layer 1: Base Context & Answered Regions (Heavy, Static) */}
+      {/* === Layer 1: Base Map (Bottom SVG) === */}
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute top-0 left-0 w-full h-full"
+        style={{ zIndex: 0 }}
+      >
+        {/* Attach Ref for Sync */}
+        <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <BaseMapLayer
             features={featuresToRender}
             level2Data={level2Data}
@@ -198,24 +213,32 @@ export const Map = () => {
             answeredRegions={answeredRegions}
             lastFeedback={lastFeedback}
           />
+        </g>
+      </svg>
 
-          {/* Layer 1.5: Road Layer (Contextual) */}
-          {roadData && (
-            <RoadLayer
-              features={roadData.features}
-              pathGenerator={pathGenerator}
-              zoom={transform.k}
-              viewport={{
-                x: -transform.x / transform.k,
-                y: -transform.y / transform.k,
-                width: width / transform.k,
-                height: height / transform.k
-              }}
-            />
-          )}
+      {/* === Layer 2: Roads (Middle Canvas) === */}
+      {roadData && (
+        <RoadLayer
+          features={roadData.features}
+          projection={projection}
+          transform={transform}
+          width={width}
+          height={height}
+        />
+      )}
 
-          {/* Layer 2: Highlight Overlay (Light, Dynamic) */}
-          {/* Handles Hover state and Wrong Feedback flash */}
+      {/* === Layer 3: Interaction & Overlays (Top SVG) === */}
+      <svg
+        ref={svgRef} // Zoom behavior attaches here
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute top-0 left-0 w-full h-full"
+        style={{ zIndex: 20 }}
+      >
+        <g ref={gRef}> {/* Zoom Transform applied here via D3 */}
+
+          {/* Highlight Overlay */}
           <HighlightOverlay
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -225,7 +248,7 @@ export const Map = () => {
             lastFeedback={lastFeedback}
           />
 
-          {/* Layer 3: Interaction Layer (Invisible, Event Handling) */}
+          {/* Interaction Layer (Invisible Targets) */}
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -245,10 +268,9 @@ export const Map = () => {
             }}
           />
 
-          {/* Label Rendering: Dual Layer System (Visual Hierarchy) */}
+          {/* Labels */}
           {gameState === 'PLAYING' && (
             <>
-              {/* Layer 1: Macro View (City Labels) - Show when zoomed out */}
               {!showDistrictLabels && filteredLevel2Features.map((feature: any) => (
                 <RegionLabel
                   key={`label-city-${feature.properties.code}`}
@@ -258,12 +280,11 @@ export const Map = () => {
                   answeredRegions={answeredRegions}
                   lastFeedback={lastFeedback}
                   gameState={gameState}
-                  fontScale={1.5} // Larger font for City names
+                  fontScale={1.5}
                   baseArea={featureAreas[feature.properties.code] || 0}
                 />
               ))}
 
-              {/* Layer 2: Micro View (District Labels) - Show when zoomed in */}
               {showDistrictLabels && featuresToRender.map((feature: any) => (
                 <RegionLabel
                   key={`label-district-${feature.properties.code}`}
@@ -273,7 +294,7 @@ export const Map = () => {
                   answeredRegions={answeredRegions}
                   lastFeedback={lastFeedback}
                   gameState={gameState}
-                  fontScale={1.0} // Standard font for District names
+                  fontScale={1.0}
                   baseArea={featureAreas[feature.properties.code] || 0}
                 />
               ))}
