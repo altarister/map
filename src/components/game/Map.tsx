@@ -1,8 +1,5 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
-import { zoom } from 'd3-zoom';
-import type { D3ZoomEvent } from 'd3-zoom';
-import { select } from 'd3-selection';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
@@ -14,6 +11,8 @@ import { BaseMapLayer } from './BaseMapLayer';
 import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
+import { useMapDimensions } from '../../hooks/useMapDimensions';
+import { useMapZoom } from '../../hooks/useMapZoom';
 import * as topojson from 'topojson-client';
 import { log } from '../../lib/debug';
 
@@ -67,31 +66,30 @@ export const Map = () => {
   // MapContext에서 transform, hoveredRegion 가져오기
   const { transform, setTransform, hoveredRegion, setHoveredRegion } = useMapContext();
   const { showDebugInfo } = useSettings();
-
-  // ... (keeping existing refs and scale hooks)
-  const svgRef = useRef<SVGSVGElement>(null);
-  const gRef = useRef<SVGGElement>(null);
-  const baseMapGRef = useRef<SVGGElement>(null);
-  const previousGameState = useRef<string>(gameState);
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
-  // Responsive Dimensions
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  // 2. Responsive Dimensions
+  const { ref: containerRef, width, height } = useMapDimensions<HTMLDivElement>();
+
+  // 3. Zoom & Pan Logic (Abstracted)
+  // Sync D3 zoom state with MapContext immediately
+  const { svgRef, gRef, baseMapGRef, transform: zoomTransform } = useMapZoom({
+    width,
+    height,
+    onZoom: (t) => {
+      setTransform(t);
+      handleMove({ zoom: t.k });
+    }
+  });
 
   // Road Data State
   const [roadData, setRoadData] = useState<any>(null);
-
-
-
-  // ...
 
   useEffect(() => {
     // Fetch road data asynchronously (TopoJSON)
     fetch('/data/korea-roads-topo.json')
       .then(res => res.json())
       .then(topology => {
-        // Convert TopoJSON back to GeoJSON FeatureCollection
         const geojson = topojson.feature(topology, topology.objects.roads) as any;
         console.log('[Map] Road data loaded (TopoJSON):', geojson.features.length);
         setRoadData(geojson);
@@ -101,28 +99,7 @@ export const Map = () => {
       });
   }, []);
 
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        setDimensions({ width: clientWidth, height: clientHeight });
-      }
-    };
-    // ... existing ...
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
-
-  // ... existing code ...
-
-
-
-  {/* Layer 2: Highlight Overlay (Light, Dynamic) */ }
-  // ... existing code ...
-
-  const width = dimensions.width;
-  const height = dimensions.height;
-
-  // ... (keeping existing projection and pathGenerator logic)
+  // --- Derived State (Restored) ---
   const projection = useMemo(() => {
     const proj = geoMercator();
     if (mapData && mapData.features && mapData.features.length > 0) {
@@ -136,7 +113,6 @@ export const Map = () => {
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
   const features = mapData?.features || [];
 
-  // ... (keeping existing areas calculation)
   const featureAreas = useMemo(() => {
     const areas: Record<string, number> = {};
     if (features) features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
@@ -152,40 +128,10 @@ export const Map = () => {
 
   const isSingleRegion = filteredLevel2Features.length === 1;
   const isLevel1 = currentLevel === 1;
-  const isGeometryLevel3 = isLevel1 || isSingleRegion || transform.k >= 1.5;
+  const isGeometryLevel3 = isLevel1 || isSingleRegion || zoomTransform.k >= 1.5;
   const featuresToRender = isGeometryLevel3 ? features : filteredLevel2Features;
-  const showDistrictLabels = isSingleRegion || transform.k >= 1.5;
-
-  // ...
-
-  useEffect(() => {
-    if (!svgRef.current || !gRef.current) return;
-    const svg = select(svgRef.current);
-    const g = select(gRef.current);
-    const baseMapG = baseMapGRef.current ? select(baseMapGRef.current) : null;
-
-    const zoomBehavior = zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 8])
-      .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
-        const { x, y, k } = event.transform;
-        // Synchronize both SVG layers immediately for smooth panning without tearing
-        g.attr('transform', `translate(${x},${y}) scale(${k})`);
-        if (baseMapG) {
-          baseMapG.attr('transform', `translate(${x},${y}) scale(${k})`);
-        }
-        setTransform({ x, y, k });
-        handleMove({ zoom: k });
-      });
-
-    // Initialize zoom behavior and disable double-click
-    svg.call(zoomBehavior)
-      .on("dblclick.zoom", null);
-
-    // Initial sync
-    handleMove({ zoom: transform.k });
-
-    previousGameState.current = gameState;
-  }, [handleMove, mapData, gameState, transform.k, setTransform]);
+  const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
+  // --------------------------------
 
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
   if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
