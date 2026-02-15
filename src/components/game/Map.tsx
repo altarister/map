@@ -92,7 +92,7 @@ export const Map = () => {
 
   useEffect(() => {
     // Fetch road data asynchronously (TopoJSON)
-    fetch('/data/korea-roads-topo.json')
+    fetch('/data/korea-roads-topo.json?v=3')
       .then(res => res.json())
       .then(topology => {
         const geojson = topojson.feature(topology, topology.objects.roads) as any;

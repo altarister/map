@@ -98,10 +98,13 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                         // LOD Check
                         const isMotorway = type === 'motorway';
                         const isTrunk = type === 'trunk';
+                        const isPrimary = type === 'primary';
+                        const isSecondary = type === 'secondary';
 
                         let isVisible = false;
                         if (k < 1.2) isVisible = isMotorway;
-                        else if (k < 2.5) isVisible = isMotorway || isTrunk;
+                        else if (k < 1.8) isVisible = isMotorway || isTrunk;
+                        else if (k < 2.5) isVisible = isMotorway || isTrunk || isPrimary;
                         else isVisible = true;
 
                         if (isVisible) {
@@ -231,14 +234,20 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                             ctx.beginPath();
                             canvasPath(feature as any);
                             if (isMotorway) {
-                                ctx.lineWidth = 1.5;
-                                ctx.strokeStyle = 'rgba(234, 179, 8, 0.2)'; // Keep Yellow (User approved)
+                                ctx.lineWidth = 2;
+                                ctx.strokeStyle = 'rgba(255, 157, 0, 0.1)'; // 고속도로 (Expressway) - Blue/Teal (Naver Style)
                             } else if (isTrunk) {
-                                ctx.lineWidth = 1.2;
-                                ctx.strokeStyle = 'rgba(176, 138, 34, 0.2)'; // Soft White for Trunks
-                            } else {
+                                ctx.lineWidth = 1.5;
+                                ctx.strokeStyle = 'rgba(255, 204, 0, 0.1)'; // 국도/간선도로 (National Route) - Yellow
+                            } else if (feature.properties?.highway === 'primary') {
+                                ctx.lineWidth = 1.0;
+                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // 주요 도로 (Primary) - White
+                            } else if (feature.properties?.highway === 'secondary') {
                                 ctx.lineWidth = 0.8;
-                                ctx.strokeStyle = 'rgba(224, 81, 19, 0.2)'; // Faint White for Others
+                                ctx.strokeStyle = 'rgba(200, 200, 200, 0.1)'; // 보조 도로 (Secondary) - Light Grey
+                            } else {
+                                ctx.lineWidth = 0.5;
+                                ctx.strokeStyle = 'rgba(150, 150, 150, 0.1)'; // 기타 도로 (Others) - Faint Grey
                             }
                             ctx.stroke();
                         }

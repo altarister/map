@@ -3,15 +3,17 @@ import osmtogeojson from 'osmtogeojson';
 import https from 'https';
 import { topology } from 'topojson-server';
 import topojsonSimplify from 'topojson-simplify';
-import { quantize } from 'topojson-client'; // Fix: quantize is here
+import { quantize } from 'topojson-client';
 const { simplify, presimplify } = topojsonSimplify;
 
 const QUERY = `
-[out:json][timeout:60];
+[out:json][timeout:180][maxsize:1073741824];
 area(id:3600307756)->.searchArea;
 (
   way["highway"~"motorway"](area.searchArea);
   way["highway"~"trunk"](area.searchArea);
+  way["highway"~"primary"](area.searchArea);
+  way["highway"~"secondary"](area.searchArea);
 );
 out geom;
 `;
@@ -29,7 +31,7 @@ const req = https.request('https://overpass-api.de/api/interpreter', {
     method: 'POST',
     headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'MapApp/1.0 (https://github.com/seungwookkim/map)' // Required by Overpass API
+        'User-Agent': 'MapApp/1.0 (https://github.com/seungwookkim/map)'
     }
 }, (res) => {
     let data = '';
@@ -46,6 +48,18 @@ const req = https.request('https://overpass-api.de/api/interpreter', {
 
             console.log(`Received raw data: ${json.elements?.length} elements.`);
 
+            // Debug: Count types
+            const typeCounts = {};
+            if (json.elements) {
+                json.elements.forEach(el => {
+                    if (el.tags && el.tags.highway) {
+                        const t = el.tags.highway;
+                        typeCounts[t] = (typeCounts[t] || 0) + 1;
+                    }
+                });
+            }
+            console.log("Raw Highway Types:", typeCounts);
+
             console.log("Converting to GeoJSON...");
             const geojson = osmtogeojson(json);
 
@@ -55,8 +69,6 @@ const req = https.request('https://overpass-api.de/api/interpreter', {
                 geometry: f.geometry,
                 properties: {
                     highway: f.properties.highway,
-                    // name: f.properties.name, // Name is heavy and not strictly needed for lines context
-                    // ref: f.properties.ref
                 }
             }));
 
@@ -77,7 +89,6 @@ const req = https.request('https://overpass-api.de/api/interpreter', {
             // Visvalingam algorithm. Value depends on coordinate system.
             // Since we are using unprojected coords (lon/lat), values are very small.
             // 1e-6 is roughly 10cm accuracy, 1e-4 is roughly 10m.
-            // Let's try aggressive simplification for "context" layer.
             topo = simplify(topo, 1e-4);
 
             // 4. Quantize (Convert float coords to integers with Delta encoding)
