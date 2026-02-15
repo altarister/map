@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { memo, useLayoutEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { geoPath } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';
 import { quadtree } from 'd3-quadtree';
@@ -17,7 +17,19 @@ export interface RoadLayerHandle {
 }
 
 export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ features, projection, transform, width, height }, ref) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    // Wrapper Ref for CSS Transform
+    const containerRef = useRef<HTMLDivElement>(null);
+    const lastDrawTransform = useRef<{ x: number, y: number, k: number } | null>(null);
+
+    // 5 Separate Canvases
+    const canvasMotorwayRef = useRef<HTMLCanvasElement>(null);
+    const canvasTrunkRef = useRef<HTMLCanvasElement>(null);
+    const canvasPrimaryRef = useRef<HTMLCanvasElement>(null);
+    const canvasSecondaryRef = useRef<HTMLCanvasElement>(null);
+    const canvasOtherRef = useRef<HTMLCanvasElement>(null);
+
+    const CANVAS_SCALE = 2.0;
+
     // 1. Spatial Indexing: Build Quadtree
     const boundsGenerator = useMemo(() => geoPath(projection), [projection]);
 
@@ -41,215 +53,105 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         return q;
     }, [features, boundsGenerator]);
 
-    // 2. Rendering Function
-    useImperativeHandle(ref, () => ({
-        draw: (currentTransform) => {
-            const canvas = canvasRef.current;
-            if (!canvas || !tree) return;
+    // Internal Draw Helper - The Heavy Lifting
+    const drawCanvas = (x: number, y: number, k: number) => {
+        const ctxM = canvasMotorwayRef.current?.getContext('2d');
+        const ctxT = canvasTrunkRef.current?.getContext('2d');
+        const ctxP = canvasPrimaryRef.current?.getContext('2d');
+        const ctxS = canvasSecondaryRef.current?.getContext('2d');
+        const ctxO = canvasOtherRef.current?.getContext('2d');
 
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+        if (!ctxM || !ctxT || !ctxP || !ctxS || !ctxO || !tree) return;
 
-            // Use passed transform, NOT prop transform (for sync updates)
-            const { x, y, k } = currentTransform;
+        lastDrawTransform.current = { x, y, k };
 
-            // High DPI Support
-            const pixelRatio = window.devicePixelRatio || 1;
-            // Only update width/height if changed (avoid flicker/re-layout if possible?)
-            // Actually, width/height prop changes render cycle, so this runs in useEffect too.
-            // But 'draw' runs frequently. We assume canvas size is stable during zoom.
+        const pixelRatio = window.devicePixelRatio || 1;
 
-            // Setup Transform
+        const offsetX = (width * (CANVAS_SCALE - 1)) / 2;
+        const offsetY = (height * (CANVAS_SCALE - 1)) / 2;
+
+        const contexts = [ctxM, ctxT, ctxP, ctxS, ctxO];
+        contexts.forEach(ctx => {
             ctx.save();
             ctx.scale(pixelRatio, pixelRatio);
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, width * CANVAS_SCALE, height * CANVAS_SCALE);
 
+            // Critical Point: 
+            // SVG uses transform="translate(x,y) scale(k)"
+            // Canvas needs to match this EXACTLY.
+            // 1. Center viewport in our expanded canvas
+            ctx.translate(offsetX, offsetY);
+
+            // 2. Apply Map Transform
             ctx.translate(x, y);
             ctx.scale(k, k);
 
-            // Path Generator
-            const canvasPath = geoPath(projection).context(ctx);
-
-            // Viewport Culling
-            const invertX = (px: number) => (px - x) / k;
-            const invertY = (py: number) => (py - y) / k;
-
-            const vp = {
-                x0: invertX(0),
-                y0: invertY(0),
-                x1: invertX(width),
-                y1: invertY(height)
-            };
-
-            const buffer = 50 / k;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+        });
 
-            tree.visit((node, x1, y1, x2, y2) => {
-                if (x1 > vp.x1 + buffer || x2 < vp.x0 - buffer || y1 > vp.y1 + buffer || y2 < vp.y0 - buffer) return true;
-
-                if (!node.length) {
-                    let d = (node as any).data;
-                    while (d) {
-                        const { feature, bounds } = d;
-                        const [[bx0, by0], [bx1, by1]] = bounds;
-                        const type = feature.properties?.highway;
-
-                        // LOD Check
-                        const isMotorway = type === 'motorway';
-                        const isTrunk = type === 'trunk';
-                        const isPrimary = type === 'primary';
-                        const isSecondary = type === 'secondary';
-
-                        let isVisible = false;
-                        if (k < 1.2) isVisible = isMotorway;
-                        else if (k < 1.8) isVisible = isMotorway || isTrunk;
-                        else if (k < 2.5) isVisible = isMotorway || isTrunk || isPrimary;
-                        else isVisible = true;
-
-                        if (isVisible) {
-                            // Exact Bounds Check
-                            if (
-                                bx1 >= vp.x0 - buffer &&
-                                bx0 <= vp.x1 + buffer &&
-                                by1 >= vp.y0 - buffer &&
-                                by0 <= vp.y1 + buffer
-                            ) {
-                                ctx.beginPath();
-                                canvasPath(feature as any);
-
-                                // Style (Improved Quality)
-                                if (isMotorway) {
-                                    ctx.lineWidth = 2.5 / k; // Scale invariant width? Or thicker?
-                                    // User said quality is bad. Maybe too thin?
-                                    // Let's try constant screen width for now, or slight scaling.
-                                    // Previous was constant 1.5. 
-                                    // If we divide by k, it stays same world size (gets smaller on screen).
-                                    // We want screen size to be consistent?
-                                    ctx.lineWidth = 1.5; // Constant screen width
-                                    ctx.strokeStyle = 'rgba(234, 179, 8, 0.9)'; // Brighter
-                                } else if (isTrunk) {
-                                    ctx.lineWidth = 1.2;
-                                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                                } else {
-                                    ctx.lineWidth = 0.8;
-                                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-                                }
-                                ctx.stroke();
-                            }
-                        }
-                        d = d.next;
-                    }
-                }
-                return false;
-            });
-
-            ctx.restore();
-        }
-    }), [width, height, tree, projection]);
-
-    // 3. Initial Setup & Prop Updates
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const pixelRatio = window.devicePixelRatio || 1;
-        canvas.width = width * pixelRatio;
-        canvas.height = height * pixelRatio;
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
-
-        // Trigger initial draw
-        // We can't call 'draw' directly from ref here easily without exposing it internally too?
-        // Actually we can just call the logic or use the ref if we attached it to a RefObject passed in?
-        // But we are using forwardRef.
-        // Let's just expose a ref-independent draw function? 
-        // Or simply: the parent calls draw() on mount/update? 
-        // No, parent might not know when data is ready.
-        // So we should draw here too.
-
-        // Copied logic or shared function?
-        // Let's rely on the parent (Map) calling draw() via the ref in its useEffect?
-        // Or just duplicate the draw call here for safety?
-        // I'll extract `drawRoads` function inside.
-
-    }, [width, height]); // Resize handling
-
-    // Draw on prop update (React verify)
-    useEffect(() => {
-        // This effect handles the "React" cycle updates (e.g. data loaded, or transform changed via props - though we want to ignore prop transform for zoom)
-        // Actually, if we use imperative handle, we should probably ignore `transform` prop for drawing, 
-        // to avoid double-drawing or conflict? 
-        // But `transform` prop is still useful for initial state.
-
-        // To avoid code duplication, I will implement a shared draw function.
-    }, [transform, tree]);
-
-    // Internal Draw Helper
-    const draw = (currentTransform: { x: number, y: number, k: number }) => {
-        const canvas = canvasRef.current;
-        if (!canvas || !tree) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const { x, y, k } = currentTransform;
-        const pixelRatio = window.devicePixelRatio || 1;
-
-        ctx.save();
-        ctx.scale(pixelRatio, pixelRatio);
-        ctx.clearRect(0, 0, width, height);
-        ctx.translate(x, y);
-        ctx.scale(k, k);
-
-        // Disabled Clipping for smooth panning (avoid "jumping" at edges)
-        // Disabled Clipping for smooth panning (avoid "jumping" at edges)
+        // Projection logic needs to match
         const localProjection = (projection as any).copy ? (projection as any).copy().clipExtent(null) : projection;
-        const canvasPath = geoPath(localProjection).context(ctx);
+        const canvasPath = geoPath(localProjection);
+
+        // Inverse transform for culling
+        // px = (world_x * k) + x + offsetX
+        // world_x = (px - x - offsetX) / k ??
+        // Wait, standard D3 transform is: screen_x = world_x * k + tx
         const invertX = (px: number) => (px - x) / k;
         const invertY = (py: number) => (py - y) / k;
-        const vp = { x0: invertX(0), y0: invertY(0), x1: invertX(width), y1: invertY(height) };
-        const buffer = 50 / k;
 
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        // Visible viewport in World Coordinates (relative to projection center/scale 1)
+        // We draw into a canvas of size width*2, height*2. 
+        // We want to draw everything that *could* be visible in that area.
+        // Canvas (0,0) corresponds to screen (-offsetX, -offsetY)
+        // Canvas (w*2, h*2) corresponds to screen (width+offsetX, height+offsetY)
+        const vp = {
+            x0: invertX(-offsetX),
+            y0: invertY(-offsetY),
+            x1: invertX(width + offsetX),
+            y1: invertY(height + offsetY)
+        };
+
+        const vpWidth = (width / k);
+        const vpHeight = (height / k);
+        const cullBuffer = Math.max(vpWidth, vpHeight) * 0.5;
 
         tree.visit((node, x1, y1, x2, y2) => {
-            if (x1 > vp.x1 + buffer || x2 < vp.x0 - buffer || y1 > vp.y1 + buffer || y2 < vp.y0 - buffer) return true;
+            if (x1 > vp.x1 + cullBuffer || x2 < vp.x0 - cullBuffer || y1 > vp.y1 + cullBuffer || y2 < vp.y0 - cullBuffer) return true;
             if (!node.length) {
                 let d = (node as any).data;
                 while (d) {
                     const { feature, bounds } = d;
                     const [[bx0, by0], [bx1, by1]] = bounds;
-                    const isMotorway = feature.properties?.highway === 'motorway';
-                    const isTrunk = feature.properties?.highway === 'trunk';
+                    const type = feature.properties?.highway;
 
-                    let isVisible = false;
-                    if (k < 1.2) isVisible = isMotorway;
-                    else if (k < 2.5) isVisible = isMotorway || isTrunk;
-                    else isVisible = true;
+                    let targetCtx = null;
+                    let minK = 0;
+                    let color = '';
+                    let lineWidth = 0;
 
-                    if (isVisible) {
-                        if (bx1 >= vp.x0 - buffer && bx0 <= vp.x1 + buffer && by1 >= vp.y0 - buffer && by0 <= vp.y1 + buffer) {
-                            ctx.beginPath();
+                    switch (type) {
+                        case 'motorway':
+                            targetCtx = ctxM; minK = 0; color = '#f6893b'; lineWidth = 1.8; break;
+                        case 'trunk':
+                            targetCtx = ctxT; minK = 1.2; color = '#fbbf24'; lineWidth = 1.5; break;
+                        case 'primary':
+                            targetCtx = ctxP; minK = 1.8; color = '#ffffff'; lineWidth = 1.2; break;
+                        case 'secondary':
+                            targetCtx = ctxS; minK = 2.5; color = '#9ca3af'; lineWidth = 0.9; break;
+                        default:
+                            targetCtx = ctxO; minK = 2.5; color = '#4b5563'; lineWidth = 0.6; break;
+                    }
+
+                    if (targetCtx && k >= minK) {
+                        if (bx1 >= vp.x0 - cullBuffer && bx0 <= vp.x1 + cullBuffer && by1 >= vp.y0 - cullBuffer && by0 <= vp.y1 + cullBuffer) {
+                            targetCtx.beginPath();
+                            canvasPath.context(targetCtx);
                             canvasPath(feature as any);
-                            if (isMotorway) {
-                                ctx.lineWidth = 2;
-                                ctx.strokeStyle = 'rgba(255, 157, 0, 0.1)'; // 고속도로 (Expressway) - Blue/Teal (Naver Style)
-                            } else if (isTrunk) {
-                                ctx.lineWidth = 1.5;
-                                ctx.strokeStyle = 'rgba(255, 204, 0, 0.1)'; // 국도/간선도로 (National Route) - Yellow
-                            } else if (feature.properties?.highway === 'primary') {
-                                ctx.lineWidth = 1.0;
-                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // 주요 도로 (Primary) - White
-                            } else if (feature.properties?.highway === 'secondary') {
-                                ctx.lineWidth = 0.8;
-                                ctx.strokeStyle = 'rgba(200, 200, 200, 0.1)'; // 보조 도로 (Secondary) - Light Grey
-                            } else {
-                                ctx.lineWidth = 0.5;
-                                ctx.strokeStyle = 'rgba(150, 150, 150, 0.1)'; // 기타 도로 (Others) - Faint Grey
-                            }
-                            ctx.stroke();
+                            targetCtx.lineWidth = lineWidth;
+                            targetCtx.strokeStyle = color;
+                            targetCtx.stroke();
                         }
                     }
                     d = d.next;
@@ -257,21 +159,79 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
             }
             return false;
         });
-        ctx.restore();
+
+        contexts.forEach(ctx => ctx.restore());
     };
 
-    useImperativeHandle(ref, () => ({ draw }), [width, height, tree, projection]);
+    // Imperative Handle for Sync Updates (D3 Zoom)
+    useImperativeHandle(ref, () => ({
+        draw: (t) => {
+            // Force synchronous draw
+            drawCanvas(t.x, t.y, t.k);
+        }
+    }), [width, height, tree, projection]);
 
-    // React Cycle Draw
-    useEffect(() => {
-        draw(transform);
-    }, [transform, width, height, tree]);
+    // Initial Draw (LayoutEffect to match initial render)
+    useLayoutEffect(() => {
+        const pixelRatio = window.devicePixelRatio || 1;
+        const refs = [canvasMotorwayRef, canvasTrunkRef, canvasPrimaryRef, canvasSecondaryRef, canvasOtherRef];
+        const scaledWidth = width * CANVAS_SCALE;
+        const scaledHeight = height * CANVAS_SCALE;
+
+        refs.forEach(ref => {
+            const canvas = ref.current;
+            if (canvas) {
+                canvas.width = scaledWidth * pixelRatio;
+                canvas.height = scaledHeight * pixelRatio;
+                canvas.style.width = `${scaledWidth}px`;
+                canvas.style.height = `${scaledHeight}px`;
+            }
+        });
+        drawCanvas(transform.x, transform.y, transform.k);
+    }, [width, height]); // Re-init on resize
+
+    // NOTE: We do NOT use useEffect(draw) for 'transform' prop anymore.
+    // Why? Because 'transform' prop updates async via React state.
+    // d3-zoom calls ref.current.draw() synchronously.
+    // If we also draw on prop change, we double-draw or draw stale frames.
+    // However, we MUST draw if the road data (tree) loads for the first time while transformed.
+    useLayoutEffect(() => {
+        drawCanvas(transform.x, transform.y, transform.k);
+    }, [tree]);
 
     return (
-        <canvas
-            ref={canvasRef}
+        <div
+            ref={containerRef}
             className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 10, opacity: 0.7 }}
-        />
+            style={{
+                width: `${width}px`,
+                height: `${height}px`,
+                overflow: 'visible',
+                // Important: HW Acceleration hints
+                willChange: 'transform',
+                transition: 'none'
+            }}
+        >
+            {[
+                { ref: canvasOtherRef, z: 10, o: 0.1 },
+                { ref: canvasSecondaryRef, z: 11, o: 0.2 },
+                { ref: canvasPrimaryRef, z: 12, o: 0.2 },
+                { ref: canvasTrunkRef, z: 13, o: 0.1 },
+                { ref: canvasMotorwayRef, z: 14, o: 0.1 }
+            ].map(({ ref, z, o }, i) => (
+                <canvas
+                    key={i}
+                    ref={ref}
+                    className="absolute"
+                    style={{
+                        zIndex: z,
+                        opacity: o,
+                        left: `-${(CANVAS_SCALE - 1) * 50}%`,
+                        top: `-${(CANVAS_SCALE - 1) * 50}%`,
+                        transition: 'none'
+                    }}
+                />
+            ))}
+        </div>
     );
 }));

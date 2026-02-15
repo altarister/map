@@ -386,6 +386,35 @@ React의 Virtual DOM은 강력하지만, SVG 내의 수백/수천 개 `path` 요
 -   **60FPS 보장**: 마우스 이동 시 연산량이 `O(N)`에서 `O(1)`로 감소합니다.
 -   **코드 가독성**: 렌더링 로직(Base)과 인터랙션 로직(Highlight/Event)이 분리되어 유지보수가 용이합니다.
 
+### 8.3 AD-003: 고성능 도로망 렌더링 (High-Performance Road Network)
+
+**날짜**: 2026-02-15  
+**대상**: `RoadLayer.tsx`, `useMapZoom.ts`
+
+#### 문제 (Context)
+- 7만 개 이상의 도로 세그먼트를 SVG로 렌더링 시 심각한 DOM 부하 발생.
+- React Rendering Cycle(비동기)과 D3 Zoom Event(동기) 간의 **타이밍 불일치**로 인해, 줌/팬 동작 시 도로 레이어가 지도에서 분리되어 "둥둥 떠다니는(Floating/Wobble)" 현상 발생.
+
+#### 해결 방안 (Solution)
+**Multi-Canvas Dual-Sync Architecture**를 도입하여 성능과 동기화를 모두 해결했습니다.
+
+1.  **5-Layer Canvas Architecture**
+    -   도로 위계(Motorway, Trunk, Primary, Secondary, Others)별로 **5개의 독립된 Canvas** 사용.
+    -   **이유**: 레이어별 `z-index` 및 `opacity` 독립 제어 가능. 복잡한 도로망의 깊이감 구현.
+
+2.  **Dual Synchronization Strategy (핵심)**
+    -   **Sync via Event (Imperative)**: `d3-zoom` 이벤트 발생 시, React 상태 업데이트를 기다리지 않고 **즉시(Synchronously)** 캔버스 `draw()` 메서드를 호출.
+    -   **Sync via Render (LayoutEffect)**: React 컴포넌트 마운트/업데이트 시 `useLayoutEffect`를 사용하여 **Browser Paint 이전에** 렌더링 완료.
+    -   **결과**: SVG(지도)와 Canvas(도로)가 단 1프레임의 오차도 없이 완벽하게 동기화됨.
+
+3.  **Spatial Indexing & Culling**
+    -   `d3-quadtree`를 사용하여 화면에 보이는 도로만 실시간으로 필터링 (`O(logN)`).
+    -   **Viewport Culling**: 현재 줌 레벨과 뷰포트 영역을 계산하여 렌더링 부하 최소화.
+
+#### 트레이드오프
+-   **복잡도 증가**: React의 선언적 패턴을 일부 우회(Imperative Handle)해야 함.
+-   **메모리 사용**: Canvas 인스턴스가 늘어남에 따라 메모리 사용량 소폭 증가 (허용 범위 내).
+
 ---
 
 ## 9. 향후 확장 계획 (Roadmap)

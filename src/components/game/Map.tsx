@@ -73,7 +73,7 @@ export const Map = () => {
   const { ref: containerRef, width, height } = useMapDimensions<HTMLDivElement>();
 
   // Road Layer Ref for Imperative Updates (Sync)
-  const roadLayerRef = useRef<RoadLayerHandle>(null);
+  const roadLayerRef = useRef<RoadLayerHandle | null>(null);
 
   // 3. Zoom & Pan Logic (Abstracted)
   // Sync D3 zoom state with MapContext immediately
