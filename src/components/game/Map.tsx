@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
@@ -11,6 +11,7 @@ import { BaseMapLayer } from './BaseMapLayer';
 import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
+import type { RoadLayerHandle } from './RoadLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapZoom } from '../../hooks/useMapZoom';
 import * as topojson from 'topojson-client';
@@ -71,6 +72,9 @@ export const Map = () => {
   // 2. Responsive Dimensions
   const { ref: containerRef, width, height } = useMapDimensions<HTMLDivElement>();
 
+  // Road Layer Ref for Imperative Updates (Sync)
+  const roadLayerRef = useRef<RoadLayerHandle>(null);
+
   // 3. Zoom & Pan Logic (Abstracted)
   // Sync D3 zoom state with MapContext immediately
   const { svgRef, gRef, baseMapGRef, transform: zoomTransform } = useMapZoom({
@@ -79,7 +83,8 @@ export const Map = () => {
     onZoom: (t) => {
       setTransform(t);
       handleMove({ zoom: t.k });
-    }
+    },
+    roadLayerRef // Pass ref to hook
   });
 
   // Road Data State
@@ -165,6 +170,7 @@ export const Map = () => {
       {/* === Layer 2: Roads (Middle Canvas) === */}
       {roadData && (
         <RoadLayer
+          ref={roadLayerRef}
           features={roadData.features}
           projection={projection}
           transform={transform}

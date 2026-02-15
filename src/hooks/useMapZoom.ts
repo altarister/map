@@ -9,12 +9,16 @@ interface Transform {
     k: number;
 }
 
+import type { RefObject } from 'react';
+import type { RoadLayerHandle } from '../components/game/RoadLayer';
+
 interface UseMapZoomProps {
     width: number;
     height: number;
     onZoom?: (transform: Transform) => void;
     minZoom?: number;
     maxZoom?: number;
+    roadLayerRef?: RefObject<RoadLayerHandle>;
 }
 
 export const useMapZoom = ({
@@ -22,7 +26,8 @@ export const useMapZoom = ({
     height,
     onZoom,
     minZoom = 1,
-    maxZoom = 8
+    maxZoom = 8,
+    roadLayerRef
 }: UseMapZoomProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const gRef = useRef<SVGGElement>(null);
@@ -44,11 +49,16 @@ export const useMapZoom = ({
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
                 const { x, y, k } = event.transform;
 
-                // Direct DOM manipulation for performance (Sync layers)
+                // 1. Direct SVG manipulation (Sync)
                 if (g) g.attr('transform', `translate(${x},${y}) scale(${k})`);
                 if (baseMapG) baseMapG.attr('transform', `translate(${x},${y}) scale(${k})`);
 
-                // State update for React (optional, for other UI)
+                // 2. Direct Canvas manipulation (Sync)
+                if (roadLayerRef?.current) {
+                    roadLayerRef.current.draw({ x, y, k });
+                }
+
+                // 3. Status update (Async/React)
                 setTransform({ x, y, k });
 
                 // IMPORTANT: Pass full transform so parent can sync Context
