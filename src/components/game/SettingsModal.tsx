@@ -11,9 +11,8 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const {
     fontSize, setFontSize,
     currentLevel, setCurrentLevel,
-    showDebugInfo, setShowDebugInfo,
-    showGameInfo, setShowGameInfo,
-    theme, setTheme
+    theme, setTheme,
+    viewOptions, setViewOptions
   } = useSettings();
   const modalRef = useRef<HTMLDivElement>(null); // modalRef is no longer directly used for click outside, as Modal component handles it. Keeping it for now as it was not explicitly removed.
 
@@ -31,7 +30,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   }, [onClose]);
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="SYSTEM CONFIGURATION" footer={
+    <Modal isOpen={true} onClose={onClose} title="SettingsModal" footer={
       <Button onClick={onClose} className="w-full">
         APPLY CONFIGURATION
       </Button>
@@ -85,26 +84,57 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
         </div>
 
         <div>
-          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">HUD Visibility</label>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">View Options</label>
           <div className="space-y-3 bg-black/20 p-4 rounded-lg border border-white/5">
+
+            {/* Layer Control Toggle */}
             <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Session Data (Bottom Left)</span>
-              <input
-                type="checkbox"
-                checked={showGameInfo}
-                onChange={(e) => setShowGameInfo(e.target.checked)}
-                className="accent-green-500 w-4 h-4 rounded bg-slate-700 border-slate-600"
-              />
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Layer Manager</span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={viewOptions.showLayerControl}
+                  onChange={(e) => setViewOptions({ ...viewOptions, showLayerControl: e.target.checked })}
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${viewOptions.showLayerControl ? 'bg-green-600' : 'bg-slate-700'}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${viewOptions.showLayerControl ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+              </div>
             </label>
+
+            {/* Scale Info Toggle */}
             <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Debug Params (Right Center)</span>
-              <input
-                type="checkbox"
-                checked={showDebugInfo}
-                onChange={(e) => setShowDebugInfo(e.target.checked)}
-                className="accent-green-500 w-4 h-4 rounded bg-slate-700 border-slate-600"
-              />
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Scale & Info</span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={viewOptions.showScaleBar}
+                  onChange={(e) => setViewOptions({ ...viewOptions, showScaleBar: e.target.checked })}
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${viewOptions.showScaleBar ? 'bg-green-600' : 'bg-slate-700'}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${viewOptions.showScaleBar ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+              </div>
             </label>
+
+            {/* Game Log Toggle */}
+            <label className="flex items-center justify-between cursor-pointer group">
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Game Log</span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={viewOptions.showGameLog}
+                  onChange={(e) => setViewOptions({ ...viewOptions, showGameLog: e.target.checked })}
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${viewOptions.showGameLog ? 'bg-green-600' : 'bg-slate-700'}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${viewOptions.showGameLog ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+              </div>
+            </label>
+
           </div>
         </div>
 

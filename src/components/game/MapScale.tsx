@@ -9,6 +9,19 @@ interface MapScaleProps {
   showDebug?: boolean;
 }
 
+import { useState } from 'react';
+import { useMapContext } from '../../contexts/MapContext';
+import { Button } from '../ui/Button';
+
+interface MapScaleProps {
+  width: number;
+  distance: number;
+  unit: string;
+  zoom?: number;
+  hoveredRegion?: string | null;
+  renderedCount?: number;
+}
+
 export const MapScale = ({
   width,
   distance,
@@ -16,53 +29,125 @@ export const MapScale = ({
   zoom,
   hoveredRegion,
   renderedCount,
-  showDebug
 }: MapScaleProps) => {
-  // If no width yet (init), we might still want to show debug info if enabled, 
-  // but usually scale is always calculated on mount now.
+  const { layerVisibility, toggleLayer } = useMapContext();
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+
+  // Layer Definitions
+  const LAYERS = [
+    { id: 'labels', label: 'DISTRICT NAMES' },
+    { id: 'roads', label: 'ROAD NETWORK' },
+    { id: 'boundaries', label: 'TERRAIN / BASE' },
+    { id: 'grid', label: 'GRID LINES' },
+  ] as const;
 
   return (
-    <div className="absolute bottom-4 right-4 flex flex-col items-end pointer-events-none select-none">
-      {/* Debug Info Block (Merged) */}
-      {showDebug && (
-        <div className="mb-2 bg-black/60 backdrop-blur-md text-white p-2 rounded-md text-[10px] font-mono text-right shadow-lg border border-white/10 w-36">
-          <div className="opacity-70 text-[8px] tracking-widest uppercase mb-1 border-b border-white/20 pb-0.5">Debug Stats</div>
-          <div className="flex justify-between">
-            <span className="opacity-70">ZOOM:</span>
-            <span>{zoom?.toFixed(2)}x</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="opacity-70">OBJS:</span>
-            <span>{renderedCount ?? 0}</span>
-          </div>
-          <div className="flex justify-between items-end mt-1 pt-1 border-t border-white/10">
-            <span className="opacity-70 text-[8px]">HOVER:</span>
-            <span className={`text-green-300 truncate text-right whitespace-nowrap ml-1 ${!hoveredRegion ? 'opacity-0' : ''}`}>
-              {hoveredRegion || '-'}
-            </span>
-          </div>
-        </div>
-      )}
+    <div className="absolute bottom-0 left-0 right-0 h-10 bg-background/90 backdrop-blur-md border-t border-border z-[25] flex items-center justify-between px-4 select-none shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
 
-      {/* Scale Bar Block */}
-      {width > 0 && (
-        <div className="drop-shadow-md bg-white/80 p-1.5 rounded-md backdrop-blur-sm flex flex-col items-end border border-white/40">
-          {!showDebug && zoom && (
-            <span className="text-[10px] font-bold text-slate-600 mb-0.5">
-              x{zoom.toFixed(1)}
-            </span>
-          )}
-          <div className="flex flex-col items-end">
-            <div
-              className="h-1.5 border-b-2 border-r-2 border-l-2 border-slate-600 mb-0.5"
-              style={{ width: `${width}px` }}
-            />
-            <span className="text-[10px] font-semibold text-slate-700 leading-none">
-              {distance} {unit}
-            </span>
+      {/* LEFT: Metrics & Scale */}
+      <div className="flex items-center gap-6">
+        {/* Zoom & Objs */}
+        <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="opacity-50 uppercase tracking-wider">Zoom</span>
+            <span className="text-foreground font-bold">{zoom?.toFixed(2)}x</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="opacity-50 uppercase tracking-wider">Objs</span>
+            <span className="text-foreground font-bold">{renderedCount ?? 0}</span>
           </div>
         </div>
-      )}
+
+        {/* Visual Scale Bar */}
+        {width > 0 && (
+          <div className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="h-1.5 border-b border-l border-r border-foreground w-full" style={{ width: `${width}px` }}></div>
+            <span className="text-[9px] font-mono text-foreground">{distance} {unit}</span>
+          </div>
+        )}
+      </div>
+
+      {/* CENTER: Hover Info */}
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+        {hoveredRegion ? (
+          <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse" />
+            <span className="text-sm font-black text-green-400 tracking-tight uppercase" style={{ textShadow: '0 0 10px rgba(34,197,94,0.3)' }}>
+              {hoveredRegion}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[10px] text-muted-foreground/30 font-mono tracking-widest uppercase">
+            - No Signal -
+          </span>
+        )}
+      </div>
+
+      {/* RIGHT: Layer Control */}
+      <div className="relative flex items-center">
+        {/* Upward Dropdown Menu */}
+        <div
+          className={`
+            absolute bottom-full right-0 mb-3 w-48
+            bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-2xl p-2
+            origin-bottom-right transition-all duration-200
+            ${isLayerMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}
+          `}
+        >
+          <div className="px-2 py-1.5 border-b border-white/10 mb-1">
+            <span className="text-[10px] font-black text-muted-foreground tracking-widest uppercase">Layer Config</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            {LAYERS.map(({ id, label }) => (
+              <label
+                key={id}
+                className="flex items-center justify-between cursor-pointer group hover:bg-white/5 p-1.5 rounded transition-colors"
+              >
+                <span className={`text-[10px] font-bold tracking-tight transition-colors ${layerVisibility[id] ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {label}
+                </span>
+                <div className="relative w-8 h-4">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={layerVisibility[id]}
+                    onChange={() => toggleLayer(id as any)}
+                  />
+                  <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${layerVisibility[id] ? 'bg-primary' : 'bg-slate-700'}`} />
+                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${layerVisibility[id] ? 'left-4.5 translate-x-0' : 'left-0.5'}`} />
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Toggle Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
+          className={`
+            h-8 px-3 gap-2 font-mono text-xs border border-transparent transition-all
+            ${isLayerMenuOpen
+              ? 'bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.3)]'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}
+          `}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`w-4 h-4 transition-transform duration-300 ${isLayerMenuOpen ? 'rotate-180 text-primary' : ''}`}
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+          <span className="tracking-wider font-bold">LAYERS</span>
+        </Button>
+      </div>
     </div>
   );
 };

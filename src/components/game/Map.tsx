@@ -62,12 +62,11 @@ export const Map = () => {
     currentLevel
   } = useGame();
 
-  const { theme } = useSettings();
+  const { theme, showDebugInfo, viewOptions } = useSettings();
   const colors = THEME_COLORS[theme];
 
   // MapContext에서 transform, hoveredRegion 가져오기
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
-  const { showDebugInfo } = useSettings();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
   // 2. Responsive Dimensions
@@ -242,15 +241,17 @@ export const Map = () => {
         </g>
       </svg>
 
-      <MapScale
-        width={scaleWidth}
-        distance={scaleDistance}
-        unit={scaleUnit}
-        zoom={transform.k}
-        hoveredRegion={featuresToRender.find((f: any) => f.properties.code === hoveredRegion)?.properties.name}
-        renderedCount={featuresToRender.length}
-        showDebug={showDebugInfo}
-      />
+      {viewOptions.showScaleBar && gameState !== 'INITIAL' && (
+        <MapScale
+          width={scaleWidth}
+          distance={scaleDistance}
+          unit={scaleUnit}
+          zoom={transform.k}
+          hoveredRegion={featuresToRender.find((f: any) => f.properties.code === hoveredRegion)?.properties.name}
+          renderedCount={featuresToRender.length}
+          showDebug={showDebugInfo}
+        />
+      )}
 
       {!isGeometryLevel3 && gameState === 'PLAYING' && currentLevel !== 1 && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">

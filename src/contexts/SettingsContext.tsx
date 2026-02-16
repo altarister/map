@@ -19,6 +19,12 @@ interface SettingsContextType {
   setShowGameInfo: (show: boolean) => void;
   theme: 'tactical' | 'kids';
   setTheme: (theme: 'tactical' | 'kids') => void;
+  viewOptions: {
+    showLayerControl: boolean;
+    showScaleBar: boolean;
+    showGameLog: boolean;
+  };
+  setViewOptions: (options: { showLayerControl: boolean; showScaleBar: boolean; showGameLog: boolean; }) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -32,6 +38,13 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [showDebugInfo, setShowDebugInfo] = useLocalStorage<boolean>('game-debug-info', false);
   const [showGameInfo, setShowGameInfo] = useLocalStorage<boolean>('game-game-info', true);
   const [theme, setTheme] = useLocalStorage<'tactical' | 'kids'>('game-theme', 'tactical');
+
+  // New View Options State
+  const [viewOptions, setViewOptions] = useLocalStorage('game-view-options', {
+    showLayerControl: true,
+    showScaleBar: true,
+    showGameLog: true,
+  });
 
   // Apply theme class to body
   React.useEffect(() => {
@@ -63,7 +76,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       showGameInfo,
       setShowGameInfo,
       theme,
-      setTheme
+      setTheme,
+      viewOptions,
+      setViewOptions
     }}>
       {children}
     </SettingsContext.Provider>

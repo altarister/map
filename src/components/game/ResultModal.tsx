@@ -12,7 +12,7 @@ export const ResultModal = () => {
     <Modal
       isOpen={gameState === 'RESULT'}
       onClose={() => { }} // 강제로 닫지 못하게 함
-      title="MISSION DEBRIEF"
+      title="ResultModal"
       footer={
         <Button onClick={() => startGame()} className="w-full" size="lg">
           RE-INITIALIZE OPERATION

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -6,11 +6,12 @@ export const GameInfoPanel = () => {
     const { gameState, score, currentLevel } = useGame();
     const { showGameInfo } = useSettings();
 
-    if (!showGameInfo) return null;
+    // Hide in separate screens or if toggled off
+    if (!showGameInfo || gameState === 'INITIAL') return null;
 
     return (
-        <div className="absolute bottom-4 left-4 glass-panel p-4 w-64 z-20 pointer-events-none">
-            <h3 className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-2 border-b border-white/10 pb-1">Session Data</h3>
+        <div className="absolute bottom-14 left-4 glass-panel p-4 w-64 z-[35] pointer-events-none">
+            <h3 className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-2 border-b border-white/10 pb-1">GameInfoPanel</h3>
             <div className="text-xs font-mono space-y-1 text-gray-300">
                 <div className="flex justify-between">
                     <span className="text-gray-500">LEVEL:</span>

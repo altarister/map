@@ -15,7 +15,7 @@ export const LayerControl = () => {
     ] as const;
 
     return (
-        <div className="absolute top-20 right-4 z-40 flex flex-col items-end">
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 z-[25] flex flex-col items-end">
             {/* Toggle Button */}
             <Button
                 variant="outline"
@@ -52,7 +52,7 @@ export const LayerControl = () => {
         `}
             >
                 <h3 className="text-xs font-black text-muted-foreground tracking-widest uppercase mb-3 border-b border-border pb-2">
-                    Tactical Overlay
+                    LayerControl
                 </h3>
 
                 <div className="flex flex-col gap-2 min-w-[160px]">

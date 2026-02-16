@@ -1,4 +1,4 @@
-import { SettingsProvider } from './contexts/SettingsContext';
+import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
@@ -8,13 +8,14 @@ import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 import { GameInfoPanel } from './components/game/GameInfoPanel';
 import { ActionBar } from './components/game/ActionBar';
-import { LayerControl } from './components/game/LayerControl';
+
 
 import { useState } from 'react';
 import { LoadingScreen } from './components/game/LoadingScreen';
 
 function GameContent() {
   const { gameState } = useGame();
+  const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
 
   return (
@@ -33,11 +34,11 @@ function GameContent() {
       {hasStarted && (
         <>
 
+
           {/* ActionBar (PLAYING 상태에서 Accordion 애니메이션) */}
           <ActionBar />
 
-          {/* Layer Control (Top Right) */}
-          <LayerControl />
+
 
           {/* INITIAL: 최초 진입 (Map만 표시, 반투명 오버레이) */}
           {gameState === 'INITIAL' && (
@@ -51,7 +52,7 @@ function GameContent() {
           <ResultModal />
 
           {/* Info Panels (항상 표시) */}
-          <GameInfoPanel />
+          {viewOptions.showGameLog && <GameInfoPanel />}
         </>
       )}
     </div>

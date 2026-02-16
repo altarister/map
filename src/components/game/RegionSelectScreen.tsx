@@ -86,7 +86,7 @@ export const RegionSelectScreen = () => {
   if (loading || !mapDataLevel2) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING GEODATA...</div>;
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8 overflow-y-auto bg-background/80 backdrop-blur-sm">
+    <div className="absolute inset-x-0 bottom-0 top-16 z-50 flex flex-col items-center justify-center p-8 overflow-y-auto bg-background/80 backdrop-blur-sm">
       <div className="glass-panel p-8 rounded-2xl shadow-2xl max-w-5xl w-full border border-border relative overflow-hidden flex flex-col max-h-full">
         {/* Decorative Grid Background for the Panel */}
         <div className="absolute inset-0 map-grid opacity-20 pointer-events-none" />
@@ -94,7 +94,7 @@ export const RegionSelectScreen = () => {
         <div className="relative z-10 flex flex-col h-full">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-black text-foreground mb-2 tracking-tighter uppercase" style={{ textShadow: '0 0 20px rgba(var(--primary),0.3)' }}>
-              Target Sector Selection
+              RegionSelectScreen
             </h1>
             <p className="text-muted-foreground font-mono text-xs tracking-widest uppercase">
               Configure Training Parameters

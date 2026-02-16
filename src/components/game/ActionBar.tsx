@@ -14,6 +14,11 @@ export const ActionBar = () => {
         ${isVisible ? 'translate-y-0' : '-translate-y-full'}
       `}
         >
+            {/* Header Label */}
+            <div className="text-[10px] text-primary/70 font-mono uppercase tracking-widest mb-2 border-b border-primary/20 pb-1 text-center w-full">
+                ActionBar
+            </div>
+
             {/* Question */}
             {currentQuestion && (
                 <h2 className="text-2xl font-bold text-center text-foreground">
