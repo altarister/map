@@ -59,6 +59,8 @@ src/
 │   ├── useGeoData.ts
 │   ├── useMapScale.ts
 │   └── useMapStyles.ts
+├── services/           # 비즈니스 로직 서비스
+│   └── MasteryStorage.ts # 숙련도 및 설정 영구 저장
 └── types/              # 공통 타입 정의
     ├── game.ts
     └── geo.ts
@@ -153,12 +155,20 @@ interface LevelStrategy {
 
 ## 5. 레벨 상세 구현 (Level Implementation)
 
-### 5.1 Level 1: 지역 위치 익히기 (Location)
+### 5.1 Level 1: 지역 위치 익히기 - 챕터 1 (Location Mastery)
 
-- **목표:** 제시된 지역명의 위치를 지도에서 찾기.
-- **문제 타입:** `LOCATE_SINGLE`
-- **로직:** 사용자가 클릭한 지역 코드가 문제의 타겟 코드와 일치하는지 단순 비교.
-- **오버레이:** 별도 오버레이 없음 (기본 지역 라벨 사용).
+- **목표:** 선택된 시/군/구(Chapter)의 **모든 하위 행정동**을 완벽하게 암기하기.
+- **진행 방식 (Mastery Loop):**
+  1.  **Select:** `GameOptionSelectScreen`에서 하나의 챕터(시/군)를 선택.
+  2.  **Queue:** 해당 챕터의 모든 행정동을 큐(Queue/Deck)에 등록.
+  3.  **Play:** 큐에서 하나씩 꺼내 문제를 제시.
+      - **정답:** 큐에서 제거, 숙련도(%) 증가.
+      - **오답:** **큐에서 제거되지 않음**, 리스트의 뒤쪽으로 재삽입(Retry).
+  4.  **Clear:** 큐가 0이 될 때까지 무한 반복.
+- **저장소:** `MasteryStorage`를 통해 챕터별 최고 숙련도(%)를 로컬 스토리지에 영구 저장.
+- **난이도 모드:**
+  - **Normal:** 지도에 지역명(Label) 표시 (학습용).
+  - **Hard:** 지역명 숨김 (실전용).
 
 ### 5.2 Level 2: 경로 시각화 (Route Visualization)
 
@@ -314,9 +324,28 @@ const filteredLevel2 = level2.features.filter(f =>
  }
  ```
  
+ ### 7.4 데이터 영속성 (Data Persistence)
+ 
+ `MasteryStorage` 서비스를 통해 브라우저 `localStorage`에 학습 데이터를 영구 저장합니다.
+ 
+ | Key | Value Type | Description | Example |
+ | :--- | :--- | :--- | :--- |
+ | `map-mastery-v1` | `JSON Object` | 챕터(시/군)별 최고 숙련도 기록 | `{"41110": 100, "41130": 45}` |
+ | `game-difficulty` | `string` | 난이도 설정 (NORMAL / HARD) | `"HARD"` |
+ | `game-level` | `number` | 마지막으로 플레이한 레벨 | `1` |
+ 
+ **Schema Detail (`map-mastery-v1`)**
+ ```typescript
+ interface MasteryRecord {
+   [regionCode: string]: number; // 0 ~ 100 (Integer)
+   // regionCode: 행정동 코드 앞 5자리 (시/군/구 단위)
+   // number: 해당 챕터의 클리어 퍼센티지
+ }
+ ```
+ 
  ---
-
-## 8. 주요 아키텍처 결정 (Architecture Decisions)
+ 
+ ## 8. 주요 아키텍처 결정 (Architecture Decisions)
 
 ### AD-001: react-simple-maps → D3 직접 렌더링 마이그레이션
 
