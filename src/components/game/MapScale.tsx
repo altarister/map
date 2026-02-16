@@ -35,10 +35,10 @@ export const MapScale = ({
 
   // Layer Definitions
   const LAYERS = [
-    { id: 'labels', label: 'DISTRICT NAMES' },
-    { id: 'roads', label: 'ROAD NETWORK' },
-    { id: 'boundaries', label: 'TERRAIN / BASE' },
-    { id: 'grid', label: 'GRID LINES' },
+    { id: 'labels', label: '지역 명칭' },
+    { id: 'roads', label: '도로망' },
+    { id: 'boundaries', label: '지형 / 배경' },
+    { id: 'grid', label: '그리드' },
   ] as const;
 
   return (
@@ -95,28 +95,30 @@ export const MapScale = ({
           `}
         >
           <div className="px-2 py-1.5 border-b border-white/10 mb-1">
-            <span className="text-[10px] font-black text-muted-foreground tracking-widest uppercase">Layer Config</span>
+            <span className="text-[10px] font-black text-muted-foreground tracking-widest uppercase">레이어 설정</span>
           </div>
           <div className="flex flex-col gap-1">
+
             {LAYERS.map(({ id, label }) => (
-              <label
+              <div
                 key={id}
+                onClick={() => toggleLayer(id as any)}
                 className="flex items-center justify-between cursor-pointer group hover:bg-white/5 p-1.5 rounded transition-colors"
               >
                 <span className={`text-[10px] font-bold tracking-tight transition-colors ${layerVisibility[id] ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {label}
                 </span>
-                <div className="relative w-8 h-4">
+                <div className="relative w-9 h-4">
                   <input
                     type="checkbox"
                     className="sr-only"
                     checked={layerVisibility[id]}
-                    onChange={() => toggleLayer(id as any)}
+                    readOnly
                   />
                   <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${layerVisibility[id] ? 'bg-primary' : 'bg-slate-700'}`} />
-                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${layerVisibility[id] ? 'left-4.5 translate-x-0' : 'left-0.5'}`} />
+                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${layerVisibility[id] ? 'translate-x-4' : 'translate-x-0'} left-1`} />
                 </div>
-              </label>
+              </div>
             ))}
           </div>
         </div>

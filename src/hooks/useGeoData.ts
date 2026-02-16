@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { RegionCollection } from '../types/geo';
 import { log } from '../lib/debug';
 import * as topojson from 'topojson-client';
+import { geoCentroid } from 'd3-geo';
 
 // GeoJSON Data URLs
 const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // Sigun (City/County)
@@ -60,6 +61,8 @@ export const useGeoData = () => {
           if (f.properties.code && f.properties.name) {
             parentMap.set(f.properties.code, f.properties.name);
           }
+          // Calculate Centroid
+          f.properties.centroid = geoCentroid(f);
         });
 
         filteredLevel3.forEach((f: any) => {
@@ -72,6 +75,8 @@ export const useGeoData = () => {
               f.properties.EMD_KOR_NM = f.properties.name;
             }
           }
+          // Calculate Centroid
+          f.properties.centroid = geoCentroid(f);
         });
 
         setLevel2Data({ ...level2, features: filteredLevel2 });

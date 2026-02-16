@@ -15,9 +15,10 @@ export interface GameScore {
   correct: number;
   incorrect: number;
   duration: number; // 밀리초 단위
+  missedRegions: string[]; // 오답 지역 이름 리스트
 }
 
-export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type Difficulty = 'NORMAL' | 'HARD';
 
 export interface AnswerFeedback {
   regionCode: string;        // 클릭한 지역 코드

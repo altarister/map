@@ -69,8 +69,17 @@
       - *목표*: 오답 횟수(Errors)를 0으로 줄이는 것.
   2.  **[SELECT NEW SECTOR] (다른 지역 선택)**:
       - **활성화 조건**: 큐를 모두 비웠을 때 (Clear).
-      - *기능*: 로비(`GameSelectScreen`)로 나가서 다른 챕터를 선택할 수 있습니다.
+      - *기능*: 로비(`GameOptionSelectScreen`)로 나가서 다른 챕터를 선택할 수 있습니다.
       - *마스터 표식*: 만약 오답이 0인 상태로 클리어했다면, 해당 챕터 카드에 "MASTERED" 마크가 붙습니다.
+
+### 2.5 전술 정보 시스템 (Tactical Intel System)
+- **개요**: 미확인 지역(Unanswered Region)에 대한 추가 정보를 제공하여 학습을 보조합니다. (힌트 개념)
+- **발동 조건**: 지도상의 지역을 **우클릭(Right-Click)**.
+- **표시 정보**: `IntelPopup`을 통해 다음 정보를 제공합니다.
+  - **지역명**: 해당 지역의 정확한 명칭.
+  - **인접 지역(Adjacency)**: 해당 지역과 경계를 맞대고 있는 이웃 지역 목록. (지리적 관계 학습)
+  - **물류망(Logistics)**: 통과하는 주요 도로 정보 (추후 확장 예정).
+- **디자인 컨셉**: 군사 작전 지도 느낌의 반투명 오버레이 UI.
 
 ## 3. 기술적 요구사항 (Technical Requirements)
 
@@ -79,11 +88,15 @@
 - **`retry` 로직**: 오답 시 해당 문제를 리스트의 뒤쪽(예: 3칸 뒤)에 재삽입 (Spaced Repetition).
 - **`completion` 조건**: `remainingQuestions.length === 0`.
 
-### 3.2 GameSelectScreen (구 RegionSelectScreen) 구현
-- **컴포넌트 명**: `RegionSelectScreen` -> `GameSelectScreen`으로 변경 혹은 역할 확장.
+### 3.2 GameOptionSelectScreen (구 RegionSelectScreen) 구현
+- **컴포넌트 명**: `RegionSelectScreen` -> `GameOptionSelectScreen`으로 변경 혹은 역할 확장.
 - 레벨 선택 및 난이도 설정 UI 통합.
 - "챕터 카드(Chapter Card)" 컴포넌트 분리 및 그리드 레이아웃.
 
 ### 3.3 ResultModal 수정
-- 오답 노트 UI 추가.
 - "다른 지역 선택" 버튼의 활성화/비활성화 로직 (Clear 여부 체크).
+
+### 3.4 전술 정보 시스템 (Tactical Intel)
+- **`IntelSystem.ts`**: `d3-geo`의 `geoCentroid`, `geoDistance`를 활용한 거리 계산 로직 구현.
+- **`IntelPopup.tsx`**: `fixed` 포지셔닝을 사용하여 줌/팬에 영향받지 않는 오버레이 구현. (Click Coordinates 기준)
+- **이벤트 처리**: `Map` 컴포넌트의 `onContextMenu` 이벤트를 캡처하고 브라우저 기본 메뉴(`preventDefault`)를 차단해야 합니다.

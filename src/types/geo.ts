@@ -11,6 +11,7 @@ export interface RegionProperties {
   // Level 3(읍면동) 데이터에서 상위 행정구역 정보를 저장하기 위해 사용
   SIG_KOR_NM?: string; // 시군구 이름 (예: "용인시 처인구")
   EMD_KOR_NM?: string; // 읍면동 이름 (예: "모현읍")
+  centroid?: [number, number]; // 중심점 좌표 (Lon, Lat)
 
   // Legacy (삭제 예정)
   city?: string;

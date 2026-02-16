@@ -30,7 +30,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [difficulty, setDifficulty] = useLocalStorage<Difficulty>('game-difficulty', 'EASY');
+  const [difficulty, setDifficulty] = useLocalStorage<Difficulty>('game-difficulty', 'NORMAL');
   const [soundEnabled, setSoundEnabled] = useLocalStorage<boolean>('game-sound', true);
   const [topScore, setTopScore] = useLocalStorage<number>('game-top-score', 0);
   const [fontSize, setFontSize] = useLocalStorage<number>('game-font-size', 1.0);

@@ -33,6 +33,7 @@
 | **Game** | **RegionSelectScreen** | Modal | `z-50` | 지역 선택 (TopBar 제외 전체 덮음) | `gameState === 'LEVEL_SELECT'` |
 | **Game** | **GameInfoPanel** | Modeless | `z-[35]` | 게임 로그/점수 (좌측 하단) | `hasStarted` (Map 위) |
 | **Game** | **ActionBar** | Modeless | `z-30` | 미션 지령 HUD (중앙 상단) | `hasStarted` (Map 위) |
+| **Map** | **IntelPopup** | Overlay | `z-50` | 전술 정보 (우클릭 팝업) | 우클릭 시 (Conditional) |
 | **Map** | **MapScale** | Footer | `z-[25]` | 하단 통합 컨트롤 (Zoom/Hover/Layer) | **Always w/ Map** |
 | **Map** | **Interactive** | Layer | `z-20` | 지역 클릭/호버 감지 | 항상 (Interactive) |
 | **Map** | **Road/Grid** | Layer | `z-10` | 도로망 및 그리드 표시 | 항상 (Visual) |

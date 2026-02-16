@@ -275,6 +275,14 @@ if (shouldShowLevel3) {
 - **동적 지시문:** `getLevelStrategy(currentLevel).renderInstruction(...)`을 통해 현재 문제 상황에 맞는 텍스트를 렌더링합니다.
 - **레벨별 컨트롤**: Level 3의 경우 거리 입력 폼 표시.
 
+### 6.4 Tactical Intel System (`IntelPopup.tsx`)
+
+- **역할**: 사용자의 우클릭 인터랙션에 반응하여 해당 지역의 전술 정보(지명, 인접 지역, 도로)를 표시합니다.
+- **특징**:
+  - **Glassmorphism UI**: 군사 작전 지도 컨셉의 반투명 스타일링.
+  - **Portal-free**: `Map` 컴포넌트 내부에서 절대 위치(`absolute`)로 렌더링되어 줌/팬 컨텍스트와 무관하게 화면 좌표(`clientX`, `clientY`)를 따릅니다.
+  - **Dismissal**: 외부 클릭(`click-outside`) 또는 닫기 버튼으로 제어됩니다.
+
 ---
 
 ## 7. 데이터 처리
@@ -345,7 +353,21 @@ const filteredLevel2 = level2.features.filter(f =>
  
  ---
  
- ## 8. 주요 아키텍처 결정 (Architecture Decisions)
+ ### 7.5 Data Enrichment: Centroids
+
+`IntelSystem`의 인접 지역 계산(`geoDistance`) 성능을 최적화하기 위해, 데이터 로딩 시점(`useGeoData`)에 모든 Feature의 중심점(Centroid)을 미리 계산하여 메모리에 캐싱합니다.
+
+```typescript
+// useGeoData.ts
+import { geoCentroid } from 'd3-geo';
+
+// ...
+f.properties.centroid = geoCentroid(f); // [lon, lat]
+```
+
+---
+
+## 8. 주요 아키텍처 결정 (Architecture Decisions)
 
 ### AD-001: react-simple-maps → D3 직접 렌더링 마이그레이션
 

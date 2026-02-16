@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useCallback } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
@@ -15,6 +15,8 @@ import type { RoadLayerHandle } from './RoadLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapZoom } from '../../hooks/useMapZoom';
 import { log } from '../../lib/debug';
+import { IntelPopup } from './IntelPopup';
+import { getAdjacentRegions, getPassingRoads } from '../../game/systems/IntelSystem';
 
 // Theme Color Definitions
 const THEME_COLORS = {
@@ -62,7 +64,7 @@ export const Map = () => {
     currentLevel
   } = useGame();
 
-  const { theme, showDebugInfo, viewOptions } = useSettings();
+  const { theme, showDebugInfo, viewOptions, difficulty } = useSettings();
   const colors = THEME_COLORS[theme];
 
   // MapContext에서 transform, hoveredRegion 가져오기
@@ -86,6 +88,9 @@ export const Map = () => {
     },
     roadLayerRef // Pass ref to hook
   });
+
+  // --- Intel Popup State ---
+  const [intelPopup, setIntelPopup] = useState<{ x: number, y: number, data: any } | null>(null);
 
   // --- Derived State (Restored) ---
   const projection = useMemo(() => {
@@ -122,12 +127,47 @@ export const Map = () => {
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
   // --------------------------------
 
+  const handleRegionContextMenu = useCallback((event: React.MouseEvent, region: any) => {
+    event.preventDefault(); // Stop browser context menu
+
+    // Calculate Intel
+    const neighbors = getAdjacentRegions(region, featuresToRender); // Use currently rendered features
+
+    // Optimized Road Query via RoadLayer's Quadtree
+    let roadsInRegion: string[] = [];
+
+    console.log(`Map: ContextMenu on ${region.properties.name}, RoadLayerRef:`, !!roadLayerRef.current);
+
+    if (roadLayerRef.current) {
+      roadsInRegion = roadLayerRef.current.findRoads(region);
+      console.log(`Map: Found roads via Ref:`, roadsInRegion);
+    } else {
+      // Fallback if layer not active (e.g. viewOptions.roads = false)
+      // We could use the slow method or just empty.
+      // Since specific requirement is to use the optimized one:
+      const roadFeatures = roadData?.features || [];
+      roadsInRegion = getPassingRoads(region, roadFeatures);
+    }
+
+    setIntelPopup({
+      x: event.clientX,
+      y: event.clientY,
+      data: {
+        regionName: region.properties.name,
+        neighbors,
+        roads: roadsInRegion
+      }
+    });
+  }, [featuresToRender, roadData]);
+
+  const closeIntelPopup = useCallback(() => setIntelPopup(null), []);
+
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
   if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
   if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   return (
-    <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}>
+    <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`} onClick={closeIntelPopup}>
       {/* === Layer 1: Base Map (Bottom SVG) === */}
       <svg
         width="100%"
@@ -194,6 +234,7 @@ export const Map = () => {
             isGeometryLevel3={isGeometryLevel3}
             onRegionHover={setHoveredRegion}
             answeredRegions={answeredRegions}
+            onRegionContextMenu={handleRegionContextMenu}
             onRegionClick={(code) => {
               if (gameState !== 'PLAYING') return;
 
@@ -206,8 +247,9 @@ export const Map = () => {
             }}
           />
 
-          {/* Labels */}
+          {/* Labels - Show if enabled in Layer Visibility, regardless of difficulty */}
           {gameState === 'PLAYING' && layerVisibility.labels && (
+
             <>
               {!showDistrictLabels && filteredLevel2Features.map((feature: any) => (
                 <RegionLabel
@@ -241,6 +283,16 @@ export const Map = () => {
         </g>
       </svg>
 
+      {/* Intel Popup */}
+      {intelPopup && (
+        <IntelPopup
+          x={intelPopup.x}
+          y={intelPopup.y}
+          data={intelPopup.data}
+          onClose={closeIntelPopup}
+        />
+      )}
+
       {viewOptions.showScaleBar && gameState !== 'INITIAL' && (
         <MapScale
           width={scaleWidth}
@@ -255,7 +307,7 @@ export const Map = () => {
 
       {!isGeometryLevel3 && gameState === 'PLAYING' && currentLevel !== 1 && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
-          [ZOOM IN TO SCAN]
+          [확대하여 지역 탐색]
         </div>
       )}
     </div>

@@ -2,7 +2,8 @@ import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
-import { RegionSelectScreen } from './components/game/RegionSelectScreen';
+// Changed: RegionSelectScreen -> GameOptionSelectScreen
+import { GameOptionSelectScreen } from './components/game/GameOptionSelectScreen';
 
 import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
@@ -46,7 +47,8 @@ function GameContent() {
           )}
 
           {/* LEVEL_SELECT: 레벨/지역 선택 모달 */}
-          {gameState === 'LEVEL_SELECT' && <RegionSelectScreen />}
+          {/* Replaced RegionSelectScreen with GameOptionSelectScreen */}
+          {gameState === 'LEVEL_SELECT' && <GameOptionSelectScreen />}
 
           {/* RESULT: 결과 모달 */}
           <ResultModal />

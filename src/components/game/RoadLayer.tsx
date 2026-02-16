@@ -15,6 +15,7 @@ interface RoadLayerProps {
 
 export interface RoadLayerHandle {
     draw: (transform: { x: number, y: number, k: number }) => void;
+    findRoads: (region: Feature) => string[];
 }
 
 const ROAD_THEME = {
@@ -170,13 +171,57 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         contexts.forEach(ctx => ctx.restore());
     };
 
-    // Imperative Handle for Sync Updates (D3 Zoom)
+    // Imperative Handle for Sync Updates (D3 Zoom) & Intel Query
     useImperativeHandle(ref, () => ({
         draw: (t) => {
             // Force synchronous draw
             drawCanvas(t.x, t.y, t.k);
+        },
+        findRoads: (region: Feature) => {
+            if (!tree || !region) return [];
+
+            const bounds = boundsGenerator.bounds(region as any);
+            const [[x0, y0], [x1, y1]] = bounds;
+
+            const roadNames = new Set<string>();
+
+            // Basic AABB Query on Quadtree
+            tree.visit((node, x1q, y1q, x2q, y2q) => {
+                if (x1q > x1 || x2q < x0 || y1q > y1 || y2q < y0) return true; // Cull
+
+                if (!node.length) {
+                    let d = (node as any).data;
+                    while (d) {
+                        const { feature: roadFeature, bounds: roadBounds } = d;
+                        const [[rx0, ry0], [rx1, ry1]] = roadBounds;
+
+                        // Fine-grained AABB intersection check
+                        if (rx1 >= x0 && rx0 <= x1 && ry1 >= y0 && ry0 <= y1) {
+                            const props = roadFeature.properties || {};
+                            const name = props.name;
+                            const ref = props.ref;
+                            const highway = props.highway; // e.g., "motorway", "primary"
+
+                            if (name) {
+                                roadNames.add(name);
+                            } else if (ref) {
+                                // Check if ref is numeric
+                                roadNames.add(isNaN(Number(ref)) ? ref : `Route ${ref}`);
+                            } else if (highway) {
+                                // Capitalize highway type as fallback
+                                const type = highway.charAt(0).toUpperCase() + highway.slice(1);
+                                roadNames.add(type);
+                            }
+                        }
+                        d = d.next;
+                    }
+                }
+                return false;
+            });
+
+            return Array.from(roadNames).sort();
         }
-    }), [width, height, tree, projection, theme]); // Added theme dependency
+    }), [width, height, tree, projection, theme, boundsGenerator]); // Added boundsGenerator dependency
 
     // Initial Draw (LayoutEffect to match initial render)
     useLayoutEffect(() => {

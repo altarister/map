@@ -1,5 +1,17 @@
 import { useGame } from '../../contexts/GameContext';
 
+// Helper to generate question text based on type
+const getQuestionText = (question: any) => {
+    switch (question.type) {
+        case 'LOCATE_SINGLE':
+            return question.target.name;
+        case 'LOCATE_PAIR':
+            return `${question.start.name} ➡️ ${question.end.name}`;
+        default:
+            return '알 수 없는 문제';
+    }
+};
+
 export const ActionBar = () => {
     const { gameState, currentQuestion, lastFeedback } = useGame();
     const isVisible = gameState === 'PLAYING';
@@ -24,7 +36,7 @@ export const ActionBar = () => {
                 <h2 className="text-2xl font-bold text-center text-foreground">
                     Q. 다음 지역을 찾으세요:
                     <span className="text-background ml-2">
-                        {currentQuestion.type === 'LOCATE_SINGLE' ? currentQuestion.target.name : '-'}
+                        {getQuestionText(currentQuestion)}
                     </span>
                 </h2>
             )}

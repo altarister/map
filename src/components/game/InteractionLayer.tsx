@@ -10,6 +10,7 @@ interface InteractionLayerProps {
     gameState: string;
     isGeometryLevel3: boolean;
     answeredRegions: Set<string>;
+    onRegionContextMenu?: (event: React.MouseEvent, feature: RegionFeature) => void;
 }
 
 export const InteractionLayer = memo(({
@@ -19,7 +20,8 @@ export const InteractionLayer = memo(({
     onRegionHover,
     gameState,
     isGeometryLevel3,
-    answeredRegions
+    answeredRegions,
+    onRegionContextMenu
 }: InteractionLayerProps) => {
     return (
         <>
@@ -36,6 +38,11 @@ export const InteractionLayer = memo(({
                         style={{
                             cursor: gameState === 'PLAYING' && !isAnswered ? (isGeometryLevel3 ? 'pointer' : 'not-allowed') : 'default',
                             pointerEvents: 'all' // This layer captures all events
+                        }}
+                        onContextMenu={(e) => {
+                            if (onRegionContextMenu) {
+                                onRegionContextMenu(e, feature);
+                            }
                         }}
                         onMouseEnter={() => {
                             if (!isAnswered) onRegionHover(code);

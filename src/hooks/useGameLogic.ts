@@ -27,7 +27,7 @@ export const useGameLogic = (
   mapDataLevel2: RegionFeature[] = [] // ✅ BUG-003 FIX: Level 2 데이터 추가
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('LEVEL_SELECT');
-  const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0 });
+  const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [lastFeedback, setLastFeedback] = useState<AnswerFeedback | null>(null);
   const [answeredRegions, setAnsweredRegions] = useState<Set<string>>(new Set());
@@ -127,7 +127,7 @@ export const useGameLogic = (
 
   // 게임 시작
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
-    setScore({ correct: 0, incorrect: 0, duration: 0 });
+    setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     const newAnsweredRegions = new Set<string>();
     setAnsweredRegions(newAnsweredRegions);
     setLastFeedback(null);
@@ -149,7 +149,7 @@ export const useGameLogic = (
     // 1. Initialization Phase
     setGameState('INITIAL');
     setCurrentQuestion(null);
-    setScore({ correct: 0, incorrect: 0, duration: 0 });
+    setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setLastFeedback(null);
     setAnsweredRegions(new Set());
     setLevelState(null);
@@ -218,7 +218,17 @@ export const useGameLogic = (
         setNextQuestion(nextAnswered);
 
       } else if (result.status === 'WRONG') {
-        setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+        // 오답 노트: 지역 이름 추가
+        let missedName = '알 수 없는 지역';
+        if (currentQuestion.type === 'LOCATE_SINGLE') {
+          missedName = currentQuestion.target.name;
+        }
+
+        setScore(prev => ({
+          ...prev,
+          incorrect: prev.incorrect + 1,
+          missedRegions: [...prev.missedRegions, missedName]
+        }));
       } else if (result.status === 'CONTINUE') {
         // 진행 중 (예: 포인트 하나 찍음)
         if (result.nextState) {
@@ -235,8 +245,9 @@ export const useGameLogic = (
   // 게임 초기화
   const resetGame = useCallback(() => {
     setGameState('LEVEL_SELECT');
-    setScore({ correct: 0, incorrect: 0, duration: 0 });
+    setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setCurrentQuestion(null);
+
     setLastFeedback(null);
     setAnsweredRegions(new Set());
     setLevelState(null);
