@@ -64,14 +64,14 @@ function GameContent() {
 function App() {
   return (
     <SettingsProvider>
-      <GameProvider>
-        <MapProvider>
+      <MapProvider>
+        <GameProvider>
           <div className="w-full h-screen bg-slate-100 flex flex-col">
             <TopBar />
             <GameContent />
           </div>
-        </MapProvider>
-      </GameProvider>
+        </GameProvider>
+      </MapProvider>
     </SettingsProvider>
   );
 }

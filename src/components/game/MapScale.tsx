@@ -30,15 +30,17 @@ export const MapScale = ({
   hoveredRegion,
   renderedCount,
 }: MapScaleProps) => {
-  const { layerVisibility, toggleLayer } = useMapContext();
+  const { layerVisibility, toggleLayer } = useMapContext(); // Revert hook
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
 
   // Layer Definitions
   const LAYERS = [
     { id: 'labels', label: '지역 명칭' },
-    { id: 'roads', label: '도로망' },
-    { id: 'boundaries', label: '지형 / 배경' },
-    { id: 'grid', label: '그리드' },
+    { id: 'roadMotorway', label: '고속도로' },
+    { id: 'roadTrunk', label: '국도' },
+    { id: 'roadPrimary', label: '주요도로' },
+    { id: 'roadSecondary', label: '보조도로' },
+    { id: 'roadOther', label: '기타도로' },
   ] as const;
 
   return (

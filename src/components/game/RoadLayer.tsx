@@ -11,6 +11,12 @@ interface RoadLayerProps {
     width: number;
     height: number;
     theme: string;
+    // Visibility Props
+    visibleMotorway: boolean;
+    visibleTrunk: boolean;
+    visiblePrimary: boolean;
+    visibleSecondary: boolean;
+    visibleOther: boolean;
 }
 
 export interface RoadLayerHandle {
@@ -35,7 +41,10 @@ const ROAD_THEME = {
     }
 } as const;
 
-export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ features, projection, transform, width, height, theme }, ref) => {
+export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
+    features, projection, transform, width, height, theme,
+    visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther
+}, ref) => {
     // Wrapper Ref for CSS Transform
     const containerRef = useRef<HTMLDivElement>(null);
     const lastDrawTransform = useRef<{ x: number, y: number, k: number } | null>(null);
@@ -90,18 +99,14 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
         const offsetY = (height * (CANVAS_SCALE - 1)) / 2;
 
         const contexts = [ctxM, ctxT, ctxP, ctxS, ctxO];
+        // Clear all canvases first
         contexts.forEach(ctx => {
             ctx.save();
             ctx.scale(pixelRatio, pixelRatio);
             ctx.clearRect(0, 0, width * CANVAS_SCALE, height * CANVAS_SCALE);
 
-            // Critical Point: 
-            // SVG uses transform="translate(x,y) scale(k)"
-            // Canvas needs to match this EXACTLY.
-            // 1. Center viewport in our expanded canvas
+            // Setup Transform
             ctx.translate(offsetX, offsetY);
-
-            // 2. Apply Map Transform
             ctx.translate(x, y);
             ctx.scale(k, k);
 
@@ -145,11 +150,11 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
                     let style = null;
 
                     switch (type) {
-                        case 'motorway': targetCtx = ctxM; style = currentTheme.motorway; break;
-                        case 'trunk': targetCtx = ctxT; style = currentTheme.trunk; break;
-                        case 'primary': targetCtx = ctxP; style = currentTheme.primary; break;
-                        case 'secondary': targetCtx = ctxS; style = currentTheme.secondary; break;
-                        default: targetCtx = ctxO; style = currentTheme.other; break;
+                        case 'motorway': if (visibleMotorway) { targetCtx = ctxM; style = currentTheme.motorway; } break;
+                        case 'trunk': if (visibleTrunk) { targetCtx = ctxT; style = currentTheme.trunk; } break;
+                        case 'primary': if (visiblePrimary) { targetCtx = ctxP; style = currentTheme.primary; } break;
+                        case 'secondary': if (visibleSecondary) { targetCtx = ctxS; style = currentTheme.secondary; } break;
+                        default: if (visibleOther) { targetCtx = ctxO; style = currentTheme.other; } break;
                     }
 
                     if (targetCtx && style && k >= style.minK) {
@@ -221,7 +226,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
 
             return Array.from(roadNames).sort();
         }
-    }), [width, height, tree, projection, theme, boundsGenerator]); // Added boundsGenerator dependency
+    }), [width, height, tree, projection, theme, boundsGenerator, visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther]); // Added visibility deps
 
     // Initial Draw (LayoutEffect to match initial render)
     useLayoutEffect(() => {
@@ -240,13 +245,13 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
             }
         });
         drawCanvas(transform.x, transform.y, transform.k);
-    }, [width, height, theme]); // Added theme dependency
+    }, [width, height, theme, visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther]); // Added visibility deps
 
     // NOTE: We do NOT use useEffect(draw) for 'transform' prop anymore.
     // However, we MUST draw if the road data (tree) loads for the first time while transformed.
     useLayoutEffect(() => {
         drawCanvas(transform.x, transform.y, transform.k);
-    }, [tree, theme]); // Added theme dependency
+    }, [tree, theme, visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther]); // Added visibility deps
 
     return (
         <div
@@ -262,11 +267,11 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({ fea
             }}
         >
             {[
-                { ref: canvasOtherRef, z: 10, o: 0.1 },
+                { ref: canvasOtherRef, z: 10, o: 0.2 },
                 { ref: canvasSecondaryRef, z: 11, o: 0.2 },
                 { ref: canvasPrimaryRef, z: 12, o: 0.2 },
-                { ref: canvasTrunkRef, z: 13, o: 0.1 },
-                { ref: canvasMotorwayRef, z: 14, o: 0.1 }
+                { ref: canvasTrunkRef, z: 13, o: 0.2 },
+                { ref: canvasMotorwayRef, z: 14, o: 0.2 }
             ].map(({ ref, z, o }, i) => (
                 <canvas
                     key={i}

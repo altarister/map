@@ -2,7 +2,9 @@ import React, { createContext, useContext, type ReactNode, useState, useEffect, 
 import { MasteryStorage } from '../services/MasteryStorage';
 import { useGeoData } from '../hooks/useGeoData';
 import { useGameLogic } from '../hooks/useGameLogic';
+import { useMapContext } from './MapContext'; // Added import
 import { useSettings } from './SettingsContext';
+
 import type { RegionCollection } from '../types/geo';
 import type { GameState, GameScore, AnswerFeedback } from '../types/game';
 import type { GameQuestion, UserInput } from '../game/core/types';
@@ -43,6 +45,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
   const { difficulty, updateTopScore, currentLevel } = useSettings();
+  const { layerVisibility } = useMapContext();
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -50,6 +53,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateTopScore(calculatedScore);
 
     // 2. Mastery System Update
+    if (layerVisibility.labels) {
+      console.log('Practice Mode: Score not saved.');
+      return;
+    }
+
     if (selectedChapter) {
       const totalAttempts = finalScore.correct + finalScore.incorrect;
       let masteryPercentage = 0;
@@ -62,7 +70,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Save to localStorage (Only updates if higher)
       MasteryStorage.saveMastery(selectedChapter, masteryPercentage);
     }
-  }, [updateTopScore, selectedChapter]);
+  }, [updateTopScore, selectedChapter, layerVisibility]);
 
   const {
     gameState,

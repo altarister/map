@@ -67,7 +67,7 @@ export const Map = () => {
   const { theme, showDebugInfo, viewOptions, difficulty } = useSettings();
   const colors = THEME_COLORS[theme];
 
-  // MapContext에서 transform, hoveredRegion 가져오기
+  // MapContext에서 transform, hoveredRegion, layerVisibility 가져오기
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
@@ -193,7 +193,7 @@ export const Map = () => {
       </svg>
 
       {/* === Layer 2: Roads (Middle Canvas) === */}
-      {roadData && layerVisibility.roads && (
+      {roadData && (
         <RoadLayer
           ref={roadLayerRef}
           features={roadData.features}
@@ -202,6 +202,11 @@ export const Map = () => {
           width={width}
           height={height}
           theme={theme}
+          visibleMotorway={layerVisibility.roadMotorway}
+          visibleTrunk={layerVisibility.roadTrunk}
+          visiblePrimary={layerVisibility.roadPrimary}
+          visibleSecondary={layerVisibility.roadSecondary}
+          visibleOther={layerVisibility.roadOther}
         />
       )}
 
