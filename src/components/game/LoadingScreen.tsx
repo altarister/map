@@ -58,10 +58,10 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
                 {/* Title */}
                 <div className="text-center">
                     <h1 className={`text-4xl font-black tracking-wider mb-2 ${isTactical ? 'font-mono' : 'font-sans'}`}>
-                        {isTactical ? 'OPERATIONAL MAP' : 'KOREA MAP QUIZ'}
+                        {isTactical ? '작전 지도' : '대한민국 지리 퀴즈'}
                     </h1>
                     <p className={`text-sm tracking-widest opacity-70 ${isTactical ? 'font-mono' : 'font-sans'}`}>
-                        {isTactical ? 'SYSTEM INITIALIZATION...' : 'Let\'s explore Korea!'}
+                        {isTactical ? '시스템 초기화 중...' : '우리나라 지도를 배워봅시다!'}
                     </p>
                 </div>
 
@@ -77,7 +77,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
                     </div>
 
                     <div className="flex justify-between text-xs font-mono opacity-80">
-                        <span>{progress < 100 ? 'LOADING ASSETS...' : 'SYSTEM READY'}</span>
+                        <span>{progress < 100 ? '데이터 로딩 중...' : '준비 완료'}</span>
                         <span>{Math.round(progress)}%</span>
                     </div>
                 </div>
@@ -96,7 +96,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
               disabled:cursor-not-allowed
             `}
                     >
-                        {isTactical ? '[ INITIALIZE MISSION ]' : 'START GAME'}
+                        {isTactical ? '[ 작전 개시 ]' : '게임 시작'}
                     </button>
                 </div>
             </div>

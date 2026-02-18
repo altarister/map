@@ -51,11 +51,11 @@ export const MapScale = ({
         {/* Zoom & Objs */}
         <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <span className="opacity-50 uppercase tracking-wider">Zoom</span>
+            <span className="opacity-50 uppercase tracking-wider">확대</span>
             <span className="text-foreground font-bold">{zoom?.toFixed(2)}x</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="opacity-50 uppercase tracking-wider">Objs</span>
+            <span className="opacity-50 uppercase tracking-wider">객체</span>
             <span className="text-foreground font-bold">{renderedCount ?? 0}</span>
           </div>
         </div>
@@ -80,7 +80,7 @@ export const MapScale = ({
           </div>
         ) : (
           <span className="text-[10px] text-muted-foreground/30 font-mono tracking-widest uppercase">
-            - No Signal -
+            - 정보 없음 -
           </span>
         )}
       </div>

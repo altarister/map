@@ -34,7 +34,7 @@ export const IntelPopup: React.FC<IntelPopupProps> = ({ x, y, data, onClose }) =
                 <div className="flex items-center gap-2 mb-3 border-b border-primary/30 pb-2">
                     <span className="text-xl">📍</span>
                     <div>
-                        <div className="text-[10px] text-primary/70 tracking-widest leading-none">IntelPopup</div>
+                        <div className="text-[10px] text-primary/70 tracking-widest leading-none">지역 정보</div>
                         <div className="font-bold text-lg leading-tight text-white">{data.regionName}</div>
                     </div>
                 </div>

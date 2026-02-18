@@ -30,14 +30,14 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   }, [onClose]);
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="SettingsModal" footer={
+    <Modal isOpen={true} onClose={onClose} title="환경 설정" footer={
       <Button onClick={onClose} className="w-full">
-        APPLY CONFIGURATION
+        설정 적용
       </Button>
     }>
       <div className="space-y-8 py-2">
         <div>
-          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">Visual Theme</label>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">화면 테마</label>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setTheme('tactical')}
@@ -46,8 +46,8 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 : 'bg-black/20 border-white/10 text-slate-500 hover:bg-white/5 hover:text-slate-300'
                 }`}
             >
-              <span className="font-bold text-xs uppercase tracking-widest">Tactical OS</span>
-              <span className="text-[10px] opacity-60">Dark / High Contrast</span>
+              <span className="font-bold text-xs uppercase tracking-widest">전술 작전 모드</span>
+              <span className="text-[10px] opacity-60">어두운 화면 / 고대비</span>
             </button>
             <button
               onClick={() => setTheme('kids')}
@@ -56,15 +56,15 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 : 'bg-black/20 border-white/10 text-slate-500 hover:bg-white/5 hover:text-slate-300'
                 }`}
             >
-              <span className="font-bold text-xs uppercase tracking-widest">Kids Explorer</span>
-              <span className="text-[10px] opacity-60">Bright / Playful</span>
+              <span className="font-bold text-xs uppercase tracking-widest">어린이 탐험 모드</span>
+              <span className="text-[10px] opacity-60">밝은 화면 / 귀여운 느낌</span>
             </button>
           </div>
         </div>
 
         <div>
           <div className="flex justify-between items-center mb-4">
-            <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Map Label Scale</label>
+            <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">글자 크기 조절</label>
             <span className="text-sm text-green-400 font-mono font-bold">{fontSize.toFixed(1)}x</span>
           </div>
           <input
@@ -77,14 +77,14 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
             className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-green-500"
           />
           <div className="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-widest">
-            <span>Compact</span>
-            <span>Standard</span>
-            <span>Max</span>
+            <span>작게</span>
+            <span>보통</span>
+            <span>크게</span>
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">View Options</label>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">화면 표시 옵션</label>
           <div className="space-y-3 bg-black/20 p-4 rounded-lg border border-white/5">
 
             {/* Layer Control Toggle */}
@@ -92,7 +92,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
               className="flex items-center justify-between cursor-pointer group"
               onClick={() => setViewOptions({ ...viewOptions, showLayerControl: !viewOptions.showLayerControl })}
             >
-              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Layer Manager</span>
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">레이어 조절 버튼</span>
               <div className="relative w-10 h-5">
                 <input
                   type="checkbox"
@@ -110,7 +110,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
               className="flex items-center justify-between cursor-pointer group"
               onClick={() => setViewOptions({ ...viewOptions, showScaleBar: !viewOptions.showScaleBar })}
             >
-              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Scale & Info</span>
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">축척 및 정보</span>
               <div className="relative w-10 h-5">
                 <input
                   type="checkbox"
@@ -128,7 +128,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
               className="flex items-center justify-between cursor-pointer group"
               onClick={() => setViewOptions({ ...viewOptions, showGameLog: !viewOptions.showGameLog })}
             >
-              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Game Log</span>
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">게임 로그</span>
               <div className="relative w-10 h-5">
                 <input
                   type="checkbox"
@@ -145,7 +145,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
         </div>
 
         <div>
-          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">Operation Level</label>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">게임 난이도</label>
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((level) => (
               <button
@@ -164,10 +164,10 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
             ))}
           </div>
           <p className="text-xs text-slate-500 mt-3 font-mono text-center">
-            {currentLevel === 1 && "Start Point: Location Familiarization"}
-            {currentLevel === 2 && "Visualizing Logistics Routes"}
-            {currentLevel === 3 && "Distance Estimation (km)"}
-            {currentLevel > 3 && `Level ${currentLevel} (LOCKED)`}
+            {currentLevel === 1 && "1단계: 위치 익히기"}
+            {currentLevel === 2 && "2단계: 경로 시각화"}
+            {currentLevel === 3 && "3단계: 거리 감각 익히기"}
+            {currentLevel > 3 && `레벨 ${currentLevel} (잠김)`}
           </p>
         </div>
       </div>

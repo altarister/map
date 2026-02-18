@@ -28,7 +28,7 @@ export const ActionBar = () => {
         >
             {/* Header Label */}
             <div className="text-[10px] text-primary/70 font-mono uppercase tracking-widest mb-2 border-b border-primary/20 pb-1 text-center w-full">
-                ActionBar
+                상태 알림
             </div>
 
             {/* Question */}

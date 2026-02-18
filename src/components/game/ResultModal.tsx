@@ -14,14 +14,14 @@ export const ResultModal = () => {
     <Modal
       isOpen={gameState === 'RESULT'}
       onClose={() => { }} // 강제로 닫지 못하게 함
-      title="MISSION DEBRIEFING"
+      title="게임 결과"
       footer={
         <div className="flex gap-3 w-full">
           <Button onClick={resetGame} variant="outline" className="flex-1" size="lg">
-            SELECT NEW SECTOR
+            지역 선택으로 이동
           </Button>
           <Button onClick={() => startGame(selectedChapter || undefined)} className="flex-1" size="lg">
-            RETRY MISSION
+            다시 하기
           </Button>
         </div>
       }
@@ -31,7 +31,7 @@ export const ResultModal = () => {
         {/* Mastery / Score Display */}
         <div className="relative py-4">
           <div className="space-y-1">
-            <p className="text-muted-foreground font-mono tracking-widest text-xs uppercase">Operation Accuracy</p>
+            <p className="text-muted-foreground font-mono tracking-widest text-xs uppercase">작전 정확도</p>
             <div className={`text-6xl font-black tracking-tighter ${isPerfect ? 'text-amber-500' : 'text-foreground'}`} style={{ textShadow: isPerfect ? '0 0 30px rgba(245, 158, 11, 0.4)' : 'none' }}>
               {accuracy}%
             </div>
@@ -40,7 +40,7 @@ export const ResultModal = () => {
           {isPerfect && (
             <div className="absolute top-0 right-0 left-0 flex justify-center pointer-events-none">
               <div className="animate-bounce mt-[-20px] bg-gradient-to-r from-amber-400 to-orange-500 text-white px-4 py-1 rounded-full font-bold shadow-lg border border-white/20 transform rotate-[-2deg]">
-                👑 SECTOR MASTERED
+                👑 지역 마스터!
               </div>
             </div>
           )}
@@ -49,11 +49,11 @@ export const ResultModal = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 bg-muted/30 p-5 rounded-xl border border-border">
           <div className="space-y-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Secured</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">정답</span>
             <div className="text-3xl font-bold text-green-500">{score.correct}</div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Errors</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">오답</span>
             <div className={`text-3xl font-bold ${score.incorrect > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>{score.incorrect}</div>
           </div>
         </div>
@@ -62,7 +62,7 @@ export const ResultModal = () => {
         {score.missedRegions && score.missedRegions.length > 0 && (
           <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 text-left">
             <h4 className="text-xs font-bold text-destructive uppercase tracking-wider mb-2 flex items-center gap-2">
-              <span>⚠️</span> Missed Targets ({score.missedRegions.length})
+              <span>⚠️</span> 틀린 지역 ({score.missedRegions.length})
             </h4>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-destructive/20 pr-2">
               {Array.from(new Set(score.missedRegions)).map((region, idx) => (
@@ -75,7 +75,7 @@ export const ResultModal = () => {
         )}
 
         <div className="text-[10px] opacity-50 font-mono uppercase">
-          Mission Time: {Math.floor(score.duration / 1000)}s
+          소요 시간: {Math.floor(score.duration / 1000)}초
         </div>
       </div>
     </Modal>

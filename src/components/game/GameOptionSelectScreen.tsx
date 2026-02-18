@@ -93,7 +93,7 @@ export const GameOptionSelectScreen = () => {
             <div className="w-full max-w-5xl flex items-center justify-between mb-8 px-4">
                 <div className="flex items-center space-x-4">
                     <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic">
-                        Mission Setup
+                        작전 설정
                     </h1>
                     <div className="h-8 w-px bg-border" />
                     <div className="flex items-center space-x-2 bg-secondary/50 p-1 rounded-lg">
@@ -109,7 +109,7 @@ export const GameOptionSelectScreen = () => {
                                         : 'text-muted-foreground hover:text-foreground hover:bg-white/10'}
                 `}
                             >
-                                LEVEL {lvl}
+                                레벨 {lvl}
                             </button>
                         ))}
                     </div>
@@ -117,7 +117,7 @@ export const GameOptionSelectScreen = () => {
 
                 {/* Difficulty Toggle */}
                 <div className="flex items-center space-x-3 bg-card border border-border px-4 py-2 rounded-full shadow-sm">
-                    <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>NORMAL</span>
+                    <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>일반</span>
                     <button
                         onClick={() => handleDifficultyChange(difficulty === 'NORMAL' ? 'HARD' : 'NORMAL')}
                         className={`
@@ -132,7 +132,7 @@ export const GameOptionSelectScreen = () => {
               `}
                         />
                     </button>
-                    <span className={`text-sm font-bold ${difficulty === 'HARD' ? 'text-red-500' : 'text-muted-foreground'}`}>HARD</span>
+                    <span className={`text-sm font-bold ${difficulty === 'HARD' ? 'text-red-500' : 'text-muted-foreground'}`}>어려움</span>
                 </div>
             </div>
 
@@ -140,10 +140,10 @@ export const GameOptionSelectScreen = () => {
             <div className="w-full max-w-6xl flex-1 overflow-hidden flex flex-col glass-panel rounded-2xl border border-white/10 shadow-2xl">
                 <div className="p-6 border-b border-border bg-black/20">
                     <h2 className="text-xl font-bold text-foreground flex items-center">
-                        <span className="mr-2">🏳️</span> SELECT OPERATION AREA (CHAPTER)
+                        <span className="mr-2">🏳️</span> 작전 구역 선택
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Select a specific City/Gun to master. Focus on one area at a time.
+                        마스터할 시/군을 선택하세요. 한 번에 한 지역씩 집중 공략합니다.
                     </p>
                 </div>
 
@@ -171,14 +171,14 @@ export const GameOptionSelectScreen = () => {
                                     {/* Priority Badge */}
                                     {chapter.isPriority && (
                                         <div className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
-                                            MAJOR
+                                            주요도시
                                         </div>
                                     )}
 
                                     {/* Mastered Badge */}
                                     {isMastered && (
                                         <div className="absolute -top-2 -left-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg border border-white/20 flex items-center">
-                                            <span>👑 MASTER</span>
+                                            <span>👑 마스터</span>
                                         </div>
                                     )}
 
@@ -187,13 +187,13 @@ export const GameOptionSelectScreen = () => {
                                             {chapter.name}
                                         </h3>
                                         <div className="text-xs text-muted-foreground mt-0.5 font-mono">
-                                            Code: {chapter.code}
+                                            코드: {chapter.code}
                                         </div>
                                     </div>
 
                                     <div className="mt-auto w-full">
                                         <div className="flex justify-between items-end mb-1">
-                                            <span className="text-xs font-mono text-muted-foreground">{chapter.count} Zones</span>
+                                            <span className="text-xs font-mono text-muted-foreground">{chapter.count}개 구역</span>
                                             <span className={`text-sm font-bold font-mono ${isMastered ? 'text-amber-500' : 'text-primary'}`}>
                                                 {chapter.mastery}%
                                             </span>
@@ -223,16 +223,16 @@ export const GameOptionSelectScreen = () => {
                         {selectedChapter ? (
                             <>
                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                    START MISSION <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded">⏎</span>
+                                    작전 시작 <span className="text-xs opacity-70 bg-black/20 px-1.5 py-0.5 rounded">⏎</span>
                                 </span>
                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                             </>
                         ) : (
-                            <span className="opacity-50">Select an Area to Begin</span>
+                            <span className="opacity-50">지역을 선택해주세요</span>
                         )}
                     </Button>
                     <p className="text-xs text-muted-foreground mt-4 font-mono">
-                        * Complete all zones in the area to achieve mastery status.
+                        * 선택한 지역의 모든 읍/면/동을 맞추면 마스터 배지를 획득합니다.
                     </p>
                 </div>
             </div>

@@ -67,29 +67,27 @@ type GameState = 'INITIAL' | 'LEVEL_SELECT' | 'PLAYING' | 'PAUSED' | 'RESULT';
 | `PAUSED` | 일시정지 (향후 구현) | - |
 | `RESULT` | 게임 종료, 결과 표시 | ResultModal 표시 |
 
-### 2.2 상태 전환도 (State Transition)
+### 2.2 상태 전환도 (State Transition - Map First)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INITIAL: 앱 시작
-    INITIAL --> LEVEL_SELECT: START 버튼 클릭
-    LEVEL_SELECT --> PLAYING: 레벨 선택 완료
-    PLAYING --> RESULT: 모든 문제 완료
-    PLAYING --> LEVEL_SELECT: 그만하기 클릭
-    RESULT --> LEVEL_SELECT: 다시하기 클릭
-    LEVEL_SELECT --> INITIAL: 닫기 (향후)
+    [*] --> LOBBY: 앱 시작 (Map Interactive)
+    LOBBY --> LEVEL_SELECT: 모드/난이도 설정 (HUD)
+    LEVEL_SELECT --> LOBBY: 설정 완료
+    LOBBY --> PLAYING: 지역 클릭 (Zoom In)
+    PLAYING --> RESULT: 게임 종료
+    RESULT --> LOBBY: 다시하기 / 나가기
 ```
 
 ### 2.3 상태별 UI 변화
 
-| 요소 | INITIAL | LEVEL_SELECT | PLAYING | RESULT |
-|------|---------|--------------|---------|--------|
-| Map | ✅ 표시 | ✅ 배경 | ✅ 인터랙션 | ✅ 배경 |
-| 오버레이 | ✅ 반투명 | ❌ | ❌ | ❌ |
-| START 버튼 | ✅ | ❌ | ❌ | ❌ |
-| Game Status | `OFF` (빨강) | `OFF` (빨강) | `ON` (초록) | `OFF` (빨강) |
-| ActionBar | ❌ 숨김 | ❌ 숨김 | ✅ 슬라이드 다운 | ❌ 숨김 |
-| Score 표시 | ❌ | ✅ | ✅ | ✅ |
+| 요소 | LOBBY (New) | PLAYING | RESULT |
+|------|-------------|---------|--------|
+| **Map** | ✅ 전체 지도 (Level 2) | ✅ 줌인 상태 (Level 3) | ✅ 배경 (Blur) |
+| **Interaction** | ✅ 지역 선택 (Hover/Click) | ✅ 정답 맞추기 | ❌ 차단 |
+| **HUD** | ✅ 모드/난이도 선택기 | ❌ 숨김 | ❌ 숨김 |
+| **ActionBar** | ❌ 숨김 | ✅ 문제 표시 | ❌ 숨김 |
+| **Visual** | 매크로 뷰 (시/군 중심) | 마이크로 뷰 (읍/면/동) | 결과 오버레이 |
 
 ---
 
@@ -556,39 +554,29 @@ onClick={() => {
 
 ---
 
-### 4.6 Level Select Modal (RegionSelectScreen.tsx)
+### 4.6 Level/Region Selection (Map-First Interaction)
 
-**역할**: 레벨 및 지역 선택 인터페이스
+**기존의 리스트/카드 방식(Modal)을 폐기하고, 지도 위에서 직접 선택하는 방식을 채택합니다.**
 
-#### 표시 조건
+#### 1. LOBBY 상태 (The War Room)
+- **초기 진입**: 앱을 켜면 경기도 전체 지도가 보입니다.
+- **HUD (Head-Up Display)**: 화면 하단 중앙에 "난이도(미션 레벨)"를 선택하는 탭이 있습니다.
+  - `[ROOKIE (지명 표시)]` / `[VETERAN (지명 숨김)]`
+- **Map Interaction**:
+  - 마우스를 올리면 시/군(Level 2) 경계가 **하이라이트** 됩니다.
+  - 선택 가능한 지역 위에는 **간략한 정보(Tooltip)**가 뜹니다 (예: "성남시 - 숙련도 80%").
 
-`gameState === 'LEVEL_SELECT'`
+#### 2. 진입 연출 (Transition)
+- 사용자가 특정 시/군(예: 성남시)을 **클릭**하면:
+  1.  **Zoom In**: 카메라가 성남시 중심으로 부드럽게 확대됩니다.
+  2.  **Focus**: 주변 다른 시/군은 어두워지거나(Dimmed), 성남시만 밝게 강조됩니다.
+  3.  **UI Switch**: 하단 HUD가 사라지고, 상단 `ActionBar`가 내려옵니다.
+  4.  **Game Start**: 첫 번째 문제가 출제됩니다.
 
-#### 구조 (saved.html 기반)
-
-```tsx
-<div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md 
-                flex items-center justify-center p-6">
-  <div className="glass-panel w-full max-w-lg">
-    <div className="p-6 border-b border-ui-border">
-      <h2>Mission Parameters</h2>
-    </div>
-    <div className="p-8 space-y-6">
-      {/* Level 1: AVAILABLE */}
-      <button onClick={() => startGame(1)}>
-        <div>LEVEL 001 - AVAILABLE</div>
-        <h3>REGION IDENTIFICATION</h3>
-        <p>Phase 1: Adaptive Orientation</p>
-      </button>
-      
-      {/* Level 2-5: LOCKED */}
-      <div className="opacity-40 cursor-not-allowed">
-        <div>LEVEL 002 - LOCKED</div>
-      </div>
-    </div>
-  </div>
-</div>
-```
+#### 3. 나가기 (Exit)
+- 게임 중 `ESC`나 `그만하기`를 누르면:
+  1.  **Zoom Out**: 다시 경기도 전체 뷰로 빠져나옵니다.
+  2.  **Reset**: UI가 LOBBY 상태로 복귀합니다.
 
 #### 레벨 버튼 스타일
 
