@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { zoom } from 'd3-zoom';
+import { zoom, zoomIdentity } from 'd3-zoom';
 import type { ZoomBehavior, D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
+import 'd3-transition'; // Ensure transition module is loaded
 
 interface Transform {
     x: number;
@@ -74,5 +75,17 @@ export const useMapZoom = ({
 
     }, [width, height, minZoom, maxZoom, onZoom]);
 
-    return { svgRef, gRef, baseMapGRef, transform };
+    // Imperative Zoom API
+    const zoomTo = (transform: Transform, duration = 750) => {
+        if (!svgRef.current || !zoomBehavior.current) return;
+
+        const svg = select(svgRef.current) as any;
+        const t = zoomIdentity.translate(transform.x, transform.y).scale(transform.k);
+
+        svg.transition()
+            .duration(duration)
+            .call(zoomBehavior.current.transform, t);
+    };
+
+    return { svgRef, gRef, baseMapGRef, transform, zoomTo };
 };

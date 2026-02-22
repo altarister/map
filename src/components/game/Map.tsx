@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
@@ -23,79 +23,74 @@ const THEME_COLORS = {
   tactical: {
     fill: '#1a1a1a',
     stroke: '#444444',
-    answeredFill: 'rgba(22, 163, 74, 0.4)', // Slightly more opaque for visibility without border
-    answeredStroke: '#444444', // Same as default stroke
-    correctFill: 'rgba(22, 163, 74, 0.6)', // Bright green fill
-    correctStroke: '#444444', // Same as default stroke
-    wrongFill: 'rgba(220, 38, 38, 0.6)', // Bright red fill
-    wrongStroke: '#444444', // Same as default stroke
-    hoverFill: 'rgba(255, 255, 255, 0.1)', // Subtle light fill
-    hoverStroke: '#ffffff', // Hover still needs highlight (handled by overlay)
+    answeredFill: 'rgba(22, 163, 74, 0.4)',
+    answeredStroke: '#444444',
+    correctFill: 'rgba(22, 163, 74, 0.6)',
+    correctStroke: '#444444',
+    wrongFill: 'rgba(220, 38, 38, 0.6)',
+    wrongStroke: '#444444',
+    hoverFill: 'rgba(255, 255, 255, 0.1)',
+    hoverStroke: '#ffffff',
     hoverDefaultFill: '#333333',
   },
   kids: {
     fill: '#ffffff',
-    stroke: '#94a3b8', // Slate-400 (Darker for better visibility)
-    answeredFill: 'rgba(59, 130, 246, 0.4)', // Blue-500 tint
-    answeredStroke: '#94a3b8', // Match default stroke
+    stroke: '#94a3b8',
+    answeredFill: 'rgba(59, 130, 246, 0.4)',
+    answeredStroke: '#94a3b8',
     correctFill: 'rgba(59, 130, 246, 0.6)',
-    correctStroke: '#94a3b8', // Match default stroke
-    wrongFill: 'rgba(239, 68, 68, 0.6)', // Red-500 tint
-    wrongStroke: '#94a3b8', // Match default stroke
-    hoverFill: 'rgba(250, 204, 21, 0.4)', // Yellow-400 tint
-    hoverStroke: '#f59e0b', // Amber-500 (Hover still highlighted)
-    hoverDefaultFill: '#fef3c7', // Amber-100
+    correctStroke: '#94a3b8',
+    wrongFill: 'rgba(239, 68, 68, 0.6)',
+    wrongStroke: '#94a3b8',
+    hoverFill: 'rgba(250, 204, 21, 0.4)',
+    hoverStroke: '#f59e0b',
+    hoverDefaultFill: '#fef3c7',
   }
 };
 
 export const Map = () => {
-  // 1. Hooks (Must be called unconditionally)
+  // ── Context & Settings ──────────────────────────────────────────────────────
   const {
-    mapData: fullMapData, // Use full data for projection
-    filteredMapData: mapData, // Use filtered data for gameplay
+    mapData: fullMapData,
+    filteredMapData: mapData,
     mapDataLevel2: level2Data,
-    roadData, // Consume preloaded road data
+    roadData,
     loading,
     error,
     gameState,
     checkAnswer,
     lastFeedback,
     answeredRegions,
-    currentLevel
+    currentLevel,
+    startGame,
+    selectedChapter
   } = useGame();
 
-  const { theme, showDebugInfo, viewOptions, difficulty } = useSettings();
+  const { theme, showDebugInfo, viewOptions } = useSettings();
   const colors = THEME_COLORS[theme];
-
-  // MapContext에서 transform, hoveredRegion, layerVisibility 가져오기
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
-  // 2. Responsive Dimensions
+  // ── Dimensions ──────────────────────────────────────────────────────────────
   const { ref: containerRef, width, height } = useMapDimensions<HTMLDivElement>();
 
-  // Road Layer Ref for Imperative Updates (Sync)
+  // ── Refs ────────────────────────────────────────────────────────────────────
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
 
-  // 3. Zoom & Pan Logic (Abstracted)
-  // Sync D3 zoom state with MapContext immediately
-  const { svgRef, gRef, baseMapGRef, transform: zoomTransform } = useMapZoom({
+  // ── Zoom ────────────────────────────────────────────────────────────────────
+  const { svgRef, gRef, baseMapGRef, transform: zoomTransform, zoomTo } = useMapZoom({
     width,
     height,
     onZoom: (t) => {
       setTransform(t);
       handleMove({ zoom: t.k });
     },
-    roadLayerRef // Pass ref to hook
+    roadLayerRef
   });
 
-  // --- Intel Popup State ---
-  const [intelPopup, setIntelPopup] = useState<{ x: number, y: number, data: any } | null>(null);
-
-  // --- Derived State (Restored) ---
+  // ── Projection & Path Generator ─────────────────────────────────────────────
   const projection = useMemo(() => {
     const proj = geoMercator();
-    // Always fit to FULL map data (Gyeonggi-do), not the filtered (selected) data
     if (fullMapData && fullMapData.features && fullMapData.features.length > 0) {
       proj.fitExtent([[50, 50], [width - 50, height - 50]], fullMapData as any);
     } else {
@@ -105,6 +100,8 @@ export const Map = () => {
   }, [fullMapData, width, height]);
 
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
+
+  // ── Derived Map Data ────────────────────────────────────────────────────────
   const features = mapData?.features || [];
 
   const featureAreas = useMemo(() => {
@@ -125,47 +122,89 @@ export const Map = () => {
   const isGeometryLevel3 = isLevel1 || isSingleRegion || zoomTransform.k >= 1.5;
   const featuresToRender = isGeometryLevel3 ? features : filteredLevel2Features;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
-  // --------------------------------
+
+  // ── Auto-Zoom Effect ────────────────────────────────────────────────────────
+  // Track previous game state to detect transitions
+  const prevGameStateRef = useRef<string | null>(null);
+  // Watch first feature code to detect when filtered data changes
+  const featuresToWatch = mapData?.features?.[0]?.properties?.code;
+
+  useEffect(() => {
+    if (!width || !height) return;
+
+    const prevState = prevGameStateRef.current;
+    const stateChanged = prevState !== gameState;
+    prevGameStateRef.current = gameState;
+
+    // 1. Reset zoom when entering menu/selection screens
+    if (gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL') {
+      if (stateChanged) {
+        zoomTo({ x: 0, y: 0, k: 1 });
+      }
+    }
+    // 2. Zoom into selected region when game starts (only once on state transition)
+    else if (gameState === 'PLAYING') {
+      if (stateChanged && mapData && mapData.features.length > 0 && selectedChapter) {
+        // Compute bounding box over ALL filtered features
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const feature of mapData.features) {
+          const [[fx0, fy0], [fx1, fy1]] = pathGenerator.bounds(feature);
+          if (fx0 < x0) x0 = fx0;
+          if (fy0 < y0) y0 = fy0;
+          if (fx1 > x1) x1 = fx1;
+          if (fy1 > y1) y1 = fy1;
+        }
+
+        const padding = 60;
+        const boundsWidth = x1 - x0;
+        const boundsHeight = y1 - y0;
+
+        if (boundsWidth === 0 || boundsHeight === 0) return;
+
+        const scale = Math.min(
+          (width - padding * 2) / boundsWidth,
+          (height - padding * 2) / boundsHeight,
+          8
+        );
+
+        const cx = (x0 + x1) / 2;
+        const cy = (y0 + y1) / 2;
+        const tx = width / 2 - scale * cx;
+        const ty = height / 2 - scale * cy;
+
+        zoomTo({ x: tx, y: ty, k: scale });
+      }
+    }
+  }, [gameState, featuresToWatch, width, height, pathGenerator, zoomTo, selectedChapter]);
+
+  // ── Intel Popup ─────────────────────────────────────────────────────────────
+  const [intelPopup, setIntelPopup] = useState<{ x: number, y: number, data: any } | null>(null);
 
   const handleRegionContextMenu = useCallback((event: React.MouseEvent, region: any) => {
-    event.preventDefault(); // Stop browser context menu
-
-    // Calculate Intel
-    const neighbors = getAdjacentRegions(region, featuresToRender); // Use currently rendered features
-
-    // Optimized Road Query via RoadLayer's Quadtree
+    event.preventDefault();
+    const neighbors = getAdjacentRegions(region, featuresToRender);
     let roadsInRegion: string[] = [];
-
-    console.log(`Map: ContextMenu on ${region.properties.name}, RoadLayerRef:`, !!roadLayerRef.current);
-
     if (roadLayerRef.current) {
       roadsInRegion = roadLayerRef.current.findRoads(region);
-      console.log(`Map: Found roads via Ref:`, roadsInRegion);
     } else {
-      // Fallback if layer not active (e.g. viewOptions.roads = false)
-      // We could use the slow method or just empty.
-      // Since specific requirement is to use the optimized one:
       const roadFeatures = roadData?.features || [];
       roadsInRegion = getPassingRoads(region, roadFeatures);
     }
-
     setIntelPopup({
       x: event.clientX,
       y: event.clientY,
-      data: {
-        regionName: region.properties.name,
-        neighbors,
-        roads: roadsInRegion
-      }
+      data: { regionName: region.properties.name, neighbors, roads: roadsInRegion }
     });
   }, [featuresToRender, roadData]);
 
   const closeIntelPopup = useCallback(() => setIntelPopup(null), []);
 
+  // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
   if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
   if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`} onClick={closeIntelPopup}>
       {/* === Layer 1: Base Map (Bottom SVG) === */}
@@ -176,7 +215,6 @@ export const Map = () => {
         className="absolute top-0 left-0 w-full h-full"
         style={{ zIndex: 0 }}
       >
-        {/* Attach Ref for Sync */}
         <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <BaseMapLayer
             features={featuresToRender}
@@ -212,16 +250,14 @@ export const Map = () => {
 
       {/* === Layer 3: Interaction & Overlays (Top SVG) === */}
       <svg
-        ref={svgRef} // Zoom behavior attaches here
+        ref={svgRef}
         width="100%"
         height="100%"
         viewBox={`0 0 ${width} ${height}`}
         className="absolute top-0 left-0 w-full h-full"
         style={{ zIndex: 20 }}
       >
-        <g ref={gRef}> {/* Zoom Transform applied here via D3 */}
-
-          {/* Highlight Overlay */}
+        <g ref={gRef}>
           <HighlightOverlay
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -231,7 +267,6 @@ export const Map = () => {
             lastFeedback={lastFeedback}
           />
 
-          {/* Interaction Layer (Invisible Targets) */}
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -241,6 +276,13 @@ export const Map = () => {
             answeredRegions={answeredRegions}
             onRegionContextMenu={handleRegionContextMenu}
             onRegionClick={(code) => {
+              if (gameState === 'LEVEL_SELECT') {
+                log.game(`[Map] Selected Region: ${code}`);
+                const cityCode = code.substring(0, 5);
+                startGame(cityCode);
+                return;
+              }
+
               if (gameState !== 'PLAYING') return;
 
               const isLevel1 = currentLevel === 1;
@@ -252,9 +294,7 @@ export const Map = () => {
             }}
           />
 
-          {/* Labels - Show if enabled in Layer Visibility, regardless of difficulty */}
           {gameState === 'PLAYING' && layerVisibility.labels && (
-
             <>
               {!showDistrictLabels && filteredLevel2Features.map((feature: any) => (
                 <RegionLabel
@@ -288,7 +328,6 @@ export const Map = () => {
         </g>
       </svg>
 
-      {/* Intel Popup */}
       {intelPopup && (
         <IntelPopup
           x={intelPopup.x}

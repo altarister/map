@@ -31,7 +31,7 @@ export const MapScale = ({
   renderedCount,
 }: MapScaleProps) => {
   const { layerVisibility, toggleLayer } = useMapContext(); // Revert hook
-  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(true);
 
   // Layer Definitions
   const LAYERS = [

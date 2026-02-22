@@ -3,7 +3,9 @@ import { GameProvider, useGame } from './contexts/GameContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
 // Changed: RegionSelectScreen -> GameOptionSelectScreen
+// Changed: RegionSelectScreen -> GameOptionSelectScreen
 import { GameOptionSelectScreen } from './components/game/GameOptionSelectScreen';
+import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 
 import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
@@ -15,7 +17,7 @@ import { useState } from 'react';
 import { LoadingScreen } from './components/game/LoadingScreen';
 
 function GameContent() {
-  const { gameState } = useGame();
+  const { gameState, setGameState } = useGame();
   const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -23,7 +25,11 @@ function GameContent() {
     <div className="relative w-full h-full flex items-center justify-center pt-16">
       {/* Loading Screen Overlay (Visible until started) */}
       {!hasStarted && (
-        <LoadingScreen onStart={() => setHasStarted(true)} />
+        <LoadingScreen onStart={() => {
+          setHasStarted(true);
+          // Directly go to Mode Selection
+          setGameState('GAME_MODE_SELECT');
+        }} />
       )}
 
       {/* Map (배경) - 항상 렌더링 (로딩 중에는 Map 내부에서 Loading 텍스트 렌더링됨) */}
@@ -45,6 +51,9 @@ function GameContent() {
           {gameState === 'INITIAL' && (
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-none" />
           )}
+
+          {/* ADDED: Game Mode Selection Screen */}
+          {gameState === 'GAME_MODE_SELECT' && <GameModeSelectScreen />}
 
           {/* LEVEL_SELECT: 레벨/지역 선택 모달 */}
           {/* Replaced RegionSelectScreen with GameOptionSelectScreen */}

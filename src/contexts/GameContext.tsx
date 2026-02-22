@@ -45,7 +45,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
   const { difficulty, updateTopScore, currentLevel } = useSettings();
-  const { layerVisibility } = useMapContext();
+  const { layerVisibility, setLayerVisibility } = useMapContext();
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -99,29 +99,50 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [fullMapData, filteredMapData]);
 
+  // Reset Map Data when entering Level Select or Mode Select
+  useEffect(() => {
+    if ((gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT') && fullMapData) {
+      // Only reset if it's currently filtered (optimization)
+      if (filteredMapData !== fullMapData) {
+        setFilteredMapData(fullMapData);
+        setSelectedChapter(null);
+      }
+    }
+  }, [gameState, fullMapData, filteredMapData]);
+
   // Start Game with Chapter Code
   const startGame = (chapterCode?: string) => {
     if (!fullMapData) return;
 
+    // Level 1: 도로 레이어 OFF (성능 최적화 + 게임 집중)
+    // Level 2+: 도로 레이어 ON (기본 설정 복원)
+    if (currentLevel === 1) {
+      setLayerVisibility({
+        roadMotorway: false,
+        roadTrunk: false,
+        roadPrimary: false,
+        roadSecondary: false,
+        roadOther: false,
+      });
+    } else {
+      setLayerVisibility({
+        roadMotorway: true,
+        roadTrunk: true,
+        roadPrimary: true,
+      });
+    }
+
     if (chapterCode) {
       setSelectedChapter(chapterCode);
 
-      // Filter features for the selected chapter (City/Gu)
-      // Assuming chapterCode is the SIG_CD (e.g., '41110' for Suwon-si)
-      const filteredFeatures = fullMapData.features.filter((f: any) => {
-        // Code structure: SIG_CD (5) + EMD_CD (3) + etc.
-        return f.properties.code.startsWith(chapterCode);
-      });
+      const filteredFeatures = fullMapData.features.filter((f: any) =>
+        f.properties.code.startsWith(chapterCode)
+      );
 
-      const newFilteredData = {
-        ...fullMapData,
-        features: filteredFeatures
-      };
-
+      const newFilteredData = { ...fullMapData, features: filteredFeatures };
       setFilteredMapData(newFilteredData);
       startGameLogic(filteredFeatures);
     } else {
-      // Global mode or fallback
       setSelectedChapter(null);
       setFilteredMapData(fullMapData);
       startGameLogic(fullMapData.features);

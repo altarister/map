@@ -26,6 +26,7 @@ interface MapContextType {
         roadOther: boolean;
     };
     toggleLayer: (layerId: keyof MapContextType['layerVisibility']) => void;
+    setLayerVisibility: (visibility: Partial<MapContextType['layerVisibility']>) => void;
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -60,13 +61,18 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
 
+    const setLayerVisibilityPartial = useCallback((visibility: Partial<typeof layerVisibility>) => {
+        setLayerVisibility(prev => ({ ...prev, ...visibility }));
+    }, []);
+
     const value = {
         transform,
         setTransform,
         hoveredRegion,
         setHoveredRegion,
         layerVisibility,
-        toggleLayer
+        toggleLayer,
+        setLayerVisibility: setLayerVisibilityPartial
     };
 
     return (

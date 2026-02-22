@@ -22,7 +22,7 @@ export const Level1Strategy: LevelStrategy = {
 
   renderInstruction: (question: GameQuestion) => {
     if (question.type !== 'LOCATE_SINGLE') return null;
-    return question.target.name; // 심플하게 지역명만 반환 (QuizPanel에서 꾸밈)
+    return question.target.name;
   },
 
   renderMapOverlay: () => {
