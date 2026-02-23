@@ -1,6 +1,5 @@
-import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
-import 'd3-transition';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
 import { useMapContext } from '../../contexts/MapContext';
@@ -18,7 +17,7 @@ import { log } from '../../lib/debug';
 import { IntelPopup } from './IntelPopup';
 import { getAdjacentRegions, getPassingRoads } from '../../game/systems/IntelSystem';
 
-// Theme Color Definitions
+// ── Theme Color Definitions ──────────────────────────────────────────────────
 const THEME_COLORS = {
   tactical: {
     fill: '#1a1a1a',
@@ -63,7 +62,7 @@ export const Map = () => {
     answeredRegions,
     currentLevel,
     startGame,
-    selectedChapter
+    selectedChapter,
   } = useGame();
 
   const { theme, showDebugInfo, viewOptions } = useSettings();
@@ -78,20 +77,22 @@ export const Map = () => {
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
+  const handleZoom = useCallback((t: { x: number; y: number; k: number }) => {
+    setTransform(t);
+    handleMove({ zoom: t.k });
+  }, [setTransform, handleMove]);
+
   const { svgRef, gRef, baseMapGRef, transform: zoomTransform, zoomTo } = useMapZoom({
     width,
     height,
-    onZoom: (t) => {
-      setTransform(t);
-      handleMove({ zoom: t.k });
-    },
-    roadLayerRef
+    onZoom: handleZoom,
+    roadLayerRef,
   });
 
   // ── Projection & Path Generator ─────────────────────────────────────────────
   const projection = useMemo(() => {
     const proj = geoMercator();
-    if (fullMapData && fullMapData.features && fullMapData.features.length > 0) {
+    if (fullMapData?.features?.length > 0) {
       proj.fitExtent([[50, 50], [width - 50, height - 50]], fullMapData as any);
     } else {
       proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
@@ -106,14 +107,14 @@ export const Map = () => {
 
   const featureAreas = useMemo(() => {
     const areas: Record<string, number> = {};
-    if (features) features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
-    if (level2Data?.features) level2Data.features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
+    features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
+    level2Data?.features?.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
     return areas;
   }, [features, level2Data, pathGenerator]);
 
   const filteredLevel2Features = useMemo(() => {
     if (!level2Data || features.length === 0) return [];
-    const activePrefixes = new Set(features.map(f => f.properties.code.substring(0, 5)));
+    const activePrefixes = new Set(features.map((f: any) => f.properties.code.substring(0, 5)));
     return level2Data.features.filter((f: any) => activePrefixes.has(f.properties.code));
   }, [level2Data, features]);
 
@@ -123,98 +124,98 @@ export const Map = () => {
   const featuresToRender = isGeometryLevel3 ? features : filteredLevel2Features;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
 
-  // ── Auto-Zoom Effect ────────────────────────────────────────────────────────
-  // Track previous game state to detect transitions
-  const prevGameStateRef = useRef<string | null>(null);
-  // Watch first feature code to detect when filtered data changes
-  const featuresToWatch = mapData?.features?.[0]?.properties?.code;
+  // ── Auto-Zoom: Refs로 최신 mapData/pathGenerator 추적 (클로저 stale값 방지) ──
+  const mapDataRef = useRef(mapData);
+  const pathGeneratorRef = useRef(pathGenerator);
+  useLayoutEffect(() => { mapDataRef.current = mapData; }, [mapData]);
+  useLayoutEffect(() => { pathGeneratorRef.current = pathGenerator; }, [pathGenerator]);
 
+  // ── Auto-Zoom: 메뉴 상태 진입 시 줌 초기화 ─────────────────────────────────
+  const prevGameStateRef = useRef<string | null>(null);
   useEffect(() => {
     if (!width || !height) return;
-
-    const prevState = prevGameStateRef.current;
-    const stateChanged = prevState !== gameState;
+    const prev = prevGameStateRef.current;
     prevGameStateRef.current = gameState;
-
-    // 1. Reset zoom when entering menu/selection screens
-    if (gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL') {
-      if (stateChanged) {
-        zoomTo({ x: 0, y: 0, k: 1 });
-      }
+    if (prev !== gameState &&
+        (gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')) {
+      zoomTo({ x: 0, y: 0, k: 1 });
     }
-    // 2. Zoom into selected region when game starts (only once on state transition)
-    else if (gameState === 'PLAYING') {
-      if (stateChanged && mapData && mapData.features.length > 0 && selectedChapter) {
-        // Compute bounding box over ALL filtered features
-        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-        for (const feature of mapData.features) {
-          const [[fx0, fy0], [fx1, fy1]] = pathGenerator.bounds(feature);
-          if (fx0 < x0) x0 = fx0;
-          if (fy0 < y0) y0 = fy0;
-          if (fx1 > x1) x1 = fx1;
-          if (fy1 > y1) y1 = fy1;
-        }
+  }, [gameState, width, height, zoomTo]);
 
-        const padding = 60;
-        const boundsWidth = x1 - x0;
-        const boundsHeight = y1 - y0;
+  // ── Auto-Zoom: PLAYING + selectedChapter 변경 시 해당 지역으로 줌인 ────────
+  useEffect(() => {
+    if (!width || !height || gameState !== 'PLAYING' || !selectedChapter) return;
 
-        if (boundsWidth === 0 || boundsHeight === 0) return;
+    const md = mapDataRef.current;
+    const pg = pathGeneratorRef.current;
+    if (!md?.features?.length) return;
 
-        const scale = Math.min(
-          (width - padding * 2) / boundsWidth,
-          (height - padding * 2) / boundsHeight,
-          8
-        );
-
-        const cx = (x0 + x1) / 2;
-        const cy = (y0 + y1) / 2;
-        const tx = width / 2 - scale * cx;
-        const ty = height / 2 - scale * cy;
-
-        zoomTo({ x: tx, y: ty, k: scale });
-      }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const feature of md.features) {
+      const [[fx0, fy0], [fx1, fy1]] = pg.bounds(feature);
+      if (fx0 < x0) x0 = fx0;
+      if (fy0 < y0) y0 = fy0;
+      if (fx1 > x1) x1 = fx1;
+      if (fy1 > y1) y1 = fy1;
     }
-  }, [gameState, featuresToWatch, width, height, pathGenerator, zoomTo, selectedChapter]);
 
-  // ── Intel Popup ─────────────────────────────────────────────────────────────
-  const [intelPopup, setIntelPopup] = useState<{ x: number, y: number, data: any } | null>(null);
+    if (!isFinite(x0) || !isFinite(y0)) return;
+
+    const padding = 60;
+    const bw = x1 - x0, bh = y1 - y0;
+    if (bw === 0 || bh === 0) return;
+
+    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
+  }, [gameState, selectedChapter, width, height, zoomTo]);
+
+  // ── Event Handlers ──────────────────────────────────────────────────────────
+  const [intelPopup, setIntelPopup] = useState<{ x: number; y: number; data: any } | null>(null);
 
   const handleRegionContextMenu = useCallback((event: React.MouseEvent, region: any) => {
     event.preventDefault();
     const neighbors = getAdjacentRegions(region, featuresToRender);
-    let roadsInRegion: string[] = [];
-    if (roadLayerRef.current) {
-      roadsInRegion = roadLayerRef.current.findRoads(region);
-    } else {
-      const roadFeatures = roadData?.features || [];
-      roadsInRegion = getPassingRoads(region, roadFeatures);
-    }
+    const roads = roadLayerRef.current
+      ? roadLayerRef.current.findRoads(region)
+      : getPassingRoads(region, roadData?.features || []);
     setIntelPopup({
       x: event.clientX,
       y: event.clientY,
-      data: { regionName: region.properties.name, neighbors, roads: roadsInRegion }
+      data: { regionName: region.properties.name, neighbors, roads },
     });
   }, [featuresToRender, roadData]);
 
   const closeIntelPopup = useCallback(() => setIntelPopup(null), []);
 
+  const handleRegionClick = useCallback((code: string) => {
+    if (gameState === 'LEVEL_SELECT') {
+      log.game(`[Map] Selected Region: ${code}`);
+      startGame(code.substring(0, 5));
+      return;
+    }
+    if (gameState !== 'PLAYING') return;
+    if (!isLevel1 && !isGeometryLevel3) {
+      log.game('[Map] Cannot answer at Zoom Level 2. Zoom in to Level 3.');
+      return;
+    }
+    checkAnswer({ type: 'MAP_CLICK', regionCode: code });
+  }, [gameState, isLevel1, isGeometryLevel3, startGame, checkAnswer]);
+
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
-  if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
+  if (error)   return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
   if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`} onClick={closeIntelPopup}>
-      {/* === Layer 1: Base Map (Bottom SVG) === */}
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${width} ${height}`}
-        className="absolute top-0 left-0 w-full h-full"
-        style={{ zIndex: 0 }}
-      >
+    <div
+      ref={containerRef}
+      className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}
+      onClick={closeIntelPopup}
+    >
+      {/* Layer 1: Base Map */}
+      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="absolute inset-0" style={{ zIndex: 0 }}>
         <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <BaseMapLayer
             features={featuresToRender}
@@ -230,7 +231,7 @@ export const Map = () => {
         </g>
       </svg>
 
-      {/* === Layer 2: Roads (Middle Canvas) === */}
+      {/* Layer 2: Roads */}
       {roadData && (
         <RoadLayer
           ref={roadLayerRef}
@@ -248,13 +249,12 @@ export const Map = () => {
         />
       )}
 
-      {/* === Layer 3: Interaction & Overlays (Top SVG) === */}
+      {/* Layer 3: Interaction & Overlays */}
       <svg
         ref={svgRef}
-        width="100%"
-        height="100%"
+        width="100%" height="100%"
         viewBox={`0 0 ${width} ${height}`}
-        className="absolute top-0 left-0 w-full h-full"
+        className="absolute inset-0"
         style={{ zIndex: 20 }}
       >
         <g ref={gRef}>
@@ -266,7 +266,6 @@ export const Map = () => {
             transform={transform}
             lastFeedback={lastFeedback}
           />
-
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -275,23 +274,7 @@ export const Map = () => {
             onRegionHover={setHoveredRegion}
             answeredRegions={answeredRegions}
             onRegionContextMenu={handleRegionContextMenu}
-            onRegionClick={(code) => {
-              if (gameState === 'LEVEL_SELECT') {
-                log.game(`[Map] Selected Region: ${code}`);
-                const cityCode = code.substring(0, 5);
-                startGame(cityCode);
-                return;
-              }
-
-              if (gameState !== 'PLAYING') return;
-
-              const isLevel1 = currentLevel === 1;
-              if (!isLevel1 && !isGeometryLevel3) {
-                log.game('[Map] Cannot answer at Zoom Level 2. Zoom in to Level 3.');
-                return;
-              }
-              checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-            }}
+            onRegionClick={handleRegionClick}
           />
 
           {gameState === 'PLAYING' && layerVisibility.labels && (
@@ -309,7 +292,6 @@ export const Map = () => {
                   baseArea={featureAreas[feature.properties.code] || 0}
                 />
               ))}
-
               {showDistrictLabels && featuresToRender.map((feature: any) => (
                 <RegionLabel
                   key={`label-district-${feature.properties.code}`}
@@ -349,7 +331,7 @@ export const Map = () => {
         />
       )}
 
-      {!isGeometryLevel3 && gameState === 'PLAYING' && currentLevel !== 1 && (
+      {!isGeometryLevel3 && gameState === 'PLAYING' && !isLevel1 && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
