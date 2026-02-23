@@ -92,7 +92,7 @@ export const Map = () => {
   // ── Projection & Path Generator ─────────────────────────────────────────────
   const projection = useMemo(() => {
     const proj = geoMercator();
-    if (fullMapData?.features?.length > 0) {
+    if ((fullMapData?.features?.length ?? 0) > 0) {
       proj.fitExtent([[50, 50], [width - 50, height - 50]], fullMapData as any);
     } else {
       proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);

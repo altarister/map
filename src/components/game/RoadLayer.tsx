@@ -26,11 +26,11 @@ export interface RoadLayerHandle {
 
 const ROAD_THEME = {
     tactical: {
-        motorway: { color: '#f6893b', width: 1.8, minK: 0 },
-        trunk: { color: '#fbbf24', width: 1.5, minK: 1.2 },
-        primary: { color: '#ffffff', width: 1.2, minK: 1.8 },
-        secondary: { color: '#9ca3af', width: 0.9, minK: 2.5 },
-        other: { color: '#4b5563', width: 0.6, minK: 2.5 }
+        motorway: { color: '#f6893b', width: 0.8, minK: 0 },
+        trunk: { color: '#f5991a', width: 0.6, minK: 1.2 },
+        primary: { color: '#d5cd5d', width: 0.4, minK: 1.8 },
+        secondary: { color: '#9ca3af', width: 0.2, minK: 2.5 },
+        other: { color: '#e0fb31', width: 0.3, minK: 2.5 }
     },
     kids: {
         motorway: { color: '#fbbf24', width: 3.0, minK: 0 }, // Amber-400
@@ -263,15 +263,16 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 overflow: 'visible',
                 // Important: HW Acceleration hints
                 willChange: 'transform',
-                transition: 'none'
+                transition: 'none',
+                opacity: 0.2
             }}
         >
             {[
-                { ref: canvasOtherRef, z: 10, o: 0.2 },
-                { ref: canvasSecondaryRef, z: 11, o: 0.2 },
-                { ref: canvasPrimaryRef, z: 12, o: 0.2 },
-                { ref: canvasTrunkRef, z: 13, o: 0.2 },
-                { ref: canvasMotorwayRef, z: 14, o: 0.2 }
+                { ref: canvasOtherRef, z: 10, o: 1 },
+                { ref: canvasSecondaryRef, z: 11, o: 1 },
+                { ref: canvasPrimaryRef, z: 12, o: 1 },
+                { ref: canvasTrunkRef, z: 13, o: 1 },
+                { ref: canvasMotorwayRef, z: 14, o: 1 }
             ].map(({ ref, z, o }, i) => (
                 <canvas
                     key={i}
