@@ -290,7 +290,7 @@ if (shouldShowLevel3) {
 
 - **역할**: 사용자의 우클릭 인터랙션에 반응하여 해당 지역의 전술 정보(지명, 인접 지역, 도로)를 표시합니다.
 - **특징**:
-  - **Glassmorphism UI**: 군사 작전 지도 컨셉의 반투명 스타일링.
+  - **Glassmorphism UI**: 야간 훈련 지도 컨셉의 반투명 스타일링.
   - **Portal-free**: `Map` 컴포넌트 내부에서 절대 위치(`absolute`)로 렌더링되어 줌/팬 컨텍스트와 무관하게 화면 좌표(`clientX`, `clientY`)를 따릅니다.
   - **Dismissal**: 외부 클릭(`click-outside`) 또는 닫기 버튼으로 제어됩니다.
 

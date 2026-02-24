@@ -52,10 +52,10 @@ export const GameModeSelectScreen = () => {
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic shadow-black drop-shadow-md">
-                        <span className="text-primary mr-2">///</span>작전 유형 선택
+                        <span className="text-primary mr-2">///</span>훈련 코스 선택
                     </h1>
                     <p className="text-gray-400 font-mono text-sm">
-                        수행할 훈련 작전의 유형을 선택하십시오.
+                        수행할 훈련의 코스를 선택하십시오.
                     </p>
                 </div>
 

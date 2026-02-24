@@ -31,7 +31,7 @@ export const ResultModal = () => {
         {/* Mastery / Score Display */}
         <div className="relative py-4">
           <div className="space-y-1">
-            <p className="text-muted-foreground font-mono tracking-widest text-xs uppercase">작전 정확도</p>
+            <p className="text-muted-foreground font-mono tracking-widest text-xs uppercase">훈련 정확도</p>
             <div className={`text-6xl font-black tracking-tighter ${isPerfect ? 'text-amber-500' : 'text-foreground'}`} style={{ textShadow: isPerfect ? '0 0 30px rgba(245, 158, 11, 0.4)' : 'none' }}>
               {accuracy}%
             </div>

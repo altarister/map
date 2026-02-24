@@ -58,7 +58,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
                 {/* Title */}
                 <div className="text-center">
                     <h1 className={`text-4xl font-black tracking-wider mb-2 ${isTactical ? 'font-mono' : 'font-sans'}`}>
-                        {isTactical ? '작전 지도' : '대한민국 지리 퀴즈'}
+                        {isTactical ? '훈련 지도' : '대한민국 지리 퀴즈'}
                     </h1>
                     <p className={`text-sm tracking-widest opacity-70 ${isTactical ? 'font-mono' : 'font-sans'}`}>
                         {isTactical ? '시스템 초기화 중...' : '우리나라 지도를 배워봅시다!'}
@@ -96,7 +96,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
               disabled:cursor-not-allowed
             `}
                     >
-                        {isTactical ? '[ 작전 개시 ]' : '게임 시작'}
+                        {isTactical ? '[ 훈련 시작 ]' : '게임 시작'}
                     </button>
                 </div>
             </div>

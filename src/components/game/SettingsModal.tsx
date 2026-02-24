@@ -47,7 +47,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 : 'bg-black/20 border-white/10 text-slate-500 hover:bg-white/5 hover:text-slate-300'
                 }`}
             >
-              <span className="font-bold text-xs uppercase tracking-widest">전술 작전 모드</span>
+              <span className="font-bold text-xs uppercase tracking-widest">야간 집중 모드</span>
               <span className="text-[10px] opacity-60">어두운 화면 / 고대비</span>
             </button>
             <button
