@@ -78,10 +78,10 @@ src/
 
 ```typescript
 interface StageStrategy {
-  config: LevelConfig; // 레벨 설정 (이름, 설명 등)
+  config: LevelConfig; // 단계 메타데이터 (이름, 설명, 해금조건, 지도옵션 등)
 
   // 문제 생성: 현재 맵 데이터를 기반으로 문제 출제
-  generateQuestion(ctx: LevelContext): GameQuestion;
+  generateQuestion(ctx: StageContext): GameQuestion;
 
   // 정답 검증: 사용자 입력과 현재 상태를 확인하여 결과 반환
   validateAnswer(
@@ -101,6 +101,11 @@ interface StageStrategy {
   ): ReactNode;
 }
 ```
+
+### 2.3 UI 컴포넌트의 단일 진실 공급원 (SSOT) 적용
+
+- `Map.tsx`, `SettingsModal.tsx`, `GameModeSelectScreen.tsx` 등의 UI 컴포넌트는 현재 단계의 특정 숫자(예: `currentStage === 1`)에 의존하여 하드코딩된 UI를 그리지 않습니다.
+- 대신, `StageStrategy.config` 객체(타입: `LevelConfig`)를 통해 해당 단계의 배지, 이름, 설명, 맵 표시 옵션(`forceShowTownGeometry`)과 해금 조건(`unlockCondition`)을 동적으로 전달받아 렌더링합니다.
 
 ---
 
