@@ -52,7 +52,7 @@ export const Map = () => {
   const {
     mapData: fullMapData,
     filteredMapData: mapData,
-    mapDataLevel2: level2Data,
+    cityData,
     roadData,
     loading,
     error,
@@ -60,7 +60,7 @@ export const Map = () => {
     checkAnswer,
     lastFeedback,
     answeredRegions,
-    currentLevel,
+    currentStage,
     startGame,
     selectedChapter,
   } = useGame();
@@ -108,20 +108,20 @@ export const Map = () => {
   const featureAreas = useMemo(() => {
     const areas: Record<string, number> = {};
     features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
-    level2Data?.features?.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
+    cityData?.features?.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
     return areas;
-  }, [features, level2Data, pathGenerator]);
+  }, [features, cityData, pathGenerator]);
 
-  const filteredLevel2Features = useMemo(() => {
-    if (!level2Data || features.length === 0) return [];
+  const filteredCityFeatures = useMemo(() => {
+    if (!cityData || features.length === 0) return [];
     const activePrefixes = new Set(features.map((f: any) => f.properties.code.substring(0, 5)));
-    return level2Data.features.filter((f: any) => activePrefixes.has(f.properties.code));
-  }, [level2Data, features]);
+    return cityData.features.filter((f: any) => activePrefixes.has(f.properties.code));
+  }, [cityData, features]);
 
-  const isSingleRegion = filteredLevel2Features.length === 1;
-  const isLevel1 = currentLevel === 1;
-  const isGeometryLevel3 = isLevel1 || isSingleRegion || zoomTransform.k >= 1.5;
-  const featuresToRender = isGeometryLevel3 ? features : filteredLevel2Features;
+  const isSingleRegion = filteredCityFeatures.length === 1;
+  const isStage1 = currentStage === 1;
+  const showTownGeometry = isStage1 || isSingleRegion || zoomTransform.k >= 1.5;
+  const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
 
   // ── Auto-Zoom: Refs로 최신 mapData/pathGenerator 추적 (클로저 stale값 방지) ──
@@ -195,17 +195,17 @@ export const Map = () => {
       return;
     }
     if (gameState !== 'PLAYING') return;
-    if (!isLevel1 && !isGeometryLevel3) {
-      log.game('[Map] Cannot answer at Zoom Level 2. Zoom in to Level 3.');
+    if (!isStage1 && !showTownGeometry) {
+      log.game('[Map] Cannot answer: zoom in to see towns.');
       return;
     }
     checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-  }, [gameState, isLevel1, isGeometryLevel3, startGame, checkAnswer]);
+  }, [gameState, isStage1, showTownGeometry, startGame, checkAnswer]);
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
   if (error)   return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
-  if (!mapData || !level2Data) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
+  if (!mapData || !cityData) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -219,7 +219,7 @@ export const Map = () => {
         <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           <BaseMapLayer
             features={featuresToRender}
-            level2Data={level2Data}
+            cityData={cityData}
             pathGenerator={pathGenerator}
             theme={theme}
             themeColors={colors}
@@ -270,7 +270,7 @@ export const Map = () => {
             features={featuresToRender}
             pathGenerator={pathGenerator}
             gameState={gameState}
-            isGeometryLevel3={isGeometryLevel3}
+            showTownGeometry={showTownGeometry}
             onRegionHover={setHoveredRegion}
             answeredRegions={answeredRegions}
             onRegionContextMenu={handleRegionContextMenu}
@@ -279,7 +279,7 @@ export const Map = () => {
 
           {gameState === 'PLAYING' && layerVisibility.labels && (
             <>
-              {!showDistrictLabels && filteredLevel2Features.map((feature: any) => (
+              {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
                 <RegionLabel
                   key={`label-city-${feature.properties.code}`}
                   feature={feature}
@@ -331,7 +331,7 @@ export const Map = () => {
         />
       )}
 
-      {!isGeometryLevel3 && gameState === 'PLAYING' && !isLevel1 && (
+      {!showTownGeometry && gameState === 'PLAYING' && !isStage1 && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>

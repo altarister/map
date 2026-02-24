@@ -3,8 +3,8 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { MasteryStorage } from '../../services/MasteryStorage';
 
 export const GameOptionSelectScreen = () => {
-    const { mapDataLevel2, loading } = useGame();
-    const { difficulty, setDifficulty, currentLevel, setCurrentLevel } = useSettings();
+    const { cityData, loading } = useGame();
+    const { difficulty, setDifficulty, currentStage, setCurrentStage } = useSettings();
 
     // 난이도 변경 핸들러 (MasteryStorage에도 저장)
     const handleDifficultyChange = (newDifficulty: 'NORMAL' | 'HARD') => {
@@ -12,7 +12,7 @@ export const GameOptionSelectScreen = () => {
         MasteryStorage.saveDifficulty(newDifficulty);
     };
 
-    if (loading || !mapDataLevel2) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING MAP DATA...</div>;
+    if (loading || !cityData) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING MAP DATA...</div>;
 
     return (
         <div className="absolute inset-0 z-40 flex flex-col justify-between p-4 pointer-events-none">
@@ -31,10 +31,10 @@ export const GameOptionSelectScreen = () => {
                         {[1, 2, 3].map(lvl => (
                             <button
                                 key={lvl}
-                                onClick={() => setCurrentLevel(lvl)}
+                                onClick={() => setCurrentStage(lvl)}
                                 className={`
                   px-4 py-1.5 rounded-md text-sm font-bold transition-all
-                  ${currentLevel === lvl
+                  ${currentStage === lvl
                                         ? 'bg-primary text-primary-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-white/10'}
                 `}

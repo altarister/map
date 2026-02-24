@@ -3,7 +3,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
 export const GameInfoPanel = () => {
-    const { gameState, score, currentLevel } = useGame();
+    const { gameState, score, currentStage } = useGame();
     const { showGameInfo } = useSettings();
 
     // Hide in separate screens or if toggled off
@@ -15,7 +15,7 @@ export const GameInfoPanel = () => {
             <div className="text-xs font-mono space-y-1 text-gray-300">
                 <div className="flex justify-between">
                     <span className="text-gray-500">레벨:</span>
-                    <span>{currentLevel || '-'}</span>
+                    <span>{currentStage || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-500">상태:</span>

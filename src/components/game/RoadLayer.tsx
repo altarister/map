@@ -26,18 +26,18 @@ export interface RoadLayerHandle {
 
 const ROAD_THEME = {
     tactical: {
-        motorway: { color: '#f6893b', width: 0.8, minK: 0 },
-        trunk: { color: '#f5991a', width: 0.6, minK: 1.2 },
-        primary: { color: '#d5cd5d', width: 0.4, minK: 1.8 },
+        motorway: { color: '#f6893b', width: 0.3, minK: 0 },
+        trunk: { color: '#f5991a', width: 0.3, minK: 1.2 },
+        primary: { color: '#d5cd5d', width: 0.2, minK: 1.8 },
         secondary: { color: '#9ca3af', width: 0.2, minK: 2.5 },
-        other: { color: '#e0fb31', width: 0.3, minK: 2.5 }
+        other: { color: '#f5991a', width: 0.2, minK: 2.5 }
     },
     kids: {
-        motorway: { color: '#fbbf24', width: 3.0, minK: 0 }, // Amber-400
-        trunk: { color: '#fcd34d', width: 2.5, minK: 1.0 }, // Amber-300
-        primary: { color: '#ffffff', width: 2.0, minK: 1.5 },
-        secondary: { color: '#cbd5e1', width: 1.5, minK: 2.0 }, // Slate-300
-        other: { color: '#94a3b8', width: 1.0, minK: 2.0 } // Slate-400
+        motorway: { color: '#fbbf24', width: 0.3, minK: 0 }, // Amber-400
+        trunk: { color: '#fcd34d', width: 0.3, minK: 1.0 }, // Amber-300
+        primary: { color: '#fcd34d', width: 0.2, minK: 1.5 },
+        secondary: { color: '#cbd5e1', width: 0.2, minK: 2.0 }, // Slate-300
+        other: { color: '#94a3b8', width: 0.2, minK: 2.0 } // Slate-400
     }
 } as const;
 

@@ -11,7 +11,7 @@ const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
-  const [level2Data, setLevel2Data] = useState<RegionCollection | null>(null);
+  const [cityData, setCityData] = useState<RegionCollection | null>(null);
   const [roadData, setRoadData] = useState<any>(null); // New: Road Data
 
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ export const useGeoData = () => {
           f.properties.centroid = geoCentroid(f);
         });
 
-        setLevel2Data({ ...level2, features: filteredLevel2 });
+        setCityData({ ...level2, features: filteredLevel2 });
         setData({ ...level3, features: filteredLevel3 });
         setProgress(80); // Map Data Ready
 
@@ -107,5 +107,5 @@ export const useGeoData = () => {
     loadData();
   }, []);
 
-  return { data, level2Data, roadData, loading, progress, error };
+  return { data, cityData, roadData, loading, progress, error };
 };

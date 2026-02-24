@@ -11,8 +11,8 @@ interface SettingsContextType {
   updateTopScore: (score: number) => void;
   fontSize: number; // 폰트 크기 배율 (기본 1.0)
   setFontSize: (size: number) => void;
-  currentLevel: number;
-  setCurrentLevel: (level: number) => void;
+  currentStage: number;
+  setCurrentStage: (stage: number) => void;
   showDebugInfo: boolean;
   setShowDebugInfo: (show: boolean) => void;
   showGameInfo: boolean;
@@ -34,7 +34,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [soundEnabled, setSoundEnabled] = useLocalStorage<boolean>('game-sound', true);
   const [topScore, setTopScore] = useLocalStorage<number>('game-top-score', 0);
   const [fontSize, setFontSize] = useLocalStorage<number>('game-font-size', 1.0);
-  const [currentLevel, setCurrentLevel] = useLocalStorage<number>('game-level', 1);
+  const [currentStage, setCurrentStage] = useLocalStorage<number>('game-level', 1);
   const [showDebugInfo, setShowDebugInfo] = useLocalStorage<boolean>('game-debug-info', false);
   const [showGameInfo, setShowGameInfo] = useLocalStorage<boolean>('game-game-info', true);
   const [theme, setTheme] = useLocalStorage<'tactical' | 'kids'>('game-theme', 'tactical');
@@ -69,8 +69,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       updateTopScore,
       fontSize,
       setFontSize,
-      currentLevel,
-      setCurrentLevel,
+      currentStage,
+      setCurrentStage,
       showDebugInfo,
       setShowDebugInfo,
       showGameInfo,

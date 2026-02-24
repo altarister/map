@@ -22,9 +22,9 @@ interface UseGameLogicReturn {
 export const useGameLogic = (
   regions: RegionFeature[],
   difficulty: Difficulty,
-  currentLevel: number, // 현재 레벨 추가
+  currentStage: number, // 현재 게임 단계
   onGameEnd: (score: GameScore) => void,
-  mapDataLevel2: RegionFeature[] = [] // ✅ BUG-003 FIX: Level 2 데이터 추가
+  cityData: RegionFeature[] = [] // 시군구 데이터
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('LEVEL_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
@@ -72,7 +72,7 @@ export const useGameLogic = (
     // ✅ FIX: Use override regions if provided (for game start), otherwise use current regions prop
     const targetRegions = regionsOverride || regions;
 
-    if (currentLevel === 1) {
+    if (currentStage === 1) {
       // Level 1: Level 2 (시군구) 데이터 사용
 
       console.log('[GameLogic] setNextQuestion Level 1');
@@ -110,7 +110,7 @@ export const useGameLogic = (
       return;
     }
 
-    const strategy = getLevelStrategy(currentLevel);
+    const strategy = getLevelStrategy(currentStage);
     const question = strategy.generateQuestion({
       mapData: mapDataToUse, // ✅ Level에 맞는 데이터 전달
       difficulty
@@ -123,7 +123,7 @@ export const useGameLogic = (
     setTimeout(() => {
       isProcessingRef.current = false;
     }, 100); // Slight delay to ensure UI updates
-  }, [regions, currentLevel, difficulty, endGame, mapDataLevel2]);
+  }, [regions, currentStage, difficulty, endGame, cityData]);
 
   // 게임 시작
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
@@ -160,7 +160,7 @@ export const useGameLogic = (
     // 사용자가 START 버튼을 명시적으로 클릭해야만 게임이 시작되도록 변경
     // GDD Section 2.1의 GameState 전환 흐름을 준수
     // INITIAL → (START 버튼 클릭) → LEVEL_SELECT → (레벨 선택) → PLAYING
-  }, [currentLevel]); // startGame, regions.length 의존성 제거(UserInput 처리)
+  }, [currentStage]); // 게임 단계 변경 시 초기화
 
   // 정답 확인 (UserInput 처리)
   const checkAnswer = useCallback((input: UserInput) => {
@@ -173,7 +173,7 @@ export const useGameLogic = (
       return;
     }
 
-    const strategy = getLevelStrategy(currentLevel);
+    const strategy = getLevelStrategy(currentStage);
 
     // [Defensive] 현재 레벨의 전략이 지원하는 문제 타입인지 확인
     // (이론상 발생하면 안 되지만, 비동기 상태 불일치 방지)
@@ -240,7 +240,7 @@ export const useGameLogic = (
       // 에러 발생 시 별도 처리 없음 (입력 무시)
     }
 
-  }, [gameState, currentQuestion, currentLevel, levelState, answeredRegions, setNextQuestion]);
+  }, [gameState, currentQuestion, currentStage, levelState, answeredRegions, setNextQuestion]);
 
   // 게임 초기화
   const resetGame = useCallback(() => {

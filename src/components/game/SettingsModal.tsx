@@ -10,7 +10,7 @@ interface SettingsModalProps {
 export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const {
     fontSize, setFontSize,
-    currentLevel, setCurrentLevel,
+    currentStage, setCurrentStage,
     theme, setTheme,
     viewOptions, setViewOptions
   } = useSettings();
@@ -150,9 +150,9 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
             {[1, 2, 3, 4, 5].map((level) => (
               <button
                 key={level}
-                onClick={() => setCurrentLevel(level)}
+                onClick={() => setCurrentStage(level)}
                 disabled={level > 3}
-                className={`py-2 rounded text-xs font-bold transition-all border ${currentLevel === level
+                className={`py-2 rounded text-xs font-bold transition-all border ${currentStage === level
                   ? 'bg-green-500 text-black border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.5)]'
                   : level > 3
                     ? 'bg-transparent text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
@@ -164,10 +164,10 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
             ))}
           </div>
           <p className="text-xs text-slate-500 mt-3 font-mono text-center">
-            {currentLevel === 1 && "1단계: 위치 익히기"}
-            {currentLevel === 2 && "2단계: 경로 시각화"}
-            {currentLevel === 3 && "3단계: 거리 감각 익히기"}
-            {currentLevel > 3 && `레벨 ${currentLevel} (잠김)`}
+            {currentStage === 1 && "1단계: 위치 익히기"}
+            {currentStage === 2 && "2단계: 경로 시각화"}
+            {currentStage === 3 && "3단계: 거리 감각 익히기"}
+            {currentStage > 3 && `레벨 ${currentStage} (잠김)`}
           </p>
         </div>
       </div>

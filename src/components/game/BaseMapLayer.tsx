@@ -5,7 +5,7 @@ import type { AnswerFeedback } from '../../types/game';
 
 interface BaseMapLayerProps {
     features: RegionFeature[];
-    level2Data: { features: RegionFeature[] } | null;
+    cityData: { features: RegionFeature[] } | null;
     pathGenerator: GeoPath;
     theme: string;
     themeColors: any;
@@ -17,7 +17,7 @@ interface BaseMapLayerProps {
 
 export const BaseMapLayer = memo(({
     features,
-    level2Data,
+    cityData,
     pathGenerator,
     theme,
     themeColors,
@@ -65,7 +65,7 @@ export const BaseMapLayer = memo(({
             })}
 
             {/* Context Layer: Level 2 Borders (Rendered ON TOP for visibility) */}
-            {level2Data?.features.map((feature: any) => {
+            {cityData?.features.map((feature: any) => {
                 // Determine if this Level 2 feature corresponds to ANY currently active Level 3 features
                 // Efficiently check if any feature starts with this code
                 const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
@@ -94,7 +94,7 @@ export const BaseMapLayer = memo(({
         prev.theme === next.theme &&
         prev.transform.k === next.transform.k &&
         prev.features === next.features &&
-        prev.level2Data === next.level2Data &&
+        prev.cityData === next.cityData &&
         prev.answeredRegions === next.answeredRegions &&
         prev.pathGenerator === next.pathGenerator &&
         prev.showBoundaries === next.showBoundaries &&

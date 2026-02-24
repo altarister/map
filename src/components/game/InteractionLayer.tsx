@@ -8,7 +8,7 @@ interface InteractionLayerProps {
     onRegionClick: (code: string) => void;
     onRegionHover: (code: string | null) => void;
     gameState: string;
-    isGeometryLevel3: boolean;
+    showTownGeometry: boolean;
     answeredRegions: Set<string>;
     onRegionContextMenu?: (event: React.MouseEvent, feature: RegionFeature) => void;
 }
@@ -19,7 +19,7 @@ export const InteractionLayer = memo(({
     onRegionClick,
     onRegionHover,
     gameState,
-    isGeometryLevel3,
+    showTownGeometry,
     answeredRegions,
     onRegionContextMenu
 }: InteractionLayerProps) => {
@@ -37,7 +37,7 @@ export const InteractionLayer = memo(({
                         stroke="none"
                         style={{
                             cursor: (gameState === 'PLAYING' || gameState === 'LEVEL_SELECT') && !isAnswered ?
-                                (isGeometryLevel3 || gameState === 'LEVEL_SELECT' ? 'pointer' : 'not-allowed') : 'default',
+                                (showTownGeometry || gameState === 'LEVEL_SELECT' ? 'pointer' : 'not-allowed') : 'default',
                             pointerEvents: 'all' // This layer captures all events
                         }}
                         onContextMenu={(e) => {
@@ -65,7 +65,7 @@ export const InteractionLayer = memo(({
     return (
         prev.features === next.features &&
         prev.gameState === next.gameState &&
-        prev.isGeometryLevel3 === next.isGeometryLevel3 &&
+        prev.showTownGeometry === next.showTownGeometry &&
         prev.pathGenerator === next.pathGenerator && // Critical for resize handling
         prev.answeredRegions === next.answeredRegions // Need to re-render when answered regions change to update cursor/click
     );

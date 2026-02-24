@@ -20,7 +20,7 @@ interface GameContextType {
   checkAnswer: (input: UserInput) => void;
   resetGame: () => void;
   mapData: RegionCollection | null;
-  mapDataLevel2: RegionCollection | null;
+  cityData: RegionCollection | null;
   filteredMapData: RegionCollection | null;
   roadData: any;
   loading: boolean;
@@ -29,7 +29,7 @@ interface GameContextType {
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   levelState: any;
-  currentLevel: number;
+  currentStage: number;
   selectedChapter: string | null; // Track the currently selected chapter
 }
 
@@ -40,11 +40,11 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 전체 데이터 로드
-  const { data: fullMapData, level2Data, roadData, loading, progress, error } = useGeoData();
+  const { data: fullMapData, cityData, roadData, loading, progress, error } = useGeoData();
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
-  const { difficulty, updateTopScore, currentLevel } = useSettings();
+  const { difficulty, updateTopScore, currentStage } = useSettings();
   const { layerVisibility, setLayerVisibility } = useMapContext();
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
@@ -88,9 +88,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   } = useGameLogic(
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
-    currentLevel,
+    currentStage,
     handleGameEnd,
-    level2Data?.features || EMPTY_REGIONS
+    cityData?.features || EMPTY_REGIONS
   );
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Level 1: 도로 레이어 OFF (성능 최적화 + 게임 집중)
     // Level 2+: 도로 레이어 ON (기본 설정 복원)
-    if (currentLevel === 1) {
+    if (currentStage === 1) {
       setLayerVisibility({
         roadMotorway: false,
         roadTrunk: false,
@@ -160,7 +160,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkAnswer,
     resetGame,
     mapData: fullMapData,
-    mapDataLevel2: level2Data,
+    cityData: cityData,
     filteredMapData,
     roadData,
     loading,
@@ -169,7 +169,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     lastFeedback,
     answeredRegions,
     levelState,
-    currentLevel,
+    currentStage,
     selectedChapter
   };
 
