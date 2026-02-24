@@ -55,9 +55,9 @@ function GameContent() {
           {/* ADDED: Game Mode Selection Screen */}
           {gameState === 'GAME_MODE_SELECT' && <GameModeSelectScreen />}
 
-          {/* LEVEL_SELECT: 레벨/지역 선택 모달 */}
+          {/* REGION_SELECT: 레벨/지역 선택 모달 */}
           {/* Replaced RegionSelectScreen with GameOptionSelectScreen */}
-          {gameState === 'LEVEL_SELECT' && <GameOptionSelectScreen />}
+          {gameState === 'REGION_SELECT' && <GameOptionSelectScreen />}
 
           {/* RESULT: 결과 모달 */}
           <ResultModal />

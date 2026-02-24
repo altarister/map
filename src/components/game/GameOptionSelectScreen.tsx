@@ -4,7 +4,7 @@ import { MasteryStorage } from '../../services/MasteryStorage';
 
 export const GameOptionSelectScreen = () => {
     const { cityData, loading } = useGame();
-    const { difficulty, setDifficulty, currentStage, setCurrentStage } = useSettings();
+    const { difficulty, setDifficulty } = useSettings();
 
     // 난이도 변경 핸들러 (MasteryStorage에도 저장)
     const handleDifficultyChange = (newDifficulty: 'NORMAL' | 'HARD') => {
@@ -22,37 +22,6 @@ export const GameOptionSelectScreen = () => {
                 - 화면 최상단 영역: 제목, 레벨 탭, 난이도 조절 토글
             ========================================================= */}
             <div className="w-full flex items-center justify-between mb-8 px-4 pointer-events-auto flex-wrap gap-4">
-                <div className="flex items-center space-x-4">
-                    
-                    {/* [MODULE 1-1] TITLE_BLOCK (제목 영역) */}
-                    <div className="flex flex-col">
-                        <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic shadow-black drop-shadow-md">
-                            훈련 설정
-                        </h1>
-                        <span className="text-xs text-muted-foreground font-mono">MAP INTERACTIVE MODE</span>
-                    </div>
-
-                    <div className="h-8 w-px bg-border" />
-
-                    {/* [MODULE 1-2] STAGE_TAB_SELECTOR (단계 선택 탭) */}
-                    <div className="flex items-center space-x-2 bg-background/80 backdrop-blur p-1 rounded-lg border border-white/10 shadow-lg">
-                        {[1, 2, 3].map(lvl => (
-                            <button
-                                key={lvl}
-                                onClick={() => setCurrentStage(lvl)}
-                                className={`
-                                    px-4 py-1.5 rounded-md text-sm font-bold transition-all
-                                    ${currentStage === lvl
-                                        ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-white/10'}
-                                `}
-                            >
-                                레벨 {lvl}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
                 {/* [MODULE 1-3] DIFFICULTY_TOGGLE (난이도 조절 스위치) */}
                 <div className="flex items-center space-x-3 bg-background/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full shadow-lg pointer-events-auto">
                     <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>일반</span>

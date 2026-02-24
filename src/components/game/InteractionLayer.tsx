@@ -36,8 +36,8 @@ export const InteractionLayer = memo(({
                         fill="transparent"
                         stroke="none"
                         style={{
-                            cursor: (gameState === 'PLAYING' || gameState === 'LEVEL_SELECT') && !isAnswered ?
-                                (showTownGeometry || gameState === 'LEVEL_SELECT' ? 'pointer' : 'not-allowed') : 'default',
+                            cursor: (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !isAnswered ?
+                                (showTownGeometry || gameState === 'REGION_SELECT' ? 'pointer' : 'not-allowed') : 'default',
                             pointerEvents: 'all' // This layer captures all events
                         }}
                         onContextMenu={(e) => {

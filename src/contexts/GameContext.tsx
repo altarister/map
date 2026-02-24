@@ -101,7 +101,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Reset Map Data when entering Level Select or Mode Select
   useEffect(() => {
-    if ((gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT') && fullMapData) {
+    if ((gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT') && fullMapData) {
       // Only reset if it's currently filtered (optimization)
       if (filteredMapData !== fullMapData) {
         setFilteredMapData(fullMapData);

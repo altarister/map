@@ -26,7 +26,7 @@ export const useGameLogic = (
   onGameEnd: (score: GameScore) => void,
   cityData: RegionFeature[] = [] // 시군구 데이터
 ): UseGameLogicReturn => {
-  const [gameState, setGameState] = useState<GameState>('LEVEL_SELECT');
+  const [gameState, setGameState] = useState<GameState>('REGION_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [lastFeedback, setLastFeedback] = useState<AnswerFeedback | null>(null);
@@ -158,7 +158,7 @@ export const useGameLogic = (
     // ✅ BUG-001 FIX: 자동 게임 시작 제거
     // 사용자가 START 버튼을 명시적으로 클릭해야만 게임이 시작되도록 변경
     // GDD Section 2.1의 GameState 전환 흐름을 준수
-    // INITIAL → (START 버튼 클릭) → LEVEL_SELECT → (레벨 선택) → PLAYING
+    // INITIAL → (START 버튼 클릭) → REGION_SELECT → (레벨 선택) → PLAYING
   }, [currentStage]); // 게임 단계 변경 시 초기화
 
   // 정답 확인 (UserInput 처리)
@@ -243,7 +243,7 @@ export const useGameLogic = (
 
   // 게임 초기화
   const resetGame = useCallback(() => {
-    setGameState('LEVEL_SELECT');
+    setGameState('REGION_SELECT');
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setCurrentQuestion(null);
 

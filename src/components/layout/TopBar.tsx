@@ -13,7 +13,7 @@ export const TopBar = () => {
   };
 
   const handleStart = () => {
-    setGameState('LEVEL_SELECT');
+    setGameState('REGION_SELECT');
   };
 
   return (
@@ -68,6 +68,17 @@ export const TopBar = () => {
                 className="px-6 py-2 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
               >
                 ▶ 게임 시작
+              </button>
+            )}
+
+            {/* REGION_SELECT 상태에서 코스 선택 화면으로 돌아가는 버튼 추가 */}
+            {gameState === 'REGION_SELECT' && (
+              <button
+                onClick={() => setGameState('GAME_MODE_SELECT')}
+                className="text-xs font-mono font-bold text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider flex items-center gap-1 bg-black/20 px-3 py-1.5 rounded-full border border-white/10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                코스 다시 선택
               </button>
             )}
 

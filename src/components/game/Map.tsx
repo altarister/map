@@ -65,7 +65,7 @@ export const Map = () => {
     selectedChapter,
   } = useGame();
 
-  const { theme, showDebugInfo, viewOptions } = useSettings();
+  const { theme, showDebugInfo, viewOptions, difficulty } = useSettings();
   const colors = THEME_COLORS[theme];
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
@@ -137,7 +137,7 @@ export const Map = () => {
     const prev = prevGameStateRef.current;
     prevGameStateRef.current = gameState;
     if (prev !== gameState &&
-        (gameState === 'LEVEL_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')) {
+        (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')) {
       zoomTo({ x: 0, y: 0, k: 1 });
     }
   }, [gameState, width, height, zoomTo]);
@@ -189,7 +189,7 @@ export const Map = () => {
   const closeIntelPopup = useCallback(() => setIntelPopup(null), []);
 
   const handleRegionClick = useCallback((code: string) => {
-    if (gameState === 'LEVEL_SELECT') {
+    if (gameState === 'REGION_SELECT') {
       log.game(`[Map] Selected Region: ${code}`);
       startGame(code.substring(0, 5));
       return;
@@ -277,7 +277,7 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
-          {gameState === 'PLAYING' && layerVisibility.labels && (
+          {gameState === 'PLAYING' && layerVisibility.labels && difficulty === 'NORMAL' && (
             <>
               {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
                 <RegionLabel

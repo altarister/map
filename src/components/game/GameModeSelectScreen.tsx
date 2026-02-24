@@ -7,7 +7,7 @@ import { MasteryStorage } from '../../services/MasteryStorage';
 
 export const GameModeSelectScreen = () => {
     const { setGameState } = useGame();
-    const { theme } = useSettings();
+    const { theme, setCurrentStage } = useSettings();
 
     const isTactical = theme === 'tactical';
     const stages = Object.values(GameStages); // 1, 2, 3 단계 배열
@@ -71,7 +71,10 @@ export const GameModeSelectScreen = () => {
                             return (
                                 <button
                                     key={`stage-${id}`}
-                                    onClick={() => setGameState('LEVEL_SELECT')} // 선택 화면으로 넘어가거나 바로 시작
+                                    onClick={() => {
+                                        setCurrentStage(id as any);
+                                        setGameState('REGION_SELECT');
+                                    }}
                                     className={`
                                         group relative flex flex-col items-start p-6 rounded-xl border-l-4 transition-all duration-300
                                         ${isTactical
