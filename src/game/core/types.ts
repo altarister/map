@@ -71,10 +71,24 @@ export interface StageContext {
   difficulty: Difficulty;
 }
 
+export interface StageUnlockCondition {
+  // 특정 이전 단계를 클리어(숙달)해야 열리는 경우
+  requireStageClear?: number;
+}
+
+export interface StageMapOptions {
+  // 1단계처럼 시/군/구 뿐 아니라 읍/면/동 기하구조도 항상 허용하는지 여부
+  forceShowTownGeometry?: boolean; 
+}
+
 export interface LevelConfig {
   id: number;
   name: string;
   description: string;
+  shortDescription?: string; // UI 리스트에서 표시할 짧은 설명 추가
+  badge?: string; // 예: ROOKIE, EXPERT 등
+  unlockCondition?: StageUnlockCondition; // 잠금해제 필요 조건
+  mapOptions?: StageMapOptions;
 }
 
 export interface StageStrategy {

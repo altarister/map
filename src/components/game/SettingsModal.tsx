@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { GameStages } from '../../game/stages/registry';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -145,29 +146,33 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
         </div>
 
         <div>
-          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">게임 난이도</label>
+          <label className="text-sm font-bold text-slate-300 block mb-4 uppercase tracking-wider">게임 훈련 단계</label>
           <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <button
-                key={level}
-                onClick={() => setCurrentStage(level)}
-                disabled={level > 3}
-                className={`py-2 rounded text-xs font-bold transition-all border ${currentStage === level
-                  ? 'bg-green-500 text-black border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.5)]'
-                  : level > 3
-                    ? 'bg-transparent text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
-                    : 'bg-transparent text-slate-500 border-slate-600 hover:border-green-500/50 hover:text-green-400'
-                  }`}
-              >
-                LV.{level}
-              </button>
-            ))}
+            {[1, 2, 3, 4, 5].map((level) => {
+              const stageConfig = GameStages[level]?.config;
+              const isLocked = !stageConfig || level > 3; // 4단계 이상이거나 미구현 시 잠금 처리 임시 유지
+
+              return (
+                <button
+                  key={level}
+                  onClick={() => setCurrentStage(level)}
+                  disabled={isLocked}
+                  className={`py-2 rounded text-xs font-bold transition-all border ${currentStage === level
+                    ? 'bg-green-500 text-black border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.5)]'
+                    : isLocked
+                      ? 'bg-transparent text-slate-700 border-slate-800 cursor-not-allowed opacity-50'
+                      : 'bg-transparent text-slate-500 border-slate-600 hover:border-green-500/50 hover:text-green-400'
+                    }`}
+                >
+                  LV.{level}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-xs text-slate-500 mt-3 font-mono text-center">
-            {currentStage === 1 && "1단계: 위치 익히기"}
-            {currentStage === 2 && "2단계: 경로 시각화"}
-            {currentStage === 3 && "3단계: 거리 감각 익히기"}
-            {currentStage > 3 && `레벨 ${currentStage} (잠김)`}
+          <p className="text-xs text-slate-500 mt-3 font-mono text-center h-4">
+            {GameStages[currentStage]
+              ? GameStages[currentStage].config.name
+              : `레벨 ${currentStage} (준비 중)`}
           </p>
         </div>
       </div>

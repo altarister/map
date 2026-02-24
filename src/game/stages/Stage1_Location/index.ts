@@ -5,8 +5,13 @@ import { validateStage1Answer } from './validator';
 export const Stage1Strategy: StageStrategy = {
   config: {
     id: 1,
-    name: "1단계: 위치 익히기",
-    description: "제시된 지역명을 보고 지도에서 정확한 위치를 찾으세요."
+    name: "1단계: 지역 숙달",
+    shortDescription: "시/군/구 단위로 하나씩 선택하여 집중적으로 위치를 암기합니다.",
+    description: "제시된 지역명을 보고 지도에서 정확한 위치를 찾으세요.",
+    badge: "R O O K I E",
+    mapOptions: {
+      forceShowTownGeometry: true
+    }
   },
 
   generateQuestion: (ctx: StageContext) => {

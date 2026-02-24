@@ -13,8 +13,13 @@ interface Stage2State {
 export const Stage2Strategy: StageStrategy = {
   config: {
     id: 2,
-    name: "2단계: 경로 시각화",
-    description: "상차지와 하차지를 순서대로 선택하여 이동 경로를 확인하세요."
+    name: "2단계: 종합 평가",
+    shortDescription: "경기도 전체를 대상으로 무작위 훈련을 진행합니다.",
+    description: "상차지와 하차지를 순서대로 선택하여 이동 경로를 확인하세요.",
+    badge: "L O C K E D",
+    unlockCondition: {
+      requireStageClear: 1
+    }
   },
 
   generateQuestion: (ctx: StageContext) => {

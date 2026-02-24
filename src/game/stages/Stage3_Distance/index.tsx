@@ -7,8 +7,13 @@ import { validateStage3Answer } from './validator';
 export const Stage3Strategy: StageStrategy = {
   config: {
     id: 3,
-    name: "3단계: 거리 추정",
-    description: "두 지점 사이의 직선 거리를 추정해보세요."
+    name: "3단계: 거리 감각 익히기",
+    shortDescription: "두 지점 사이의 거리를 가늠해보는 심화 훈련입니다.",
+    description: "두 지점 사이의 직선 거리를 추정해보세요.",
+    badge: "E X P E R T",
+    unlockCondition: {
+      requireStageClear: 2
+    }
   },
 
   generateQuestion: (ctx: StageContext) => {
