@@ -1,6 +1,6 @@
 import type { EstimateDistanceQuestion, UserInput, ValidationResult } from '../../core/types';
 
-export const validateLevel3Answer = (
+export const validateStage3Answer = (
   question: EstimateDistanceQuestion, 
   input: UserInput
 ): ValidationResult => {

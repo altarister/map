@@ -1,11 +1,11 @@
 import { geoCentroid, geoDistance } from 'd3-geo';
-import type { LevelContext, EstimateDistanceQuestion } from '../../core/types';
+import type { StageContext, EstimateDistanceQuestion } from '../../core/types';
 import type { RegionFeature } from '../../../types/geo';
 
 // 지구 반지름 (km)
 const EARTH_RADIUS_KM = 6371;
 
-export const generateLevel3Question = (context: LevelContext): EstimateDistanceQuestion => {
+export const generateStage3Question = (context: StageContext): EstimateDistanceQuestion => {
   const { mapData } = context;
 
   // 랜덤 두 지역 선택 (너무 가까운 지역 제외)

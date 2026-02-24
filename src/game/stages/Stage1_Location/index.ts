@@ -1,23 +1,23 @@
-import type { LevelStrategy, LevelContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
-import { generateLevel1Question } from './generator';
-import { validateLevel1Answer } from './validator';
+import type { StageStrategy, StageContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
+import { generateStage1Question } from './generator';
+import { validateStage1Answer } from './validator';
 
-export const Level1Strategy: LevelStrategy = {
+export const Stage1Strategy: StageStrategy = {
   config: {
     id: 1,
     name: "1단계: 위치 익히기",
     description: "제시된 지역명을 보고 지도에서 정확한 위치를 찾으세요."
   },
 
-  generateQuestion: (ctx: LevelContext) => {
-    return generateLevel1Question(ctx);
+  generateQuestion: (ctx: StageContext) => {
+    return generateStage1Question(ctx);
   },
 
   validateAnswer: (question: GameQuestion, input: UserInput) => {
     if (question.type !== 'LOCATE_SINGLE') {
-      throw new Error('Level 1 strategy received invalid question type');
+      throw new Error('Stage 1 strategy received invalid question type');
     }
-    return validateLevel1Answer(question, input);
+    return validateStage1Answer(question, input);
   },
 
   renderInstruction: (question: GameQuestion) => {

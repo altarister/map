@@ -1,6 +1,6 @@
-import type { LevelContext, LocatePairQuestion } from '../../core/types';
+import type { StageContext, LocatePairQuestion } from '../../core/types';
 
-export const generateLevel2Question = (context: LevelContext): LocatePairQuestion => {
+export const generateStage2Question = (context: StageContext): LocatePairQuestion => {
   const { mapData } = context;
   
   // 랜덤 상차지 선택

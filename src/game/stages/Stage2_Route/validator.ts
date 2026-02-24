@@ -1,15 +1,15 @@
 import type { LocatePairQuestion, UserInput, ValidationResult } from '../../core/types';
 
-interface Level2State {
+interface Stage2State {
   step: 'FIND_START' | 'FIND_END';
 }
 
-export const validateLevel2Answer = (
+export const validateStage2Answer = (
   question: LocatePairQuestion, 
   input: UserInput, 
-  state: Level2State | null
+  state: Stage2State | null
 ): ValidationResult => {
-  const currentState: Level2State = state || { step: 'FIND_START' };
+  const currentState: Stage2State = state || { step: 'FIND_START' };
 
   if (input.type !== 'MAP_CLICK') {
     return { 

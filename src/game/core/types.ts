@@ -30,7 +30,7 @@ export interface LocatePairQuestion extends BaseQuestion {
     code: string;
     name: string;
   };
-
+}
 
 // 3단계: 거리 추정 (Distance)
 export interface EstimateDistanceQuestion extends BaseQuestion {
@@ -66,7 +66,7 @@ export type ValidationResult =
   | { status: 'CONTINUE'; feedback?: AnswerFeedback; nextStepInstruction?: string; nextState?: any }; // 진행 중 (예: 상차지 찍고 하차지 찍기 전)
 
 // 4. 레벨 전략 인터페이스 (Strategy Interface)
-export interface LevelContext {
+export interface StageContext {
   mapData: RegionFeature[];
   difficulty: Difficulty;
 }
@@ -77,11 +77,11 @@ export interface LevelConfig {
   description: string;
 }
 
-export interface LevelStrategy {
+export interface StageStrategy {
   config: LevelConfig;
 
   // 문제 생성
-  generateQuestion(ctx: LevelContext): GameQuestion;
+  generateQuestion(ctx: StageContext): GameQuestion;
 
   // 정답 확인
   validateAnswer(question: GameQuestion, input: UserInput, state?: any): ValidationResult;

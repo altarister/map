@@ -1,32 +1,32 @@
 import React from 'react';
 import { Line, Marker } from '@vnedyalk0v/react19-simple-maps';
 import { geoCentroid } from 'd3-geo';
-import type { LevelStrategy, LevelContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
+import type { StageStrategy, StageContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
 import type { RegionFeature } from '../../../types/geo';
-import { generateLevel2Question } from './generator';
-import { validateLevel2Answer } from './validator';
+import { generateStage2Question } from './generator';
+import { validateStage2Answer } from './validator';
 
-interface Level2State {
+interface Stage2State {
   step: 'FIND_START' | 'FIND_END';
 }
 
-export const Level2Strategy: LevelStrategy = {
+export const Stage2Strategy: StageStrategy = {
   config: {
     id: 2,
     name: "2단계: 경로 시각화",
     description: "상차지와 하차지를 순서대로 선택하여 이동 경로를 확인하세요."
   },
 
-  generateQuestion: (ctx: LevelContext) => {
-    return generateLevel2Question(ctx);
+  generateQuestion: (ctx: StageContext) => {
+    return generateStage2Question(ctx);
   },
 
   validateAnswer: (question: GameQuestion, input: UserInput, state: any) => {
     if (question.type !== 'LOCATE_PAIR') {
-      throw new Error('Level 2 strategy received invalid question type');
+      throw new Error('Stage 2 strategy received invalid question type');
     }
     
-    const result = validateLevel2Answer(question, input, state);
+    const result = validateStage2Answer(question, input, state);
     
     if (result.status === 'CONTINUE') {
        return { ...result, nextState: { step: 'FIND_END' } }; // 다음 상태 명시
@@ -52,7 +52,7 @@ export const Level2Strategy: LevelStrategy = {
   renderMapOverlay: (question: GameQuestion, mapData: RegionFeature[], state: any) => {
     if (question.type !== 'LOCATE_PAIR') return null;
     
-    const currentState = state as Level2State;
+    const currentState = state as Stage2State;
     // 1. Start 지점 찾았으면 Start 지점에 마커 표시
     // 2. End 지점까지 찾았으면(혹은 FIND_END 상태인데 Start를 보여줘야 함)
     

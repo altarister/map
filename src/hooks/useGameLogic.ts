@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { GameState, GameScore, AnswerFeedback, Difficulty } from '../types/game';
 import type { RegionFeature } from '../types/geo';
 import type { GameQuestion, UserInput, ValidationResult } from '../game/core/types';
-import { getLevelStrategy } from '../game/levels/registry';
+import { getStageStrategy } from '../game/stages/registry';
 
 interface UseGameLogicReturn {
   gameState: GameState;
@@ -65,8 +65,7 @@ export const useGameLogic = (
   // 다음 문제 출제
   const setNextQuestion = useCallback((currentAnsweredRegions: Set<string>, regionsOverride?: RegionFeature[]) => {
     // ✅ BUG-003 FIX: Level 1은 Level 2 데이터 사용
-    // Level 1: 위치 찾기 (시군구) → mapDataLevel2 사용
-    // Level 2+: 경로, 거리 등 → regions (Level 3) 사용
+    // 게임 1단계: 읍·면·동 단위로 문제 출제 (cityData 기반 regions 사용)
     let mapDataToUse: RegionFeature[];
 
     // ✅ FIX: Use override regions if provided (for game start), otherwise use current regions prop
@@ -110,7 +109,7 @@ export const useGameLogic = (
       return;
     }
 
-    const strategy = getLevelStrategy(currentStage);
+    const strategy = getStageStrategy(currentStage);
     const question = strategy.generateQuestion({
       mapData: mapDataToUse, // ✅ Level에 맞는 데이터 전달
       difficulty
@@ -173,7 +172,7 @@ export const useGameLogic = (
       return;
     }
 
-    const strategy = getLevelStrategy(currentStage);
+    const strategy = getStageStrategy(currentStage);
 
     // [Defensive] 현재 레벨의 전략이 지원하는 문제 타입인지 확인
     // (이론상 발생하면 안 되지만, 비동기 상태 불일치 방지)

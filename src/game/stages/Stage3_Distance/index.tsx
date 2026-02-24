@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { Line, Marker } from '@vnedyalk0v/react19-simple-maps';
-import type { LevelStrategy, LevelContext, GameQuestion, UserInput } from '../../core/types';
-import { generateLevel3Question } from './generator';
-import { validateLevel3Answer } from './validator';
+import type { StageStrategy, StageContext, GameQuestion, UserInput } from '../../core/types';
+import { generateStage3Question } from './generator';
+import { validateStage3Answer } from './validator';
 
-export const Level3Strategy: LevelStrategy = {
+export const Stage3Strategy: StageStrategy = {
   config: {
     id: 3,
     name: "3단계: 거리 추정",
     description: "두 지점 사이의 직선 거리를 추정해보세요."
   },
 
-  generateQuestion: (ctx: LevelContext) => {
-    return generateLevel3Question(ctx);
+  generateQuestion: (ctx: StageContext) => {
+    return generateStage3Question(ctx);
   },
 
   validateAnswer: (question: GameQuestion, input: UserInput) => {
     if (question.type !== 'ESTIMATE_DIST') {
-      throw new Error('Level 3 strategy received invalid question type');
+      throw new Error('Stage 3 strategy received invalid question type');
     }
-    return validateLevel3Answer(question, input);
+    return validateStage3Answer(question, input);
   },
 
   renderInstruction: (question: GameQuestion) => { 

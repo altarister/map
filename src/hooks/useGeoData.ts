@@ -47,7 +47,7 @@ export const useGeoData = () => {
 
         const targetPrefix = '31'; // TODO: Make configurable?
 
-        const filteredLevel2 = level2.features.filter((f: any) =>
+        const filteredCity = level2.features.filter((f: any) =>
           f.properties.code.startsWith(targetPrefix)
         );
 
@@ -57,7 +57,7 @@ export const useGeoData = () => {
 
         // Enrichment Logic
         const parentMap = new Map<string, string>();
-        filteredLevel2.forEach((f: any) => {
+        filteredCity.forEach((f: any) => {
           if (f.properties.code && f.properties.name) {
             parentMap.set(f.properties.code, f.properties.name);
           }
@@ -79,7 +79,7 @@ export const useGeoData = () => {
           f.properties.centroid = geoCentroid(f);
         });
 
-        setCityData({ ...level2, features: filteredLevel2 });
+        setCityData({ ...level2, features: filteredCity });
         setData({ ...level3, features: filteredLevel3 });
         setProgress(80); // Map Data Ready
 
