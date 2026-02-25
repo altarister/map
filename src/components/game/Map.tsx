@@ -122,8 +122,8 @@ export const Map = () => {
   const isSingleRegion = filteredCityFeatures.length === 1;
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
-  
-  const showTownGeometry = forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5;
+  // 지역 선택 전(REGION_SELECT) 화면에서는 무조건 시/군/구 큰 단위만 렌더링해야 함 (렉 방지 & 시군구 클릭 유도)
+  const showTownGeometry = gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
   const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
 

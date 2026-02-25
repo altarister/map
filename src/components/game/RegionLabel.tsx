@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { geoCentroid } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';
 import type { AnswerFeedback, GameState } from '../../types/game';
@@ -51,10 +51,13 @@ export const RegionLabel = memo(({
 
   const code = feature.properties.code;
   const name = feature.properties.name;
-  const centroid = geoCentroid(feature);
+  
+  // 무거운 위경도 중심점 연산(geoCentroid) 및 픽셀 투영 연산 캐싱 (렉 방지)
+  const coords = useMemo(() => {
+    const centroid = geoCentroid(feature);
+    return projection(centroid);
+  }, [feature, projection]);
 
-  // Convert GeoJSON coordinates to SVG coordinates
-  const coords = projection(centroid);
   if (!coords) return null;
 
   const [x, y] = coords;
