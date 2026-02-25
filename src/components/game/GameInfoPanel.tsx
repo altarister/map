@@ -4,7 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 
 export const GameInfoPanel = () => {
     const { gameState, score, currentStage } = useGame();
-    const { showGameInfo } = useSettings();
+    const { showGameInfo, topScore } = useSettings();
 
     // Hide in separate screens or if toggled off
     if (!showGameInfo || gameState === 'INITIAL') return null;
@@ -23,6 +23,18 @@ export const GameInfoPanel = () => {
                         {gameState === 'PLAYING' ? '진행중' : gameState}
                     </span>
                 </div>
+                {/* 시스템 상태 요약 */}
+                <div className="flex justify-between mt-2 pt-2 border-t border-white/10">
+                    <span className="text-gray-500">최고기록:</span>
+                    <span className="text-gray-300 font-bold">{topScore.toString().padStart(4, '0')}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-500">현재점수:</span>
+                    <span className={`font-bold ${gameState === 'PLAYING' ? 'text-green-500' : 'text-gray-400'}`}>
+                        {(score.correct * 100).toString().padStart(4, '0')}
+                    </span>
+                </div>
+
                 {gameState === 'PLAYING' && (
                     <>
                         <div className="flex justify-between mt-2 pt-2 border-t border-white/10">

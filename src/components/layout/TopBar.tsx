@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
-import { useSettings } from '../../contexts/SettingsContext';
+
 import { SettingsModal } from '../game/SettingsModal';
 
 export const TopBar = () => {
-  const { score, gameState, setGameState, resetGame } = useGame();
-  const { topScore } = useSettings();
+  const { gameState, setGameState, resetGame } = useGame();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleRestart = () => {
@@ -29,36 +28,13 @@ export const TopBar = () => {
           </div>
         </div>
 
-        {/* Center: System Status */}
+        {/* Center: System Status (제거됨: GameInfoPanel로 이동) */}
         <div className="flex flex-col items-center">
-          <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest leading-none mb-1">시스템 상태</span>
-          <div className="flex gap-4 font-mono text-xs">
-            <span className={`${gameState === 'PLAYING' ? 'text-primary' : 'text-destructive'}`}>
-              [게임: {gameState === 'PLAYING' ? '진행중' : '대기'}]
-            </span>
-            <span className="text-primary">
-              [지도: 활성]
-            </span>
-          </div>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-6">
-          {/* Score Display (Visible during game or after) */}
-          {gameState !== 'INITIAL' && (
-            <div className="flex gap-4 text-xs font-mono">
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] text-muted-foreground uppercase">최고기록</span>
-                <span className="text-foreground font-bold">{topScore.toString().padStart(4, '0')}</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] text-muted-foreground uppercase">현재점수</span>
-                <span className={`font-bold ${gameState === 'PLAYING' ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {(score.correct * 100).toString().padStart(4, '0')}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Score Display (제거됨: GameInfoPanel로 이동) */}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4">

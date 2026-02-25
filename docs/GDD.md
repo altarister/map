@@ -135,15 +135,15 @@ stateDiagram-v2
 
 ## 4. 컴포넌트 상세 명세 (Component Specification)
 
-**역할**: 전역 네비게이션, 시스템 상태 표시, 게임 정보 표시
+**역할**: 애플리케이션 전역 네비게이션, 코스 재선택, 환경 설정
 
 #### 구조
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ [LEFT: Title]   [CENTER: Status]   [RIGHT: Actions]           │
-│ "1DAL Trainer"  [Game: ON/OFF]      START / Score / 그만하기  │
-│                 [Map: ON]            Settings Icon             │
+│ [LEFT: Title & Version]                    [RIGHT: Actions]           │
+│ "1DAL Trainer v1.3.0"                       START / 재시도 / 코스 재선택 │
+│                                             Settings Icon             │
 └────────────────────────────────────────────────────────────────┘
 ```
 
