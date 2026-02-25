@@ -60,7 +60,10 @@ export const RegionLabel = memo(({
 
   if (!coords) return null;
 
+  // gRef 그룹의 CSS transform(translate+scale)이 좌표를 자동 보정해줌.
+  // font-size = 14/k 로 scale을 상쇄해 항상 14px 시각 크기를 유지.
   const [x, y] = coords;
+
 
   // 1. Area-based Visibility Check (Performance Optimized)
   // 화면상 면적이 너무 작으면 라벨을 그리지 않음 (Clutter 방지)

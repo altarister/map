@@ -7,7 +7,8 @@ import { useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
-import { BaseMapLayer } from './BaseMapLayer';
+import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
+import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
 import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
@@ -17,36 +18,8 @@ import { useMapZoom } from '../../hooks/useMapZoom';
 import { log } from '../../lib/debug';
 import { IntelPopup } from './IntelPopup';
 import { getAdjacentRegions, getPassingRoads } from '../../game/systems/IntelSystem';
+import { MAP_THEME_COLORS } from '../../styles/themes';
 
-// ── Theme Color Definitions ──────────────────────────────────────────────────
-const THEME_COLORS = {
-  tactical: {
-    fill: '#1a1a1a',
-    stroke: '#444444',
-    answeredFill: 'rgba(22, 163, 74, 0.4)',
-    answeredStroke: '#444444',
-    correctFill: 'rgba(22, 163, 74, 0.6)',
-    correctStroke: '#444444',
-    wrongFill: 'rgba(220, 38, 38, 0.6)',
-    wrongStroke: '#444444',
-    hoverFill: 'rgba(255, 255, 255, 0.1)',
-    hoverStroke: '#ffffff',
-    hoverDefaultFill: '#333333',
-  },
-  kids: {
-    fill: '#ffffff',
-    stroke: '#94a3b8',
-    answeredFill: 'rgba(59, 130, 246, 0.4)',
-    answeredStroke: '#94a3b8',
-    correctFill: 'rgba(59, 130, 246, 0.6)',
-    correctStroke: '#94a3b8',
-    wrongFill: 'rgba(239, 68, 68, 0.6)',
-    wrongStroke: '#94a3b8',
-    hoverFill: 'rgba(250, 204, 21, 0.4)',
-    hoverStroke: '#f59e0b',
-    hoverDefaultFill: '#fef3c7',
-  }
-};
 
 export const Map = () => {
   // ── Context & Settings ──────────────────────────────────────────────────────
@@ -67,7 +40,7 @@ export const Map = () => {
   } = useGame();
 
   const { theme, showDebugInfo, viewOptions } = useSettings();
-  const colors = THEME_COLORS[theme];
+  const colors = MAP_THEME_COLORS[theme];
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
@@ -76,6 +49,7 @@ export const Map = () => {
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
+  const baseMapLayerRef = useRef<BaseMapLayerHandle | null>(null);
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
   const handleZoom = useCallback((t: { x: number; y: number; k: number }) => {
@@ -83,11 +57,11 @@ export const Map = () => {
     handleMove({ zoom: t.k });
   }, [setTransform, handleMove]);
 
-  const { svgRef, gRef, baseMapGRef, transform: zoomTransform, zoomTo } = useMapZoom({
+  const { svgRef, gRef, transform: zoomTransform, zoomTo } = useMapZoom({
     width,
     height,
     onZoom: handleZoom,
-    roadLayerRef,
+    canvasLayerRefs: [baseMapLayerRef, roadLayerRef],
   });
 
   // ── Projection & Path Generator ─────────────────────────────────────────────
@@ -217,24 +191,23 @@ export const Map = () => {
       className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}
       onClick={closeIntelPopup}
     >
-      {/* Layer 1: Base Map */}
-      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="absolute inset-0" style={{ zIndex: 0 }}>
-        <g ref={baseMapGRef} transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-          <BaseMapLayer
-            features={featuresToRender}
-            cityData={cityData}
-            pathGenerator={pathGenerator}
-            theme={theme}
-            themeColors={colors}
-            transform={transform}
-            answeredRegions={answeredRegions}
-            lastFeedback={lastFeedback}
-            showBoundaries={layerVisibility.boundaries}
-          />
-        </g>
-      </svg>
+      {/* Layer 1: Base Map (Canvas) */}
+      <BaseMapLayerCanvas
+        ref={baseMapLayerRef}
+        features={featuresToRender}
+        cityData={cityData}
+        projection={projection}
+        theme={theme}
+        themeColors={colors}
+        initialTransform={zoomTransform}
+        width={width}
+        height={height}
+        answeredRegions={answeredRegions}
+        lastFeedback={lastFeedback}
+        showBoundaries={layerVisibility.boundaries}
+      />
 
-      {/* Layer 2: Roads */}
+      {/* Layer 2: Roads (Canvas) */}
       {roadData && (
         <RoadLayer
           ref={roadLayerRef}
@@ -260,7 +233,8 @@ export const Map = () => {
         className="absolute inset-0"
         style={{ zIndex: 20 }}
       >
-        <g ref={gRef}>
+        {/* HighlightOverlay + InteractionLayer: gRef 내부 (CSS zoom transform 적용됨) */}
+        <g ref={gRef} style={{ willChange: 'transform' }}>
           <HighlightOverlay
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -280,6 +254,8 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
+          {/* 라벨: gRef 내부. CSS scale(k)로 위치 보정, font-size=14/k로 크기 상쇄.
+              setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
           {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
             <>
               {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
@@ -287,7 +263,7 @@ export const Map = () => {
                   key={`label-city-${feature.properties.code}`}
                   feature={feature}
                   projection={projection}
-                  transform={transform}
+                  transform={zoomTransform}
                   answeredRegions={answeredRegions}
                   lastFeedback={lastFeedback}
                   gameState={gameState}
@@ -300,7 +276,7 @@ export const Map = () => {
                   key={`label-district-${feature.properties.code}`}
                   feature={feature}
                   projection={projection}
-                  transform={transform}
+                  transform={zoomTransform}
                   answeredRegions={answeredRegions}
                   lastFeedback={lastFeedback}
                   gameState={gameState}

@@ -3,6 +3,8 @@ import { geoPath } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';
 import { quadtree } from 'd3-quadtree';
 import type { Feature } from 'geojson';
+import type { CanvasLayerHandle } from '../../types/canvas';
+import { ROAD_THEME_COLORS } from '../../styles/themes';
 
 interface RoadLayerProps {
     features: Feature[];
@@ -19,27 +21,10 @@ interface RoadLayerProps {
     visibleOther: boolean;
 }
 
-export interface RoadLayerHandle {
-    draw: (transform: { x: number, y: number, k: number }) => void;
+export interface RoadLayerHandle extends CanvasLayerHandle {
     findRoads: (region: Feature) => string[];
 }
 
-const ROAD_THEME = {
-    tactical: {
-        motorway: { color: '#f6893b', width: 0.3, minK: 0 },
-        trunk: { color: '#f5991a', width: 0.3, minK: 1.2 },
-        primary: { color: '#d5cd5d', width: 0.2, minK: 1.8 },
-        secondary: { color: '#9ca3af', width: 0.2, minK: 2.5 },
-        other: { color: '#f5991a', width: 0.2, minK: 2.5 }
-    },
-    kids: {
-        motorway: { color: '#fbbf24', width: 0.3, minK: 0 }, // Amber-400
-        trunk: { color: '#fcd34d', width: 0.3, minK: 1.0 }, // Amber-300
-        primary: { color: '#fcd34d', width: 0.2, minK: 1.5 },
-        secondary: { color: '#cbd5e1', width: 0.2, minK: 2.0 }, // Slate-300
-        other: { color: '#94a3b8', width: 0.2, minK: 2.0 } // Slate-400
-    }
-} as const;
 
 export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
     features, projection, transform, width, height, theme,
@@ -135,7 +120,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
         const cullBuffer = Math.max(vpWidth, vpHeight) * 0.5;
 
         // Select Styles based on Theme
-        const currentTheme = ROAD_THEME[theme as keyof typeof ROAD_THEME] || ROAD_THEME.tactical;
+        const currentTheme = ROAD_THEME_COLORS[theme as keyof typeof ROAD_THEME_COLORS] || ROAD_THEME_COLORS.tactical;
 
         tree.visit((node, x1, y1, x2, y2) => {
             if (x1 > vp.x1 + cullBuffer || x2 < vp.x0 - cullBuffer || y1 > vp.y1 + cullBuffer || y2 < vp.y0 - cullBuffer) return true;
@@ -179,8 +164,19 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
     // Imperative Handle for Sync Updates (D3 Zoom) & Intel Query
     useImperativeHandle(ref, () => ({
         draw: (t) => {
+            if (containerRef.current) {
+                containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
+            }
             // Force synchronous draw
             drawCanvas(t.x, t.y, t.k);
+        },
+        setCssTransform: (current, start) => {
+            if (!containerRef.current) return;
+            const S = current.k / start.k;
+            const Dx = current.x - start.x * S;
+            const Dy = current.y - start.y * S;
+            containerRef.current.style.transform = `translate(${Dx}px, ${Dy}px) scale(${S})`;
+            containerRef.current.style.transformOrigin = `0 0`;
         },
         findRoads: (region: Feature) => {
             if (!tree || !region) return [];

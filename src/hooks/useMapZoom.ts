@@ -3,7 +3,7 @@ import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { ZoomBehavior, D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
 import type { RefObject } from 'react';
-import type { RoadLayerHandle } from '../components/game/RoadLayer';
+import type { CanvasLayerHandle } from '../types/canvas';
 
 export interface MapTransform {
     x: number;
@@ -17,7 +17,8 @@ interface UseMapZoomProps {
     onZoom?: (transform: MapTransform) => void;
     minZoom?: number;
     maxZoom?: number;
-    roadLayerRef?: RefObject<RoadLayerHandle | null>;
+    /** draw() / setCssTransform()을 구현하는 Canvas 레이어 refs. 순서대로 제어됩니다. */
+    canvasLayerRefs?: RefObject<CanvasLayerHandle | null>[];
 }
 
 // easeInOutQuad
@@ -29,25 +30,28 @@ export const useMapZoom = ({
     onZoom,
     minZoom = 1,
     maxZoom = 8,
-    roadLayerRef,
+    canvasLayerRefs = [],
 }: UseMapZoomProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const gRef = useRef<SVGGElement>(null);
-    const baseMapGRef = useRef<SVGGElement>(null);
 
     const [transform, setTransform] = useState<MapTransform>({ x: 0, y: 0, k: 1 });
     const zoomBehavior = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const animFrameRef = useRef<number | null>(null);
+    const lastDrawnTransformRef = useRef<MapTransform>({ x: 0, y: 0, k: 1 });
 
     // onZoom을 ref로 관리 → useEffect 의존성에서 제외해 zoom behavior 재생성 방지
     const onZoomRef = useRef(onZoom);
     useLayoutEffect(() => { onZoomRef.current = onZoom; }, [onZoom]);
 
+    // canvasLayerRefs를 ref로 관리 → useCallback 의존성에서 제외
+    const canvasLayerRefsRef = useRef(canvasLayerRefs);
+    useLayoutEffect(() => { canvasLayerRefsRef.current = canvasLayerRefs; }, [canvasLayerRefs]);
+
     /**
-     * DOM과 React 상태를 동시에 업데이트하는 단일 함수.
-     * zoom 이벤트 핸들러와 programmatic zoomTo 모두 여기서 처리.
+     * DOM CSS만 업데이트 (줌 이벤트 도중 호출, 애니메이션 중 60fps 보장)
      */
-    const applyTransform = useCallback((t: MapTransform) => {
+    const applyCssTransform = useCallback((t: MapTransform) => {
         if (!svgRef.current) return;
 
         // 1. d3 __zoom 직접 설정 → 이후 wheel/drag 이벤트의 기준점
@@ -55,19 +59,31 @@ export const useMapZoom = ({
 
         // 2. SVG <g> 레이어 transform 직접 업데이트
         if (gRef.current) {
-            gRef.current.setAttribute('transform', `translate(${t.x},${t.y}) scale(${t.k})`);
-        }
-        if (baseMapGRef.current) {
-            baseMapGRef.current.setAttribute('transform', `translate(${t.x},${t.y}) scale(${t.k})`);
+            gRef.current.style.transform = `translate(${t.x}px,${t.y}px) scale(${t.k})`;
         }
 
-        // 3. Road canvas 갱신
-        roadLayerRef?.current?.draw(t);
+        // 3. 모든 Canvas 레이어 CSS 스케일 갱신 (리렌더링 없음)
+        canvasLayerRefsRef.current.forEach(ref => {
+            ref.current?.setCssTransform(t, lastDrawnTransformRef.current);
+        });
+    }, []);
 
-        // 4. React 상태 & 콜백
+    /**
+     * 완전한 그리기 및 React State 업데이트 (줌 종료 시 호출)
+     */
+    const applyFullTransform = useCallback((t: MapTransform) => {
+        applyCssTransform(t);
+
+        lastDrawnTransformRef.current = t;
+
+        // 모든 Canvas 레이어 완전 재드로우
+        canvasLayerRefsRef.current.forEach(ref => {
+            ref.current?.draw(t);
+        });
+
         setTransform(t);
         onZoomRef.current?.(t);
-    }, []); // roadLayerRef는 ref이므로 deps 불필요
+    }, [applyCssTransform]);
 
     // zoom behavior 초기화 / 크기 변경 시 재생성
     useEffect(() => {
@@ -83,18 +99,15 @@ export const useMapZoom = ({
             .scaleExtent([minZoom, maxZoom])
             .extent([[0, 0], [width, height]])
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
-                // wheel/drag 이벤트는 d3가 __zoom을 이미 업데이트했으므로
-                // DOM 속성 설정 없이 g 요소와 React 상태만 동기화
                 const { x, y, k } = event.transform;
-                if (gRef.current) {
-                    gRef.current.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
-                }
-                if (baseMapGRef.current) {
-                    baseMapGRef.current.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
-                }
-                roadLayerRef?.current?.draw({ x, y, k });
+                applyCssTransform({ x, y, k });
+                // Canvas 레이어는 imperative draw()로만 제어되므로 rerender 없이
+                // React state만 업데이트 → 라벨이 매 프레임 정확한 위치로 추적됨
                 setTransform({ x, y, k });
-                onZoomRef.current?.({ x, y, k });
+            })
+            .on('end', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+                const { x, y, k } = event.transform;
+                applyFullTransform({ x, y, k });
             })
             .filter((event) => !event.ctrlKey && event.type !== 'dblclick');
 
@@ -104,7 +117,7 @@ export const useMapZoom = ({
         // 이전 transform 복원
         if (prevT && (prevT.x !== 0 || prevT.y !== 0 || prevT.k !== 1)) {
             const t = { x: prevT.x, y: prevT.y, k: prevT.k };
-            applyTransform(t);
+            applyFullTransform(t);
         }
 
         return () => {
@@ -119,7 +132,7 @@ export const useMapZoom = ({
     }, [width, height, minZoom, maxZoom]);
 
     /**
-     * 부드러운 줌 애니메이션. applyTransform으로 매 프레임 DOM + React 상태 동기화.
+     * 부드러운 줌 애니메이션. applyCssTransform으로 매 프레임 DOM 상태만 동기화하고 마지막에 State 반영.
      */
     const zoomTo = useCallback((t: MapTransform, duration = 750) => {
         if (!svgRef.current) return;
@@ -130,7 +143,7 @@ export const useMapZoom = ({
         }
 
         if (duration <= 0) {
-            applyTransform(t);
+            applyFullTransform(t);
             return;
         }
 
@@ -142,20 +155,25 @@ export const useMapZoom = ({
         const tick = (now: number) => {
             if (!svgRef.current) return;
             const progress = Math.min((now - startTime) / duration, 1);
-            applyTransform({
+
+            const currentFrameT = {
                 x: sx + (ex - sx) * ease(progress),
                 y: sy + (ey - sy) * ease(progress),
                 k: sk + (ek - sk) * ease(progress),
-            });
+            };
+
+            applyCssTransform(currentFrameT);
+
             if (progress < 1) {
                 animFrameRef.current = requestAnimationFrame(tick);
             } else {
                 animFrameRef.current = null;
+                applyFullTransform(currentFrameT);
             }
         };
 
         animFrameRef.current = requestAnimationFrame(tick);
-    }, [applyTransform]);
+    }, [applyCssTransform, applyFullTransform]);
 
-    return { svgRef, gRef, baseMapGRef, transform, zoomTo };
+    return { svgRef, gRef, transform, zoomTo };
 };
