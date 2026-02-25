@@ -1,8 +1,8 @@
 # 기술 참조 문서 (Technical Reference Document)
 
-**버전**: 3.0.0  
-**최종 업데이트**: 2026-02-14  
-**주요 변경사항**: D3 기반 직접 SVG 렌더링으로 마이그레이션
+**버전**: 4.0.0  
+**최종 업데이트**: 2026-02-25  
+**주요 변경사항**: Canvas 기반 맵 레이어 전환, 모듈화 아키텍처 정립
 
 ---
 
@@ -62,12 +62,16 @@ src/
 │   ├── useGameLogic.ts
 │   ├── useGeoData.ts
 │   ├── useMapScale.ts
-│   └── useMapStyles.ts
+│   ├── useMapZoom.ts   # D3 줌 동작 + Canvas/SVG 레이어 통합 제어
+│   └── useMapDimensions.ts
 ├── services/           # 비즈니스 로직 서비스
 │   └── MasteryStorage.ts # 숙련도 및 설정 영구 저장
+├── styles/             # 공통 스타일 상수
+│   └── themes.ts       # MAP_THEME_COLORS, ROAD_THEME_COLORS 중앙화
 └── types/              # 공통 타입 정의
     ├── game.ts
-    └── geo.ts
+    ├── geo.ts
+    └── canvas.ts       # CanvasLayerHandle 공유 인터페이스
 ```
 
 ### 2.2 디자인 패턴: 전략 패턴 (Strategy Pattern)
@@ -204,57 +208,88 @@ interface StageStrategy {
 
 ### 6.1 Interactive Map (`Map.tsx`)
 
-**v3.0 - D3 기반 직접 SVG 렌더링**
+**v4.0 - Canvas + SVG 혼합 레이어 아키텍처**
 
-#### 핵심 구현
+#### 레이어 구조
 
-```tsx
-// D3 Projection 설정
-const pathGenerator = useMemo(() => {
-  const projection = geoMercator()
-    .center([127.25, 37.55]) // 경기도 중심
-    .scale(8000)
-    .translate([400, 300]); // 800x600 viewBox 중심
+지도는 렌더링 특성에 따라 3개의 독립적인 레이어로 구성됩니다.
 
-  return geoPath().projection(projection);
-}, []);
+```
+┌─────────────── z-index 20: SVG 레이어 ────────────────────┐
+│  <svg ref={svgRef}>                                       │
+│    <g ref={gRef} style="CSS transform (translate+scale)"> │
+│      HighlightOverlay  ← 호버/피드백 오버레이 (SVG)        │
+│      InteractionLayer  ← 클릭/호버 이벤트 감지 (SVG)      │
+│      RegionLabel       ← 지역명 텍스트, font-size=14/k    │
+│    </g>                                                    │
+│  </svg>                                                    │
+├─────────────── z-index 1: Road Canvas ────────────────────┤
+│  RoadLayer (5-canvas)  ← 도로망 (Canvas, Imperative)      │
+├─────────────── z-index 0: BaseMap Canvas ─────────────────┤
+│  BaseMapLayerCanvas    ← 지형/행정구역 (Canvas, Imperative)│
+└───────────────────────────────────────────────────────────┘
+```
 
-// d3-zoom 설정
-useEffect(() => {
-  const zoomBehavior = zoom<SVGSVGElement, unknown>()
-    .scaleExtent([0.5, 8])
-    .on("zoom", (event) => {
-      const { x, y, k } = event.transform;
-      setTransform({ x, y, k });
-    });
+#### 줌 제어 (`useMapZoom`)
 
-  select(svgRef.current).call(zoomBehavior);
-}, [currentData]);
+`useMapZoom` 훅은 D3 zoom 이벤트를 구독하고, 연결된 모든 Canvas 레이어와 SVG 레이어를 통합 제어합니다.
 
-// SVG 렌더링
-<svg ref={svgRef} viewBox="0 0 800 600">
-  <g
-    transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
-  >
-    {features.map((feature) => (
-      <path
-        d={pathGenerator(feature)}
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={1 / transform.k} // 줌 레벨에 따라 조정
-      />
-    ))}
-  </g>
-</svg>;
+```typescript
+// 모든 Canvas 레이어를 배열로 주입 (확장 시 이 배열만 변경)
+const {
+  svgRef,
+  gRef,
+  transform: zoomTransform,
+  zoomTo,
+} = useMapZoom({
+  width,
+  height,
+  onZoom: handleZoom,
+  canvasLayerRefs: [baseMapLayerRef, roadLayerRef], // CanvasLayerHandle[]
+});
+
+// 줌 이벤트 처리 (2-Phase)
+// Phase 1 - 매 프레임 (60fps): CSS transform만 변경 (리렌더링 없음)
+//   → gRef: translate(x,y) scale(k)
+//   → Canvas: setCssTransform(current, lastDrawn) 상대적 이동
+//   → setTransform(k): 라벨 font-size=14/k 즉시 반영
+// Phase 2 - 줌 종료: Canvas 완전 재드로우 + React state 동기화
+//   → canvas.draw(t)
+//   → setTransform(t) (최종 확정)
+```
+
+#### CanvasLayerHandle 인터페이스 (`src/types/canvas.ts`)
+
+모든 Canvas 기반 레이어가 구현해야 하는 공통 인터페이스입니다. `useMapZoom`은 이 인터페이스만 의존하므로 레이어가 추가되어도 훅 내부 변경이 불필요합니다.
+
+```typescript
+export interface CanvasLayerHandle {
+  draw: (transform: { x: number; y: number; k: number }) => void;
+  setCssTransform: (
+    current: { x: number; y: number; k: number },
+    start: { x: number; y: number; k: number },
+  ) => void;
+}
+```
+
+#### 라벨 크기 고정 원리 (`RegionLabel.tsx`)
+
+라벨은 `<g ref={gRef}>` 내부에 있어 CSS `scale(k)`가 적용됩니다.  
+`font-size = 14 / k`로 scale을 정확히 상쇄하여 14px 시각 크기를 유지합니다.  
+`useMapZoom`이 zoom 이벤트마다 `setTransform`을 호출하므로 k값이 항상 최신 → 스냅 없음.
+
+```typescript
+const finalFontSize = TARGET_SCREEN_FONT_SIZE / transform.k; // 14/k
+// gRef의 CSS scale(k) × font-size(14/k) = 14px (항상 일정)
 ```
 
 #### 주요 기능
 
-- **커서 위치 기준 줌**: d3-zoom이 자동으로 마우스 커서 위치를 기준으로 줌 처리
+- **커서 위치 기준 줌**: d3-zoom 네이티브 기능
 - **드래그 팬**: 부드러운 지도 이동
-- **프로그래밍 방식 줌**: 버튼 클릭 시 transition 애니메이션
-- **LOD (Level of Detail)**: 줌 레벨에 따라 자동으로 Level 2 ↔ Level 3 전환
-- **MapScale**: 현재 축척 표시 (예: "10 km")
+- **프로그래밍 방식 줌 애니메이션** (`zoomTo`): easeInOutQuad 커스텀 애니메이션
+- **LOD (Level of Detail)**: 줌 레벨 1.5x 기준 시/군 ↔ 읍/면/동 자동 전환
+- **MapScale**: 현재 축척 표시 (예: "2 km")
 
 ### 6.2 LOD (Level of Detail) System
 
@@ -262,24 +297,12 @@ useEffect(() => {
 
 ```tsx
 const LOD_THRESHOLD = 1.5;
-const shouldShowLevel3 = transform.k >= LOD_THRESHOLD;
-const currentData = shouldShowLevel3 ? mapData : level2Data;
+const showTownGeometry = zoomTransform.k >= LOD_THRESHOLD;
+const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
 ```
 
-- **Zoom < 1.5x**: Level 2 (42개 시/군, 파란색 단색)
-- **Zoom ≥ 1.5x**: Level 3 (563개 읍/면/동, 컬러풀 해시 기반)
-
-**색상 로직**
-
-```tsx
-if (shouldShowLevel3) {
-  // Level 3: 해시 기반 컬러풀
-  fillColor = `hsl(${(Number(code) * 13759) % 360}, 70%, 60%)`;
-} else {
-  // Level 2: 단색
-  fillColor = "#e0e7ff";
-}
-```
+- **Zoom < 1.5x**: 시/군 단위 (적은 polygon 수, 빠른 렌더링)
+- **Zoom ≥ 1.5x**: 읍/면/동 단위 (상세 지형)
 
 ### 6.3 Quiz Panel (`QuizPanel.tsx`)
 
@@ -489,6 +512,73 @@ React의 Virtual DOM은 강력하지만, SVG 내의 수백/수천 개 `path` 요
 
 - **복잡도 증가**: React의 선언적 패턴을 일부 우회(Imperative Handle)해야 함.
 - **메모리 사용**: Canvas 인스턴스가 늘어남에 따라 메모리 사용량 소폭 증가 (허용 범위 내).
+
+### 8.4 AD-004: 기본 지도 레이어 Canvas 전환 (`BaseMapLayerCanvas`)
+
+**날짜**: 2026-02-25  
+**버전**: v4.0.0
+
+#### 문제
+
+SVG `<path>` 기반의 `BaseMapLayer`는 정답 처리 시 `answeredRegions` 상태가 변경될 때마다 수백 개의 SVG 요소를 전체 리렌더링해야 함. 또한 D3 zoom의 CSS transform과 React 렌더링 사이클 불일치로 지형 레이어가 순간적으로 위치 이탈하는 현상 발생.
+
+#### 결정
+
+`BaseMapLayer.tsx` (SVG) → `BaseMapLayerCanvas.tsx` (Canvas)로 교체.  
+`RoadLayer`와 동일한 **Imperative Canvas + Dual-Sync Architecture** 적용.
+
+#### 구현 상세
+
+- **`CANVAS_SCALE = 2.0`**: 화면 크기의 2배(각 방향 50% 여백) Canvas 사전 렌더링으로 빠른 팬/줌 버퍼 확보
+- **`draw(t)`**: 줌 종료 시 전체 재드로우 (좌표계 변환 포함)
+- **`setCssTransform(current, start)`**: 줌 도중 CSS transform으로 부드럽게 이동 (재드로우 없음)
+- **`initialTransform` prop**: 마운트/리사이즈 시 초기 드로우에 사용, 이후는 imperative handle 전용
+
+#### 트레이드오프
+
+- ✅ 줌 중 지형 부드러움 (CSS transform)
+- ✅ 정답 처리 시 Canvas 부분 갱신으로 SVG 리렌더링 비용 제거
+- ⚠️ Canvas API 직접 사용으로 복잡도 증가
+
+### 8.5 AD-005: 맵 렌더링 모듈화 아키텍처 정립
+
+**날짜**: 2026-02-25  
+**버전**: v4.0.0
+
+#### 배경
+
+`RoadLayer`, `BaseMapLayerCanvas` 등 Canvas 레이어가 증가하면서 `useMapZoom`이 각 레이어를 직접 named prop으로 참조하는 구조가 되어, 레이어 추가 시마다 훅 내부를 수정해야 하는 문제 발생.
+
+#### 결정 및 구현
+
+**1. `CanvasLayerHandle` 공유 인터페이스 (`src/types/canvas.ts`)**
+
+- `draw` / `setCssTransform` 두 메서드를 정의한 공통 계약
+- `RoadLayerHandle`, `BaseMapLayerHandle` 모두 이를 extend
+
+**2. `useMapZoom` 레이어 의존성 일반화**
+
+```typescript
+// 변경 전: named prop으로 레이어마다 추가 필요
+roadLayerRef?: RefObject<any>;
+baseMapLayerRef?: RefObject<any>;
+
+// 변경 후: 배열로 일반화, 훅 내부 변경 없이 무한 확장
+canvasLayerRefs?: RefObject<CanvasLayerHandle>[];
+// 내부: canvasLayerRefs.forEach(ref => ref.current?.draw(t))
+```
+
+**3. 테마 색상 중앙화 (`src/styles/themes.ts`)**
+
+- `MAP_THEME_COLORS`: Map.tsx의 로컬 상수 제거, 단일 소스로 이동
+- `ROAD_THEME_COLORS`: RoadLayer.tsx의 로컬 상수 제거, 단일 소스로 이동
+- 향후 테마 추가 시 이 파일만 수정
+
+**4. 줌 중 라벨 실시간 추적 개선**
+
+- `useMapZoom`의 `zoom` 이벤트 핸들러에서 `setTransform` 호출 추가
+- Canvas 레이어: imperative이므로 state 변경에도 재드로우 없음
+- SVG 라벨: `font-size=14/k`가 최신 k로 계산되어 스냅 없이 고정 크기 유지
 
 ---
 
