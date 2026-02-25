@@ -1,5 +1,6 @@
 import { useRef, useMemo, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
+import { getStageStrategy } from '../../game/stages/registry';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
 import { useMapContext } from '../../contexts/MapContext';
@@ -119,8 +120,10 @@ export const Map = () => {
   }, [cityData, features]);
 
   const isSingleRegion = filteredCityFeatures.length === 1;
-  const isStage1 = currentStage === 1;
-  const showTownGeometry = isStage1 || isSingleRegion || zoomTransform.k >= 1.5;
+  const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
+  const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
+  
+  const showTownGeometry = forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5;
   const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
 
@@ -195,12 +198,12 @@ export const Map = () => {
       return;
     }
     if (gameState !== 'PLAYING') return;
-    if (!isStage1 && !showTownGeometry) {
+    if (!forceShowTowns && !showTownGeometry) {
       log.game('[Map] Cannot answer: zoom in to see towns.');
       return;
     }
     checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-  }, [gameState, isStage1, showTownGeometry, startGame, checkAnswer]);
+  }, [gameState, forceShowTowns, showTownGeometry, startGame, checkAnswer]);
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
@@ -331,7 +334,7 @@ export const Map = () => {
         />
       )}
 
-      {!showTownGeometry && gameState === 'PLAYING' && !isStage1 && (
+      {!showTownGeometry && gameState === 'PLAYING' && !forceShowTowns && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
