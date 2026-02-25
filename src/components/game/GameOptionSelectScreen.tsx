@@ -32,7 +32,7 @@ export const GameOptionSelectScreen = () => {
             ========================================================= */}
             <div className="w-full flex items-center justify-between mb-8 px-4 pointer-events-auto flex-wrap gap-4">
                 {/* [MODULE 1-3] DIFFICULTY_TOGGLE (난이도 조절 스위치) */}
-                <div className="flex items-center space-x-3 bg-background/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full shadow-lg pointer-events-auto">
+                {/* <div className="flex items-center space-x-3 bg-background/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full shadow-lg pointer-events-auto">
                     <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>학습</span>
                     <button
                         onClick={() => handleDifficultyChange(difficulty === 'NORMAL' ? 'HARD' : 'NORMAL')}
@@ -49,7 +49,7 @@ export const GameOptionSelectScreen = () => {
                         />
                     </button>
                     <span className={`text-sm font-bold ${difficulty === 'HARD' ? 'text-red-500' : 'text-muted-foreground'}`}>테스트</span>
-                </div>
+                </div> */}
             </div>
 
             {/* =========================================================
@@ -67,7 +67,7 @@ export const GameOptionSelectScreen = () => {
                 [MODULE 3] FOOTER_INSTRUCTION_SECTION
                 - 하단 고정: 게임 플레이 방법을 안내하는 가이드라인 모달
             ========================================================= */}
-            <div className="w-full flex justify-center pb-8 pointer-events-auto">
+            {/* <div className="w-full flex justify-center pb-8 pointer-events-auto">
                 <div className="bg-black/60 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/10 text-center shadow-2xl">
                     <p className="text-lg font-bold text-white mb-1">
                         <span className="text-primary">지도</span>를 직접 클릭하여 훈련을 시작하세요.
@@ -76,7 +76,7 @@ export const GameOptionSelectScreen = () => {
                         * 마우스를 올리면 지역 정보를 확인할 수 있습니다.
                     </p>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };

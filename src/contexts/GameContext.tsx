@@ -1,4 +1,4 @@
-import React, { createContext, useContext, type ReactNode, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, type ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { MasteryStorage } from '../services/MasteryStorage';
 import { useGeoData } from '../hooks/useGeoData';
 import { useGameLogic } from '../hooks/useGameLogic';
@@ -111,7 +111,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [gameState, fullMapData, filteredMapData]);
 
   // Start Game with Chapter Code
-  const startGame = (chapterCode?: string) => {
+  const startGame = useCallback((chapterCode?: string) => {
+    if (gameState === 'PLAYING') return;
+
     if (!fullMapData) return;
 
     // Level 1: 도로 레이어 OFF (성능 최적화 + 게임 집중)
@@ -147,9 +149,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFilteredMapData(fullMapData);
       startGameLogic(fullMapData.features);
     }
-  };
+  }, [gameState, fullMapData, currentStage, setLayerVisibility, startGameLogic]);
 
-  const value = {
+  const value = useMemo(() => ({
     gameState,
     setGameState,
     currentQuestion,
@@ -171,7 +173,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     levelState,
     currentStage,
     selectedChapter
-  };
+  }), [
+    gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
+    fullMapData, cityData, filteredMapData, roadData, loading, progress, error, lastFeedback, answeredRegions,
+    levelState, currentStage, selectedChapter
+  ]);
 
   return (
     <GameContext.Provider value={value}>
