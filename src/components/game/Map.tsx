@@ -66,7 +66,7 @@ export const Map = () => {
     selectedChapter,
   } = useGame();
 
-  const { theme, showDebugInfo, viewOptions, difficulty } = useSettings();
+  const { theme, showDebugInfo, viewOptions } = useSettings();
   const colors = THEME_COLORS[theme];
   const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
@@ -280,7 +280,7 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
-          {gameState === 'PLAYING' && layerVisibility.labels && difficulty === 'NORMAL' && (
+          {gameState === 'PLAYING' && layerVisibility.labels && (
             <>
               {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
                 <RegionLabel

@@ -1,15 +1,21 @@
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useMapContext } from '../../contexts/MapContext';
 import { MasteryStorage } from '../../services/MasteryStorage';
 
 export const GameOptionSelectScreen = () => {
     const { cityData, loading } = useGame();
     const { difficulty, setDifficulty } = useSettings();
+    const { setLayerVisibility } = useMapContext();
 
     // 난이도 변경 핸들러 (MasteryStorage에도 저장)
     const handleDifficultyChange = (newDifficulty: 'NORMAL' | 'HARD') => {
         setDifficulty(newDifficulty);
         MasteryStorage.saveDifficulty(newDifficulty);
+        
+        // 난이도에 따라 라벨 가시성 변경 연동
+        // NORMAL: 라벨 보임 / HARD: 라벨 숨김 (Blind Mode)
+        setLayerVisibility({ labels: newDifficulty === 'NORMAL' });
     };
 
     if (loading || !cityData) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING MAP DATA...</div>;
@@ -24,7 +30,7 @@ export const GameOptionSelectScreen = () => {
             <div className="w-full flex items-center justify-between mb-8 px-4 pointer-events-auto flex-wrap gap-4">
                 {/* [MODULE 1-3] DIFFICULTY_TOGGLE (난이도 조절 스위치) */}
                 <div className="flex items-center space-x-3 bg-background/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full shadow-lg pointer-events-auto">
-                    <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>일반</span>
+                    <span className={`text-sm font-bold ${difficulty === 'NORMAL' ? 'text-green-500' : 'text-muted-foreground'}`}>학습</span>
                     <button
                         onClick={() => handleDifficultyChange(difficulty === 'NORMAL' ? 'HARD' : 'NORMAL')}
                         className={`
@@ -39,7 +45,7 @@ export const GameOptionSelectScreen = () => {
                             `}
                         />
                     </button>
-                    <span className={`text-sm font-bold ${difficulty === 'HARD' ? 'text-red-500' : 'text-muted-foreground'}`}>어려움</span>
+                    <span className={`text-sm font-bold ${difficulty === 'HARD' ? 'text-red-500' : 'text-muted-foreground'}`}>테스트</span>
                 </div>
             </div>
 
