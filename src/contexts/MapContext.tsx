@@ -48,7 +48,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         roadMotorway: true, // 고속도로
         roadTrunk: true,    // 국도
         roadPrimary: true,  // 주요도로
-        roadSecondary: false,// 보조도로 (Default OFF)
+        roadSecondary: true,// 보조도로 (Default OFF)
         roadOther: false     // 기타도로 (Default OFF)
     });
 

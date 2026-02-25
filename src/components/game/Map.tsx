@@ -303,7 +303,7 @@ export const Map = () => {
           width={scaleWidth}
           distance={scaleDistance}
           unit={scaleUnit}
-          zoom={transform.k}
+          zoom={zoomTransform.k}
           hoveredRegion={featuresToRender.find((f: any) => f.properties.code === hoveredRegion)?.properties.name}
           renderedCount={featuresToRender.length}
           showDebug={showDebugInfo}

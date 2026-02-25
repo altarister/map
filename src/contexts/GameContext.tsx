@@ -118,21 +118,21 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Level 1: 도로 레이어 OFF (성능 최적화 + 게임 집중)
     // Level 2+: 도로 레이어 ON (기본 설정 복원)
-    if (currentStage === 1) {
-      setLayerVisibility({
-        roadMotorway: false,
-        roadTrunk: false,
-        roadPrimary: false,
-        roadSecondary: false,
-        roadOther: false,
-      });
-    } else {
-      setLayerVisibility({
-        roadMotorway: true,
-        roadTrunk: true,
-        roadPrimary: true,
-      });
-    }
+    // if (currentStage === 1) {
+    //   setLayerVisibility({
+    //     roadMotorway: false,
+    //     roadTrunk: false,
+    //     roadPrimary: false,
+    //     roadSecondary: false,
+    //     roadOther: false,
+    //   });
+    // } else {
+    //   setLayerVisibility({
+    //     roadMotorway: true,
+    //     roadTrunk: true,
+    //     roadPrimary: true,
+    //   });
+    // }
 
     if (chapterCode) {
       setSelectedChapter(chapterCode);
