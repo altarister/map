@@ -280,7 +280,7 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
-          {gameState === 'PLAYING' && layerVisibility.labels && (
+          {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
             <>
               {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
                 <RegionLabel
@@ -291,7 +291,7 @@ export const Map = () => {
                   answeredRegions={answeredRegions}
                   lastFeedback={lastFeedback}
                   gameState={gameState}
-                  fontScale={1.5}
+                  fontScale={gameState === 'REGION_SELECT' ? 0.9 : 1.5}
                   baseArea={featureAreas[feature.properties.code] || 0}
                 />
               ))}

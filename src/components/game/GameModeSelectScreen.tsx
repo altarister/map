@@ -43,7 +43,7 @@ export const GameModeSelectScreen = () => {
             setUnlockedStages(unlockStatus);
         };
         checkUnlockStatus();
-    }, [stages]);
+    }, []); // 단계 배열(stages)은 컴포넌트 내부에서 파생되는 상수 성격이므로 의존성 배열에서 제외하여 무한 렌더링 방지
 
     return (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">

@@ -2,20 +2,23 @@ import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useMapContext } from '../../contexts/MapContext';
 import { MasteryStorage } from '../../services/MasteryStorage';
+import { useEffect } from 'react';
 
 export const GameOptionSelectScreen = () => {
     const { cityData, loading } = useGame();
     const { difficulty, setDifficulty } = useSettings();
     const { setLayerVisibility } = useMapContext();
 
+    // 컴포넌트 마운트 및 난이도 설정 초기화 시 레이어 가시성 동기화
+    // 학습(NORMAL): 라벨 켜짐, 테스트(HARD): 라벨 꺼짐
+    useEffect(() => {
+        setLayerVisibility({ labels: difficulty === 'NORMAL' });
+    }, [difficulty, setLayerVisibility]);
+
     // 난이도 변경 핸들러 (MasteryStorage에도 저장)
     const handleDifficultyChange = (newDifficulty: 'NORMAL' | 'HARD') => {
         setDifficulty(newDifficulty);
         MasteryStorage.saveDifficulty(newDifficulty);
-        
-        // 난이도에 따라 라벨 가시성 변경 연동
-        // NORMAL: 라벨 보임 / HARD: 라벨 숨김 (Blind Mode)
-        setLayerVisibility({ labels: newDifficulty === 'NORMAL' });
     };
 
     if (loading || !cityData) return <div className="flex items-center justify-center h-full text-primary font-mono animate-pulse">LOADING MAP DATA...</div>;
