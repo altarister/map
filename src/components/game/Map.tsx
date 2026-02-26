@@ -45,22 +45,90 @@ export const Map = () => {
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
-  const { ref: containerRef, width, height } = useMapDimensions<HTMLDivElement>();
+  const containerNodeRef = useRef<HTMLDivElement | null>(null);
+  const { ref: containerRefCallback, width, height } = useMapDimensions<HTMLDivElement>();
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    containerNodeRef.current = node;
+    containerRefCallback(node);
+  }, [containerRefCallback]);
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
   const baseMapLayerRef = useRef<BaseMapLayerHandle | null>(null);
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
   const handleZoom = useCallback((t: { x: number; y: number; k: number }) => {
     setTransform(t);
     handleMove({ zoom: t.k });
   }, [setTransform, handleMove]);
 
+  const handleMomentumStart = useCallback(() => {
+    // 관성 스크롤 중 Dim 처리를 제거하여 크로스페이드와의 투명도 충돌(깜빡임) 방지
+  }, []);
+
+  const handleCrossfadeStart = useCallback(() => {
+    // 줌 완료 직전 DOM 스냅샷 찍어 디졸브 오버레이 생성
+    const node = containerNodeRef.current;
+    if (!canvasWrapperRef.current || !node) return;
+
+    // --- 1. 새 캔버스 (진짜 캔버스) 투명도 0 -> 1.0 등장 설정 ---
+    const realWrapper = canvasWrapperRef.current;
+    realWrapper.style.transition = 'none';
+    realWrapper.style.opacity = '0';
+
+    // --- 2. 옛 캔버스 (스냅샷) 1.0 -> 0.0 페이드아웃 설정 ---
+    const clone = realWrapper.cloneNode(true) as HTMLDivElement;
+    clone.id = 'zoom-crossfade-snapshot';
+    
+    clone.style.position = 'absolute';
+    clone.style.inset = '0';
+    clone.style.pointerEvents = 'none';
+    clone.style.transition = 'none';
+    clone.style.opacity = '1';
+    clone.style.zIndex = '5';
+
+    // 캔버스 픽셀 복사
+    const originalCanvases = realWrapper.querySelectorAll('canvas');
+    const clonedCanvases = clone.querySelectorAll('canvas');
+    originalCanvases.forEach((origNode, index) => {
+        const orig = origNode as HTMLCanvasElement;
+        const dest = clonedCanvases[index] as HTMLCanvasElement;
+        if (orig && dest) {
+            dest.getContext('2d')?.drawImage(orig, 0, 0);
+        }
+    });
+
+    node.appendChild(clone);
+
+    // --- 3. React 리렌더링 및 브라우저 Paint를 확실하게 끝내기 위한 50ms 지연 부여 ---
+    setTimeout(() => {
+        if (!realWrapper || !clone) return;
+        
+        // 진짜 캔버스: 0 -> 1.0 (10000ms 동안 서서히 등장)
+        realWrapper.style.transition = 'opacity 200ms ease-out';
+        realWrapper.style.opacity = '1';
+        
+        // 옛 캔버스(clone): 1.0 -> 0.0 (10000ms 동안 서서히 사라짐)
+        clone.style.transition = 'opacity 200ms ease-out';
+        clone.style.opacity = '0';
+    }, 50);
+
+    // --- 4. 10050ms 애니메이션 완료 후 DOM 정리, 진짜 캔버스 스타일 청소 ---
+    setTimeout(() => {
+        if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+        if (realWrapper) realWrapper.style.transition = ''; // 찌꺼기 제거
+    }, 200);
+
+  }, []);
+
   const { svgRef, gRef, transform: zoomTransform, zoomTo } = useMapZoom({
     width,
     height,
     onZoom: handleZoom,
+    onMomentumStart: handleMomentumStart,
+    onCrossfadeStart: handleCrossfadeStart,
     canvasLayerRefs: [baseMapLayerRef, roadLayerRef],
   });
 
@@ -191,39 +259,47 @@ export const Map = () => {
       className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}
       onClick={closeIntelPopup}
     >
-      {/* Layer 1: Base Map (Canvas) */}
-      <BaseMapLayerCanvas
-        ref={baseMapLayerRef}
-        features={featuresToRender}
-        cityData={cityData}
-        projection={projection}
-        theme={theme}
-        themeColors={colors}
-        initialTransform={zoomTransform}
-        width={width}
-        height={height}
-        answeredRegions={answeredRegions}
-        lastFeedback={lastFeedback}
-        showBoundaries={layerVisibility.boundaries}
-      />
-
-      {/* Layer 2: Roads (Canvas) */}
-      {roadData && (
-        <RoadLayer
-          ref={roadLayerRef}
-          features={roadData.features}
+      {/* Canvas 레이어 래퍼: 스냅샷 복제를 위해 ref 할당 */}
+      <div
+        ref={canvasWrapperRef}
+        style={{
+          position: 'absolute', inset: 0,
+        }}
+      >
+        {/* Layer 1: Base Map (Canvas) */}
+        <BaseMapLayerCanvas
+          ref={baseMapLayerRef}
+          features={featuresToRender}
+          cityData={cityData}
           projection={projection}
-          transform={transform}
+          theme={theme}
+          themeColors={colors}
+          initialTransform={zoomTransform}
           width={width}
           height={height}
-          theme={theme}
-          visibleMotorway={layerVisibility.roadMotorway}
-          visibleTrunk={layerVisibility.roadTrunk}
-          visiblePrimary={layerVisibility.roadPrimary}
-          visibleSecondary={layerVisibility.roadSecondary}
-          visibleOther={layerVisibility.roadOther}
+          answeredRegions={answeredRegions}
+          lastFeedback={lastFeedback}
+          showBoundaries={layerVisibility.boundaries}
         />
-      )}
+
+        {/* Layer 2: Roads (Canvas) */}
+        {roadData && (
+          <RoadLayer
+            ref={roadLayerRef}
+            features={roadData.features}
+            projection={projection}
+            transform={transform}
+            width={width}
+            height={height}
+            theme={theme}
+            visibleMotorway={layerVisibility.roadMotorway}
+            visibleTrunk={layerVisibility.roadTrunk}
+            visiblePrimary={layerVisibility.roadPrimary}
+            visibleSecondary={layerVisibility.roadSecondary}
+            visibleOther={layerVisibility.roadOther}
+          />
+        )}
+      </div>
 
       {/* Layer 3: Interaction & Overlays */}
       <svg

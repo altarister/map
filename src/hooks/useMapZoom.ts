@@ -15,6 +15,10 @@ interface UseMapZoomProps {
     width: number;
     height: number;
     onZoom?: (transform: MapTransform) => void;
+    /** 사용자 손가락이 떼어지고 관성 스크롤이 시작될 때 호출 */
+    onMomentumStart?: () => void;
+    /** 줌 보간이 끝나고 해상도를 다시 그리기 직전에 호출 (DOM 스냅샷용) */
+    onCrossfadeStart?: () => void;
     minZoom?: number;
     maxZoom?: number;
     /** draw() / setCssTransform()을 구현하는 Canvas 레이어 refs. 순서대로 제어됩니다. */
@@ -28,6 +32,8 @@ export const useMapZoom = ({
     width,
     height,
     onZoom,
+    onMomentumStart,
+    onCrossfadeStart,
     minZoom = 1,
     maxZoom = 8,
     canvasLayerRefs = [],
@@ -44,9 +50,21 @@ export const useMapZoom = ({
     const onZoomRef = useRef(onZoom);
     useLayoutEffect(() => { onZoomRef.current = onZoom; }, [onZoom]);
 
+    // onMomentumStart, onCrossfadeStart를 ref로 관리
+    const onMomentumStartRef = useRef(onMomentumStart);
+    const onCrossfadeStartRef = useRef(onCrossfadeStart);
+    useLayoutEffect(() => { 
+        onMomentumStartRef.current = onMomentumStart; 
+        onCrossfadeStartRef.current = onCrossfadeStart;
+    }, [onMomentumStart, onCrossfadeStart]);
+
     // canvasLayerRefs를 ref로 관리 → useCallback 의존성에서 제외
     const canvasLayerRefsRef = useRef(canvasLayerRefs);
     useLayoutEffect(() => { canvasLayerRefsRef.current = canvasLayerRefs; }, [canvasLayerRefs]);
+
+    // 관성 감지용 디바운스 타이머 ref
+    const momentumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMomentumRef = useRef(false);
 
     /**
      * DOM CSS만 업데이트 (줌 이벤트 도중 호출, 애니메이션 중 60fps 보장)
@@ -104,9 +122,28 @@ export const useMapZoom = ({
                 // Canvas 레이어는 imperative draw()로만 제어되므로 rerender 없이
                 // React state만 업데이트 → 라벨이 매 프레임 정확한 위치로 추적됨
                 setTransform({ x, y, k });
+
+                // 관성 감지: wheel 이벤트가 80ms간 오지 않으면 손가락을 뗀 것으로 간주
+                if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
+                isMomentumRef.current = false;
+                momentumTimerRef.current = setTimeout(() => {
+                    isMomentumRef.current = true;
+                    onMomentumStartRef.current?.();
+                }, 80);
             })
             .on('end', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
                 const { x, y, k } = event.transform;
+
+                // 관성 타이머 정리
+                if (momentumTimerRef.current) {
+                    clearTimeout(momentumTimerRef.current);
+                    momentumTimerRef.current = null;
+                }
+                isMomentumRef.current = false;
+
+                // 해상도 렌더링 시작 전 스냅샷 크로스페이드 콜백 발동
+                onCrossfadeStartRef.current?.();
+
                 applyFullTransform({ x, y, k });
             })
             .filter((event) => !event.ctrlKey && event.type !== 'dblclick');
