@@ -53,6 +53,6 @@ export const ROAD_THEME_COLORS = {
         trunk:     { color: '#fcd34d', width: 0.3, minK: 1.0 },
         primary:   { color: '#fcd34d', width: 0.2, minK: 1.5 },
         secondary: { color: '#cbd5e1', width: 0.2, minK: 2.0 },
-        other:     { color: '#94a3b8', width: 0.2, minK: 2.0 },
+        other:     { color: '#fbbf24', width: 0.2, minK: 2.0 },
     },
 } as const;

@@ -9,7 +9,7 @@ import { ROAD_THEME_COLORS } from '../../styles/themes';
 interface RoadLayerProps {
     features: Feature[];
     projection: GeoProjection;
-    transform: { x: number, y: number, k: number };
+    initialTransform: { x: number, y: number, k: number };
     width: number;
     height: number;
     theme: string;
@@ -27,7 +27,7 @@ export interface RoadLayerHandle extends CanvasLayerHandle {
 
 
 export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
-    features, projection, transform, width, height, theme,
+    features, projection, initialTransform, width, height, theme,
     visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther
 }, ref) => {
     // Wrapper Ref for CSS Transform
@@ -240,13 +240,13 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 canvas.style.height = `${scaledHeight}px`;
             }
         });
-        drawCanvas(transform.x, transform.y, transform.k);
+        drawCanvas(initialTransform.x, initialTransform.y, initialTransform.k);
     }, [width, height, theme, visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther]); // Added visibility deps
 
-    // NOTE: We do NOT use useEffect(draw) for 'transform' prop anymore.
+    // NOTE: We do NOT use useEffect(draw) for 'initialTransform' prop anymore.
     // However, we MUST draw if the road data (tree) loads for the first time while transformed.
     useLayoutEffect(() => {
-        drawCanvas(transform.x, transform.y, transform.k);
+        drawCanvas(initialTransform.x, initialTransform.y, initialTransform.k);
     }, [tree, theme, visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther]); // Added visibility deps
 
     return (
@@ -260,7 +260,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 // Important: HW Acceleration hints
                 willChange: 'transform',
                 transition: 'none',
-                opacity: 1 // 사용자 요청에 따라 0.2 -> 1 강제 불투명
+                opacity: 1
             }}
         >
             {[

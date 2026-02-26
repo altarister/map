@@ -125,15 +125,18 @@ export const Map = () => {
     // 아래에 스냅샷(과거 지도)이 100% 버티고 있으므로, 빈 영역이나 고해상도 지도가 이질감 없이 슥 나타남!
     setTimeout(() => {
         if (!realWrapper) return;
-        realWrapper.style.transition = 'opacity 2000ms ease-out';
+        realWrapper.style.transition = 'opacity 400ms ease-out';
         realWrapper.style.opacity = '1';
+
+        clone.style.transition = 'opacity 800ms ease-out';
+        clone.style.opacity = '0';
     }, 50);
 
     // --- 4. 2050ms 애니메이션 완료 후 스냅샷 찌꺼기 제거 ---
     setTimeout(() => {
         if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
         if (realWrapper) realWrapper.style.transition = ''; // 찌꺼기 제거
-    }, 2050);
+    }, 4100);
 
   }, []);
 
@@ -289,7 +292,7 @@ export const Map = () => {
           projection={projection}
           theme={theme}
           themeColors={colors}
-          transform={zoomTransform}
+          initialTransform={zoomTransform}
           width={width}
           height={height}
           answeredRegions={answeredRegions}
@@ -303,7 +306,7 @@ export const Map = () => {
             ref={roadLayerRef}
             features={roadData.features}
             projection={projection}
-            transform={transform}
+            initialTransform={zoomTransform}
             width={width}
             height={height}
             theme={theme}

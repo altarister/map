@@ -10,7 +10,7 @@ interface BaseMapLayerCanvasProps {
     projection: GeoProjection;
     theme: string;
     themeColors: any;
-    transform: { x: number, y: number, k: number };
+    initialTransform: { x: number, y: number, k: number };
     width: number;
     height: number;
     answeredRegions: Set<string>;
@@ -29,7 +29,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
     projection,
     theme,
     themeColors,
-    transform, // Used only for initial draw
+    initialTransform, // Used only for initial draw
     width,
     height,
     answeredRegions,
@@ -100,14 +100,14 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b';
 
             cityData.features.forEach((feature: any) => {
-                // const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
+                const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
                 
                 ctx.beginPath();
                 canvasPath(feature as any);
                 ctx.lineWidth = contextStrokeWidth;
                 ctx.strokeStyle = contextStrokeColor;
-                // Alpha Dip 방지를 위해 모든 컴포넌트 강제 불투명 처리 (사용자 지시)
-                ctx.globalAlpha = 1; // 기존 로직: isActiveSector ? 1 : 0.15;
+                // emulate opacity with globalAlpha
+                ctx.globalAlpha = isActiveSector ? 1 : 0.15;
                 ctx.stroke();
                 ctx.globalAlpha = 1.0;
             });
@@ -144,7 +144,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             canvas.style.width = `${scaledWidth}px`;
             canvas.style.height = `${scaledHeight}px`;
         }
-        drawCanvas(transform.x, transform.y, transform.k);
+        drawCanvas(initialTransform.x, initialTransform.y, initialTransform.k);
     }, [width, height, theme, features, answeredRegions, lastFeedback, showBoundaries]);
 
     return (

@@ -121,7 +121,9 @@ export const useMapZoom = ({
         const newZoom = zoom<SVGSVGElement, unknown>()
             .scaleExtent([minZoom, maxZoom])
             .extent([[0, 0], [width, height]])
-            .on('start', () => {
+            .on('start', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+                // 단순 클릭과 실제 드래그/줌을 구분하기 위해 시작 시점의 transform 저장
+                (svgNode as any).__startTransform = { ...event.transform };
                 onZoomStartRef.current?.();
             })
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
@@ -149,8 +151,14 @@ export const useMapZoom = ({
                 }
                 isMomentumRef.current = false;
 
-                // 해상도 렌더링 시작 전 스냅샷 크로스페이드 콜백 발동
-                onCrossfadeStartRef.current?.();
+                const startT = (svgNode as any).__startTransform;
+                const didMove = !startT || startT.x !== x || startT.y !== y || startT.k !== k;
+
+                // 단순 클릭(0거리 이동)이 아니라 실제로 줌/팬이 발생한 경우에만 스냅샷 생성!
+                if (didMove) {
+                    // 해상도 렌더링 시작 전 스냅샷 크로스페이드 콜백 발동
+                    onCrossfadeStartRef.current?.();
+                }
 
                 applyFullTransform({ x, y, k });
             })
@@ -181,6 +189,10 @@ export const useMapZoom = ({
      */
     const zoomTo = useCallback((t: MapTransform, duration = 750) => {
         if (!svgRef.current) return;
+
+        // 프로그램 줌(지역 클릭 시 등)이 발동했을 때, 
+        // 휠 등 이전 조작으로 남아있던 얼어붙은 스냅샷(잔상)이 있다면 확실하게 날려버립니다.
+        onZoomStartRef.current?.();
 
         if (animFrameRef.current !== null) {
             cancelAnimationFrame(animFrameRef.current);

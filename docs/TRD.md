@@ -532,7 +532,7 @@ SVG `<path>` 기반의 `BaseMapLayer`는 정답 처리 시 `answeredRegions` 상
 - **`CANVAS_SCALE = 2.0`**: 화면 크기의 2배(각 방향 50% 여백) Canvas 사전 렌더링으로 빠른 팬/줌 버퍼 확보
 - **`draw(t)`**: 줌 종료 시 전체 재드로우 (좌표계 변환 포함)
 - **`setCssTransform(current, start)`**: 줌 도중 CSS transform으로 부드럽게 이동 (재드로우 없음)
-- **`transform` prop 지침**: `BaseMapLayerCanvas`, `RoadLayer` 등 모든 캔버스 레이어에서 뷰 제어용 prop 이름은 `transform`으로 강력히 통일합니다. 이 prop은 마운트/리사이즈 등 **초기 브라우저 Paint 렌더링(LayoutEffect) 시에만 읽기 전용으로 사용**해야 하며, 이후 줌-팬 이벤트 트래픽에 의한 React State 리렌더링 부하를 막기 위해 변경 감지(`useEffect`) 대상에서 제외되어야 합니다. (이후 업데이트는 전적으로 `draw()`, `setCssTransform()` 명령형 훅으로만 핸들링합니다.)
+- **`initialTransform` prop 지침 (강제 네이밍 규약)**: `BaseMapLayerCanvas`, `RoadLayer` 등 모든 캔버스 기반 지형 요소 컴포넌트에서 초기 뷰 제어용 prop 이름은 무조건 **`initialTransform`**으로 정립합니다. 컴포넌트 개발자에게 이 값이 "가변 반응형 상태가 아닌 첫 마운트/리사이즈의 1회성 초기 렌더링(LayoutEffect) 전용 값"임을 시각적으로 강제하기 위함입니다. 이를 `transform`으로 네이밍하면 무의식적인 `useEffect` 의존성 추가로 인해 60fps 줌-팬 이벤트 트래픽이 그대로 리렌더링 부하로 직결될 위험이 있습니다. (이후 화면 변화는 React State를 거치지 않고 전적으로 `draw()`, `setCssTransform()` 명령형 훅을 사용해 동기화합니다.)
 
 #### 트레이드오프
 
