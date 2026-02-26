@@ -59,6 +59,16 @@ export const Map = () => {
   // ── Zoom ────────────────────────────────────────────────────────────────────
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
 
+  const handleZoomStart = useCallback(() => {
+    // 사용자가 새로운 줌/팬 인터랙션을 시작할 때만, 떠 있던 배경판(클론) 일괄 삭제
+    document.querySelectorAll('#zoom-crossfade-snapshot').forEach(el => el.remove());
+    // 진행 중이던 페이드인 효과 즉시 중단 및 불투명 100% 복구 (반투명 줌 방지)
+    if (canvasWrapperRef.current) {
+        canvasWrapperRef.current.style.transition = 'none';
+        canvasWrapperRef.current.style.opacity = '1';
+    }
+  }, []);
+
   const handleZoom = useCallback((t: { x: number; y: number; k: number }) => {
     setTransform(t);
     handleMove({ zoom: t.k });
@@ -73,21 +83,20 @@ export const Map = () => {
     const node = containerNodeRef.current;
     if (!canvasWrapperRef.current || !node) return;
 
-    // --- 1. 새 캔버스 (진짜 캔버스) 투명도 0 -> 1.0 등장 설정 ---
+    // --- 1. 상위(clone) 스냅샷 생성 및 1.0 초기화 ---
     const realWrapper = canvasWrapperRef.current;
-    realWrapper.style.transition = 'none';
-    realWrapper.style.opacity = '0';
+    
+    // 연속 실행 방지: 혹시 남아있는 이전 스냅샷이 있다면 모두 제거 (화면 하얘짐 방지)
+    document.querySelectorAll('#zoom-crossfade-snapshot').forEach(el => el.remove());
 
-    // --- 2. 옛 캔버스 (스냅샷) 1.0 -> 0.0 페이드아웃 설정 ---
     const clone = realWrapper.cloneNode(true) as HTMLDivElement;
     clone.id = 'zoom-crossfade-snapshot';
-    
     clone.style.position = 'absolute';
     clone.style.inset = '0';
     clone.style.pointerEvents = 'none';
-    clone.style.transition = 'none';
-    clone.style.opacity = '1';
-    clone.style.zIndex = '5';
+    clone.style.transition = 'none'; // 스냅샷은 배경판 역할이므로 평생 트랜지션 없음
+    clone.style.opacity = '1'; // 100% 불투명한 든든한 배경판 역할
+    clone.style.zIndex = '0'; // UI(SVG) 레이어보다 낮게 설정
 
     // 캔버스 픽셀 복사
     const originalCanvases = realWrapper.querySelectorAll('canvas');
@@ -100,26 +109,31 @@ export const Map = () => {
         }
     });
 
-    node.appendChild(clone);
+    // 진짜 캔버스의 바로 앞(밑장)에 삽입하여, 진짜 캔버스가 그 위를 덮으며 나타날 수 있게 함
+    if (realWrapper.parentNode) {
+        realWrapper.parentNode.insertBefore(clone, realWrapper);
+    } else {
+        node.appendChild(clone);
+    }
 
-    // --- 3. React 리렌더링 및 브라우저 Paint를 확실하게 끝내기 위한 50ms 지연 부여 ---
+    // --- 2. 진짜 캔버스 (새 지도) 숨기기 ---
+    // 진짜 캔버스는 초기엔 투명 상태로 숨겨두고 뒤에서 새로 그려지게 냅둠
+    realWrapper.style.transition = 'none';
+    realWrapper.style.opacity = '0';
+
+    // --- 3. 50ms 후, 진짜 캔버스만 서서히 불투명해지도록 (Fade-In) ---
+    // 아래에 스냅샷(과거 지도)이 100% 버티고 있으므로, 빈 영역이나 고해상도 지도가 이질감 없이 슥 나타남!
     setTimeout(() => {
-        if (!realWrapper || !clone) return;
-        
-        // 진짜 캔버스: 0 -> 1.0 (10000ms 동안 서서히 등장)
-        realWrapper.style.transition = 'opacity 200ms ease-out';
+        if (!realWrapper) return;
+        realWrapper.style.transition = 'opacity 2000ms ease-out';
         realWrapper.style.opacity = '1';
-        
-        // 옛 캔버스(clone): 1.0 -> 0.0 (10000ms 동안 서서히 사라짐)
-        clone.style.transition = 'opacity 200ms ease-out';
-        clone.style.opacity = '0';
     }, 50);
 
-    // --- 4. 10050ms 애니메이션 완료 후 DOM 정리, 진짜 캔버스 스타일 청소 ---
+    // --- 4. 2050ms 애니메이션 완료 후 스냅샷 찌꺼기 제거 ---
     setTimeout(() => {
         if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
         if (realWrapper) realWrapper.style.transition = ''; // 찌꺼기 제거
-    }, 200);
+    }, 2050);
 
   }, []);
 
@@ -127,6 +141,7 @@ export const Map = () => {
     width,
     height,
     onZoom: handleZoom,
+    onZoomStart: handleZoomStart,
     onMomentumStart: handleMomentumStart,
     onCrossfadeStart: handleCrossfadeStart,
     canvasLayerRefs: [baseMapLayerRef, roadLayerRef],
@@ -274,7 +289,7 @@ export const Map = () => {
           projection={projection}
           theme={theme}
           themeColors={colors}
-          initialTransform={zoomTransform}
+          transform={zoomTransform}
           width={width}
           height={height}
           answeredRegions={answeredRegions}

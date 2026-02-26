@@ -260,7 +260,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 // Important: HW Acceleration hints
                 willChange: 'transform',
                 transition: 'none',
-                opacity: 0.2
+                opacity: 1 // 사용자 요청에 따라 0.2 -> 1 강제 불투명
             }}
         >
             {[

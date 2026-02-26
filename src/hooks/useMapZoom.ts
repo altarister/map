@@ -15,6 +15,7 @@ interface UseMapZoomProps {
     width: number;
     height: number;
     onZoom?: (transform: MapTransform) => void;
+    onZoomStart?: () => void;
     /** 사용자 손가락이 떼어지고 관성 스크롤이 시작될 때 호출 */
     onMomentumStart?: () => void;
     /** 줌 보간이 끝나고 해상도를 다시 그리기 직전에 호출 (DOM 스냅샷용) */
@@ -32,6 +33,7 @@ export const useMapZoom = ({
     width,
     height,
     onZoom,
+    onZoomStart,
     onMomentumStart,
     onCrossfadeStart,
     minZoom = 1,
@@ -46,9 +48,12 @@ export const useMapZoom = ({
     const animFrameRef = useRef<number | null>(null);
     const lastDrawnTransformRef = useRef<MapTransform>({ x: 0, y: 0, k: 1 });
 
-    // onZoom을 ref로 관리 → useEffect 의존성에서 제외해 zoom behavior 재생성 방지
+    // onZoom, onZoomStart을 ref로 관리 → useEffect 의존성에서 제외해 zoom behavior 재생성 방지
     const onZoomRef = useRef(onZoom);
     useLayoutEffect(() => { onZoomRef.current = onZoom; }, [onZoom]);
+
+    const onZoomStartRef = useRef(onZoomStart);
+    useLayoutEffect(() => { onZoomStartRef.current = onZoomStart; }, [onZoomStart]);
 
     // onMomentumStart, onCrossfadeStart를 ref로 관리
     const onMomentumStartRef = useRef(onMomentumStart);
@@ -116,6 +121,9 @@ export const useMapZoom = ({
         const newZoom = zoom<SVGSVGElement, unknown>()
             .scaleExtent([minZoom, maxZoom])
             .extent([[0, 0], [width, height]])
+            .on('start', () => {
+                onZoomStartRef.current?.();
+            })
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
                 const { x, y, k } = event.transform;
                 applyCssTransform({ x, y, k });
