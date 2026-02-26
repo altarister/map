@@ -9,11 +9,11 @@ import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
-import { HighlightOverlay } from './HighlightOverlay';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
+import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapZoom } from '../../hooks/useMapZoom';
 import { log } from '../../lib/debug';
 import { IntelPopup } from './IntelPopup';
@@ -41,7 +41,7 @@ export const Map = () => {
 
   const { theme, showDebugInfo, viewOptions } = useSettings();
   const colors = MAP_THEME_COLORS[theme];
-  const { transform, setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
+  const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
@@ -165,6 +165,11 @@ export const Map = () => {
 
   // ── Derived Map Data ────────────────────────────────────────────────────────
   const features = mapData?.features || [];
+
+  const { getFillColor, getStrokeColor } = useMapStyles({
+    lastFeedback,
+    answeredRegions,
+  });
 
   const featureAreas = useMemo(() => {
     const areas: Record<string, number> = {};
@@ -327,16 +332,8 @@ export const Map = () => {
         className="absolute inset-0"
         style={{ zIndex: 20 }}
       >
-        {/* HighlightOverlay + InteractionLayer: gRef 내부 (CSS zoom transform 적용됨) */}
+        {/* InteractionLayer: gRef 내부 (CSS zoom transform 적용됨) */}
         <g ref={gRef} style={{ willChange: 'transform' }}>
-          <HighlightOverlay
-            features={featuresToRender}
-            pathGenerator={pathGenerator}
-            hoveredRegion={gameState === 'PLAYING' ? hoveredRegion : null}
-            themeColors={colors}
-            transform={transform}
-            lastFeedback={lastFeedback}
-          />
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -348,6 +345,32 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
+          {/* Visual Overlays: Hover, Selection, Feedback */}
+          <g style={{ pointerEvents: 'none' }}>
+            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
+              <path
+                d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any) || ''}
+                fill={getFillColor(hoveredRegion, true)}
+                fillOpacity={0.8}
+                stroke={getStrokeColor(hoveredRegion, true)}
+                strokeWidth={1.5 / zoomTransform.k}
+                className="transition-all duration-200"
+                style={{ mixBlendMode: 'multiply' }}
+              />
+            )}
+
+            {/* 정답/오답 피드백 오버레이 */}
+            {lastFeedback && (lastFeedback as any).feature && (
+              <path
+                d={pathGenerator((lastFeedback as any).feature) || ''}
+                fill={getFillColor(lastFeedback.regionCode, false)}
+                fillOpacity={0.7}
+                stroke={getStrokeColor(lastFeedback.regionCode, false)}
+                strokeWidth={2 / zoomTransform.k}
+                className="transition-all duration-300"
+              />
+            )}
+          </g>
           {/* 라벨: gRef 내부. CSS scale(k)로 위치 보정, font-size=14/k로 크기 상쇄.
               setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
           {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (

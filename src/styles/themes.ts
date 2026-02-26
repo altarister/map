@@ -1,6 +1,6 @@
 /**
  * 중앙화된 맵 테마 색상 정의.
- * Map.tsx, BaseMapLayerCanvas, RoadLayer, HighlightOverlay 등
+ * Map.tsx, BaseMapLayerCanvas, RoadLayer, 
  * 모든 렌더링 레이어가 이 파일을 단일 소스로 참조합니다.
  */
 
