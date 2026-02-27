@@ -20,3 +20,7 @@ export interface RegionProperties {
 
 export type RegionFeature = Feature<Geometry, RegionProperties>;
 export type RegionCollection = FeatureCollection<Geometry, RegionProperties>;
+
+// Road data (TopoJSON에서 변환된 GeoJSON — 별도 properties 없음)
+export type RoadFeature = Feature<Geometry>;
+export type RoadCollection = FeatureCollection<Geometry>;

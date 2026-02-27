@@ -1,8 +1,7 @@
-import React from 'react';
-import { Line, Marker } from '@vnedyalk0v/react19-simple-maps';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Marker } from '@vnedyalk0v/react19-simple-maps';
 import { geoCentroid } from 'd3-geo';
-import type { StageStrategy, StageContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
-import type { RegionFeature } from '../../../types/geo';
+import type { StageStrategy } from '../../core/types';
 import { generateStage2Question } from './generator';
 import { validateStage2Answer } from './validator';
 
@@ -13,7 +12,7 @@ interface Stage2State {
 export const Stage2Strategy: StageStrategy = {
   config: {
     id: 2,
-    name: "2단계: 종합 평가",
+    name: "2단계: 두지역 찾기",
     shortDescription: "경기도 전체를 대상으로 무작위 훈련을 진행합니다.",
     description: "상차지와 하차지를 순서대로 선택하여 이동 경로를 확인하세요.",
     badge: "L O C K E D",
@@ -22,11 +21,11 @@ export const Stage2Strategy: StageStrategy = {
     }
   },
 
-  generateQuestion: (ctx: StageContext) => {
+  generateQuestion: (ctx) => {
     return generateStage2Question(ctx);
   },
 
-  validateAnswer: (question: GameQuestion, input: UserInput, state: any) => {
+  validateAnswer: (question, input, state) => {
     if (question.type !== 'LOCATE_PAIR') {
       throw new Error('Stage 2 strategy received invalid question type');
     }
@@ -40,7 +39,7 @@ export const Stage2Strategy: StageStrategy = {
     return result;
   },
 
-  renderInstruction: (question: GameQuestion, step?: number) => { 
+  renderInstruction: (question) => { 
     if (question.type !== 'LOCATE_PAIR') return null;
     
     return (
@@ -54,7 +53,7 @@ export const Stage2Strategy: StageStrategy = {
     );
   },
 
-  renderMapOverlay: (question: GameQuestion, mapData: RegionFeature[], state: any) => {
+  renderMapOverlay: (question, mapData, state) => {
     if (question.type !== 'LOCATE_PAIR') return null;
     
     const currentState = state as Stage2State;
@@ -62,17 +61,12 @@ export const Stage2Strategy: StageStrategy = {
     // 2. End 지점까지 찾았으면(혹은 FIND_END 상태인데 Start를 보여줘야 함)
     
     const startCode = question.start.code;
-    const endCode = question.end.code;
 
     // Feature 찾기
     const startFeature = mapData.find(f => f.properties.code === startCode);
-    const endFeature = mapData.find(f => f.properties.code === endCode);
-    
     if (!startFeature) return null;
 
     const startCentroid = geoCentroid(startFeature);
-    const endCentroid = endFeature ? geoCentroid(endFeature) : null;
-
     const overlays = [];
 
     // 상차지 마커 (항상 표시하거나, 찾은 후에 표시?)
@@ -80,8 +74,8 @@ export const Stage2Strategy: StageStrategy = {
     // 상차지를 찍은 후(FIND_END)에는 상차지 위치에 마커가 있어야 헷갈리지 않음.
     if (currentState?.step === 'FIND_END') {
        // 상차지 마커
+        
        overlays.push(
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
          <Marker key="start-marker" coordinates={startCentroid as any}>
            <circle r={4} fill="#2563eb" stroke="#fff" strokeWidth={2} />
            <text textAnchor="middle" y={-10} style={{ fontSize: '10px', fill: '#2563eb', fontWeight: 'bold'}}>상차지</text>

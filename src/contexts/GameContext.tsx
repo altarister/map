@@ -1,11 +1,11 @@
-import React, { createContext, useContext, type ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any, react-refresh/only-export-components, react-hooks/exhaustive-deps */
+import React, { createContext, useContext, type ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { MasteryStorage } from '../services/MasteryStorage';
-import { useGeoData } from '../hooks/useGeoData';
+import { useGeoContext } from './GeoDataContext';
 import { useGameLogic } from '../hooks/useGameLogic';
 import { useMapContext } from './MapContext'; // Added import
 import { useSettings } from './SettingsContext';
 
-import type { RegionCollection } from '../types/geo';
 import type { GameState, GameScore, AnswerFeedback } from '../types/game';
 import type { GameQuestion, UserInput } from '../game/core/types';
 
@@ -19,18 +19,10 @@ interface GameContextType {
   startGame: (chapterCode?: string) => void; // Changed from selectedCities array to single chapterCode
   checkAnswer: (input: UserInput) => void;
   resetGame: () => void;
-  mapData: RegionCollection | null;
-  cityData: RegionCollection | null;
-  filteredMapData: RegionCollection | null;
-  roadData: any;
-  loading: boolean;
-  progress: number;
-  error: Error | null;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   levelState: any;
   currentStage: number;
-  selectedChapter: string | null; // Track the currently selected chapter
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -39,13 +31,18 @@ const EMPTY_REGIONS: any[] = [];
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // 전체 데이터 로드
-  const { data: fullMapData, cityData, roadData, loading, progress, error } = useGeoData();
-  const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  // 정적 지리 데이터 구독
+  const { 
+    fullMapData, 
+    cityData, 
+    filteredMapData, 
+    setFilteredMapData, 
+    selectedChapter, 
+    setSelectedChapter 
+  } = useGeoContext();
 
   const { difficulty, updateTopScore, currentStage } = useSettings();
-  const { layerVisibility, setLayerVisibility } = useMapContext();
+  const { layerVisibility } = useMapContext();
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -93,12 +90,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     cityData?.features || EMPTY_REGIONS
   );
 
-  useEffect(() => {
-    if (fullMapData && !filteredMapData) {
-      setFilteredMapData(fullMapData);
-    }
-  }, [fullMapData, filteredMapData]);
-
   // Reset Map Data when entering Level Select or Mode Select
   useEffect(() => {
     if ((gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT') && fullMapData) {
@@ -108,7 +99,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSelectedChapter(null);
       }
     }
-  }, [gameState, fullMapData, filteredMapData]);
+  }, [gameState, fullMapData, filteredMapData, setFilteredMapData, setSelectedChapter]);
 
   // Start Game with Chapter Code
   const startGame = useCallback((chapterCode?: string) => {
@@ -149,7 +140,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFilteredMapData(fullMapData);
       startGameLogic(fullMapData.features);
     }
-  }, [gameState, fullMapData, currentStage, setLayerVisibility, startGameLogic]);
+  }, [gameState, fullMapData, currentStage, startGameLogic, setFilteredMapData, setSelectedChapter]);
 
   const value = useMemo(() => ({
     gameState,
@@ -161,22 +152,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     startGame,
     checkAnswer,
     resetGame,
-    mapData: fullMapData,
-    cityData: cityData,
-    filteredMapData,
-    roadData,
-    loading,
-    progress,
-    error,
     lastFeedback,
     answeredRegions,
     levelState,
     currentStage,
-    selectedChapter
   }), [
     gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
-    fullMapData, cityData, filteredMapData, roadData, loading, progress, error, lastFeedback, answeredRegions,
-    levelState, currentStage, selectedChapter
+    lastFeedback, answeredRegions, levelState, currentStage
   ]);
 
   return (

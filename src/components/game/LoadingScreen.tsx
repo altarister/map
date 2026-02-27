@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
 interface LoadingScreenProps {
@@ -7,7 +7,7 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onStart }) => {
-    const { progress } = useGame();
+    const { progress } = useGeoContext();
     const { theme } = useSettings();
     const [isReady, setIsReady] = useState(false);
 

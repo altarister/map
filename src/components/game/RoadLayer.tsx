@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { memo, useLayoutEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { geoPath } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';

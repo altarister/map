@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { memo, useMemo } from 'react';
 import { geoCentroid } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';

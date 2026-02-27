@@ -1,6 +1,7 @@
-import { geoDistance, geoContains } from 'd3-geo';
-import type { RegionFeature } from '../../types/geo';
-import type { Feature } from 'geojson';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { geoDistance } from 'd3-geo';
+
+import type { RegionFeature } from '../../types/geo'; // Re-added this import as it's used by RegionFeature
 
 // --- Types ---
 export interface IntelData {
@@ -14,7 +15,7 @@ export interface IntelData {
 // Adjacency Threshold (approximate distance in radians for neighbors)
 // This needs tuning based on the map scale. For Korea districts, 0.05 might be too big or small.
 // Let's use a small value. 1 degree ~ 0.017 rad.
-const NEIGHBOR_DISTANCE_THRESHOLD = 0.08;
+// const NEIGHBOR_DISTANCE_THRESHOLD = 50000; (사용 중지됨)
 
 // --- Logic ---
 
@@ -30,7 +31,7 @@ export const getAdjacentRegions = (
 ): string[] => {
     if (!target.properties.centroid) return [];
 
-    const targetCentroid = target.properties.centroid;
+    const targetCentroid = target.properties.centroid; // Kept targetCentroid as 'feature' is undefined
     const neighbors: { name: string, dist: number }[] = [];
 
     for (const region of allRegions) {

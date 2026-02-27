@@ -3,6 +3,13 @@ import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { ZoomBehavior, D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
 
+// D3가 내부적으로 주입하는 숨겨진 속성을 위한 타입 확장
+interface ZoomableSVGElement extends SVGSVGElement {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  __zoom?: any;
+  __startTransform?: { x: number; y: number; k: number };
+}
+
 export interface MapTransform {
     x: number;
     y: number;
@@ -82,8 +89,9 @@ export const useMapZoom = ({
         if (!svgRef.current) return;
 
         // 1. d3 __zoom 직접 설정 → 이후 wheel/drag 이벤트의 기준점
-        (svgRef.current as any).__zoom = zoomIdentity.translate(t.x, t.y).scale(t.k);
-
+        if (svgRef.current) {
+            (svgRef.current as ZoomableSVGElement).__zoom = zoomIdentity.translate(t.x, t.y).scale(t.k);
+        }
         // 2. SVG <g> 레이어 transform 직접 업데이트
         if (gRef.current) {
             gRef.current.style.transform = `translate(${t.x}px,${t.y}px) scale(${t.k})`;
@@ -123,7 +131,9 @@ export const useMapZoom = ({
             .extent([[0, 0], [width, height]])
             .on('start', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
                 // 단순 클릭과 실제 드래그/줌을 구분하기 위해 시작 시점의 transform 저장
-                (svgNode as any).__startTransform = { ...event.transform };
+                if (svgNode) {
+                    (svgNode as ZoomableSVGElement).__startTransform = { ...event.transform };
+                }
                 onZoomStartRef.current?.();
             })
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
@@ -151,7 +161,7 @@ export const useMapZoom = ({
                 }
                 isMomentumRef.current = false;
 
-                const startT = (svgNode as any).__startTransform;
+                const startT = (svgNode as ZoomableSVGElement).__startTransform;
                 const didMove = !startT || startT.x !== x || startT.y !== y || startT.k !== k;
 
                 // 단순 클릭(0거리 이동)이 아니라 실제로 줌/팬이 발생한 경우에만 스냅샷 생성!

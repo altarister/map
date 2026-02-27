@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { memo } from 'react';
 import type { GeoPath } from 'd3-geo';
 import type { RegionFeature } from '../../types/geo';

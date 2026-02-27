@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { RegionCollection } from '../types/geo';
+import type { RegionCollection, RoadCollection, RegionFeature } from '../types/geo';
 import { log } from '../lib/debug';
 import * as topojson from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
@@ -12,7 +12,7 @@ const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
   const [cityData, setCityData] = useState<RegionCollection | null>(null);
-  const [roadData, setRoadData] = useState<any>(null); // New: Road Data
+  const [roadData, setRoadData] = useState<RoadCollection | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0); // New: Loading Progress (0-100)
@@ -47,17 +47,17 @@ export const useGeoData = () => {
 
         const targetPrefix = '31'; // TODO: Make configurable?
 
-        const filteredCity = level2.features.filter((f: any) =>
+        const filteredCity = level2.features.filter((f: RegionFeature) =>
           f.properties.code.startsWith(targetPrefix)
         );
 
-        const filteredLevel3 = level3.features.filter((f: any) =>
+        const filteredLevel3 = level3.features.filter((f: RegionFeature) =>
           f.properties.code.startsWith(targetPrefix)
         );
 
         // Enrichment Logic
         const parentMap = new Map<string, string>();
-        filteredCity.forEach((f: any) => {
+        filteredCity.forEach((f: RegionFeature) => {
           if (f.properties.code && f.properties.name) {
             parentMap.set(f.properties.code, f.properties.name);
           }
@@ -65,7 +65,7 @@ export const useGeoData = () => {
           f.properties.centroid = geoCentroid(f);
         });
 
-        filteredLevel3.forEach((f: any) => {
+        filteredLevel3.forEach((f: RegionFeature) => {
           const code = f.properties.code;
           if (code && code.length >= 5) {
             const parentCode = code.substring(0, 5);
@@ -87,7 +87,7 @@ export const useGeoData = () => {
         const responseRoads = await fetchRoads;
         if (responseRoads.ok) {
           const topology = await responseRoads.json();
-          const geojson = topojson.feature(topology, topology.objects.roads) as any;
+          const geojson = topojson.feature(topology, topology.objects.roads) as unknown as RoadCollection;
           log.data(`[useGeoData] Loaded Roads: ${geojson.features.length} segments`);
           setRoadData(geojson);
         } else {

@@ -1,8 +1,8 @@
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
+import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
-// Changed: RegionSelectScreen -> GameOptionSelectScreen
 // Changed: RegionSelectScreen -> GameOptionSelectScreen
 import { GameOptionSelectScreen } from './components/game/GameOptionSelectScreen';
 import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
@@ -73,14 +73,16 @@ function GameContent() {
 function App() {
   return (
     <SettingsProvider>
-      <MapProvider>
-        <GameProvider>
-          <div className="w-full h-screen bg-slate-100 flex flex-col">
-            <TopBar />
-            <GameContent />
-          </div>
-        </GameProvider>
-      </MapProvider>
+      <GeoDataProvider>
+        <MapProvider>
+          <GameProvider>
+            <div className="w-full h-screen bg-slate-100 flex flex-col">
+              <TopBar />
+              <GameContent />
+            </div>
+          </GameProvider>
+        </MapProvider>
+      </GeoDataProvider>
     </SettingsProvider>
   );
 }

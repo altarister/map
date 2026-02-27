@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-refresh/only-export-components */
 import React, { useState } from 'react';
 import { Line, Marker } from '@vnedyalk0v/react19-simple-maps';
 import type { StageStrategy, StageContext, GameQuestion, UserInput } from '../../core/types';
@@ -46,49 +47,46 @@ export const Stage3Strategy: StageStrategy = {
 
   renderMapOverlay: (question: GameQuestion) => {
     if (question.type !== 'ESTIMATE_DIST') return null;
-    
-    // Start와 End 마커, 그리고 점선 연결
-    // 좌표는 Question에 이미 있음 (generator에서 계산함)
-    // 하지만 Question type definition에 coordinate가 있는지 확인 필요 via types.ts
-    // generator.ts에서 coordinate를 넣었지만, types.ts의 EstimateDistanceQuestion에는 coordinate가 정의되어 있어야 함.
-    // (이전 단계에서 types.ts 수정했음)
-
-    const startCoord = question.start.coordinate;
-    const endCoord = question.end.coordinate;
-
-    if (!startCoord || !endCoord) return null;
-
-    return (
-      <>
-        {/* 상차지(출발) 마커 */}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <Marker coordinates={startCoord as any}>
-          <circle r={4} fill="#2563eb" stroke="#fff" strokeWidth={2} />
-        </Marker>
-
-        {/* 하차지(도착) 마커 */}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <Marker coordinates={endCoord as any}>
-          <circle r={4} fill="#dc2626" stroke="#fff" strokeWidth={2} />
-        </Marker>
-
-        {/* 연결 선 */}
-        <Line
-          from={startCoord as any}
-          to={endCoord as any}
-          stroke="#94a3b8"
-          strokeWidth={2}
-          strokeDasharray="4 4" // 점선
-        />
-      </>
-    );
+    return <Stage3Overlay currentQuestion={question} />;
   },
 
   renderControlPanel: (question: GameQuestion, onSubmit: (input: UserInput) => void) => {
-     if (question.type !== 'ESTIMATE_DIST') return null;
-
-     return <DistanceInputForm onSubmit={onSubmit} />;
+    if (question.type !== 'ESTIMATE_DIST') return null;
+    return <DistanceInputForm onSubmit={onSubmit} />;
   }
+};
+
+const Stage3Overlay: React.FC<{ currentQuestion: GameQuestion }> = ({ currentQuestion }) => {
+
+  const startCoord = currentQuestion.type === 'ESTIMATE_DIST' ? currentQuestion.start.coordinate : null;
+  const endCoord = currentQuestion.type === 'ESTIMATE_DIST' ? currentQuestion.end.coordinate : null;
+
+  if (!startCoord || !endCoord) return null;
+
+  return (
+    <>
+      {/* 상차지(출발) 마커 */}
+      { }
+      <Marker coordinates={startCoord as any}>
+        <circle r={4} fill="#2563eb" stroke="#fff" strokeWidth={2} />
+      </Marker>
+
+      {/* 하차지(도착) 마커 */}
+      { }
+      <Marker coordinates={endCoord as any}>
+        <circle r={4} fill="#dc2626" stroke="#fff" strokeWidth={2} />
+      </Marker>
+
+      {/* 연결 선 */}
+      <Line
+        from={startCoord as any}
+        to={endCoord as any}
+        stroke="#94a3b8"
+        strokeWidth={2}
+        strokeDasharray="4 4" // 점선
+      />
+    </>
+  );
 };
 
 const DistanceInputForm = ({ onSubmit }: { onSubmit: (input: UserInput) => void }) => {

@@ -1,4 +1,4 @@
-import type { StageStrategy, StageContext, GameQuestion, UserInput, ValidationResult } from '../../core/types';
+import type { StageStrategy, GameQuestion, StageContext, UserInput } from '../../core/types';
 import { generateStage1Question } from './generator';
 import { validateStage1Answer } from './validator';
 

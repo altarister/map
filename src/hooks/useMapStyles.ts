@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { GameState, AnswerFeedback } from '../types/game';
+import type { AnswerFeedback } from '../types/game';
 
 const CITY_COLORS = [
   '#fee2e2', // Red-100

@@ -4,24 +4,24 @@
 export const DEBUG = import.meta.env.DEV;
 
 export const log = {
-    info: (...args: any[]) => {
+    info: (...args: unknown[]) => {
         if (DEBUG) console.log(...args);
     },
-    warn: (...args: any[]) => {
+    warn: (...args: unknown[]) => {
         if (DEBUG) console.warn(...args);
     },
-    error: (...args: any[]) => {
+    error: (...args: unknown[]) => {
         // Errors should always be logged
         console.error(...args);
     },
     // Specialized loggers
-    map: (...args: any[]) => {
+    map: (...args: unknown[]) => {
         if (DEBUG) console.log('[Map]', ...args);
     },
-    game: (...args: any[]) => {
+    game: (...args: unknown[]) => {
         if (DEBUG) console.log('[Game]', ...args);
     },
-    data: (...args: any[]) => {
+    data: (...args: unknown[]) => {
         if (DEBUG) console.log('[Data]', ...args);
     }
 };

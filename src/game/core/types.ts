@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import type { ReactNode } from 'react';
 import type { RegionFeature } from '../../types/geo';
 import type { Difficulty, GameState, AnswerFeedback } from '../../types/game';

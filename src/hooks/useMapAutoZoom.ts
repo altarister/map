@@ -1,4 +1,6 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
+import type { GeoPath } from 'd3-geo';
+import type { RegionCollection } from '../types/geo';
 
 interface UseMapAutoZoomProps {
   gameState: string;
@@ -6,8 +8,8 @@ interface UseMapAutoZoomProps {
   width: number;
   height: number;
   zoomTo: (t: { x: number; y: number; k: number }) => void;
-  mapData: any;
-  pathGenerator: any;
+  mapData: RegionCollection | null;
+  pathGenerator: GeoPath;
 }
 
 export function useMapAutoZoom({

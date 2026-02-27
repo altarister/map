@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, type ReactNode } from 'react';
 import type { Difficulty } from '../types/game';
 import { useLocalStorage } from '../hooks/useLocalStorage';

@@ -1,5 +1,4 @@
-import type { RegionFeature } from '../../../types/geo';
-import type { GameQuestion, LocateSingleQuestion, StageContext } from '../../core/types';
+import type { LocateSingleQuestion, StageContext } from '../../core/types';
 
 /**
  * Stage 1 (위치 찾기) 문제 생성 함수
@@ -11,7 +10,7 @@ import type { GameQuestion, LocateSingleQuestion, StageContext } from '../../cor
  * - GDD Section 6.1 예시 "안산시 단원구"와 일치
  */
 export const generateStage1Question = (context: StageContext): LocateSingleQuestion => {
-  const { mapData, difficulty } = context;
+  const { mapData } = context;
 
   // GDD v2.0 Update: Level 3 (읍/면/동) 문제 출제
   // Level 3 코드: 8자리~10자리 (예: "4113511000" - 안산시 단원구 초지동)
