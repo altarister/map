@@ -134,9 +134,25 @@ export const useMapZoom = ({
                 if (svgNode) {
                     (svgNode as ZoomableSVGElement).__startTransform = { ...event.transform };
                 }
+
+                // [Fix] 사용자가 직접 맵을 조작(드래그)하기 시작하면
+                // 프로그래밍 방식으로 실행 중이던 애니메이션(zoomTo) 루프를 즉시 멈춰서 잔상/떨림 방지
+                if (animFrameRef.current !== null) {
+                    cancelAnimationFrame(animFrameRef.current);
+                    animFrameRef.current = null;
+                }
+
                 onZoomStartRef.current?.();
             })
             .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+                // [Fix 2] 안전한 잔상 스냅샷 클렌징 (강력 보호기)
+                // OS 레벨의 트랙패드 관성과 마우스 드래그 이벤트가 기형적으로 중첩되어 
+                // D3의 'start' 이벤트가 유실되더라도, 
+                // 'zoom' 이벤트 틱마다 이전 화면의 잔상(스냅샷) 존재 여부를 강제 검사하여 파괴합니다.
+                if (document.getElementById('zoom-crossfade-snapshot')) {
+                    onZoomStartRef.current?.();
+                }
+
                 const { x, y, k } = event.transform;
                 applyCssTransform({ x, y, k });
                 // Canvas 레이어는 imperative draw()로만 제어되므로 rerender 없이
