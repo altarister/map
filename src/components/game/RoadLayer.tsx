@@ -261,7 +261,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 // Important: HW Acceleration hints
                 willChange: 'transform',
                 transition: 'none',
-                opacity: 1
+                opacity: 0.5
             }}
         >
             {[
