@@ -1,5 +1,4 @@
-import { useRef, useMemo, useState, useCallback, useEffect, useLayoutEffect } from 'react';
-import { geoMercator, geoPath } from 'd3-geo';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import { getStageStrategy } from '../../game/stages/registry';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
@@ -15,6 +14,8 @@ import type { RoadLayerHandle } from './RoadLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapZoom } from '../../hooks/useMapZoom';
+import { useMapGeometry } from '../../hooks/useMapGeometry';
+import { useMapAutoZoom } from '../../hooks/useMapAutoZoom';
 import { log } from '../../lib/debug';
 import { IntelPopup } from './IntelPopup';
 import { getAdjacentRegions, getPassingRoads } from '../../game/systems/IntelSystem';
@@ -140,6 +141,16 @@ export const Map = () => {
 
   }, []);
 
+  const handleTransformTick = useCallback((t: { x: number; y: number; k: number }, lastDrawn: { x: number; y: number; k: number }) => {
+    baseMapLayerRef.current?.setCssTransform(t, lastDrawn);
+    roadLayerRef.current?.setCssTransform(t, lastDrawn);
+  }, []);
+
+  const handleTransformEnd = useCallback((t: { x: number; y: number; k: number }) => {
+    baseMapLayerRef.current?.draw(t);
+    roadLayerRef.current?.draw(t);
+  }, []);
+
   const { svgRef, gRef, transform: zoomTransform, zoomTo } = useMapZoom({
     width,
     height,
@@ -147,42 +158,23 @@ export const Map = () => {
     onZoomStart: handleZoomStart,
     onMomentumStart: handleMomentumStart,
     onCrossfadeStart: handleCrossfadeStart,
-    canvasLayerRefs: [baseMapLayerRef, roadLayerRef],
+    onTransformTick: handleTransformTick,
+    onTransformEnd: handleTransformEnd,
   });
 
-  // ── Projection & Path Generator ─────────────────────────────────────────────
-  const projection = useMemo(() => {
-    const proj = geoMercator();
-    if ((fullMapData?.features?.length ?? 0) > 0) {
-      proj.fitExtent([[50, 50], [width - 50, height - 50]], fullMapData as any);
-    } else {
-      proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
-    }
-    return proj;
-  }, [fullMapData, width, height]);
-
-  const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
-
-  // ── Derived Map Data ────────────────────────────────────────────────────────
-  const features = mapData?.features || [];
+  // ── Geometry & Derived Map Data ─────────────────────────────────────────────
+  const { projection, pathGenerator, features, featureAreas, filteredCityFeatures } = useMapGeometry({
+    fullMapData,
+    mapData,
+    cityData,
+    width,
+    height,
+  });
 
   const { getFillColor, getStrokeColor } = useMapStyles({
     lastFeedback,
     answeredRegions,
   });
-
-  const featureAreas = useMemo(() => {
-    const areas: Record<string, number> = {};
-    features.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
-    cityData?.features?.forEach((f: any) => f.properties?.code && (areas[f.properties.code] = pathGenerator.area(f)));
-    return areas;
-  }, [features, cityData, pathGenerator]);
-
-  const filteredCityFeatures = useMemo(() => {
-    if (!cityData || features.length === 0) return [];
-    const activePrefixes = new Set(features.map((f: any) => f.properties.code.substring(0, 5)));
-    return cityData.features.filter((f: any) => activePrefixes.has(f.properties.code));
-  }, [cityData, features]);
 
   const isSingleRegion = filteredCityFeatures.length === 1;
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
@@ -192,51 +184,16 @@ export const Map = () => {
   const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
   const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
 
-  // ── Auto-Zoom: Refs로 최신 mapData/pathGenerator 추적 (클로저 stale값 방지) ──
-  const mapDataRef = useRef(mapData);
-  const pathGeneratorRef = useRef(pathGenerator);
-  useLayoutEffect(() => { mapDataRef.current = mapData; }, [mapData]);
-  useLayoutEffect(() => { pathGeneratorRef.current = pathGenerator; }, [pathGenerator]);
-
-  // ── Auto-Zoom: 메뉴 상태 진입 시 줌 초기화 ─────────────────────────────────
-  const prevGameStateRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!width || !height) return;
-    const prev = prevGameStateRef.current;
-    prevGameStateRef.current = gameState;
-    if (prev !== gameState &&
-        (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')) {
-      zoomTo({ x: 0, y: 0, k: 1 });
-    }
-  }, [gameState, width, height, zoomTo]);
-
-  // ── Auto-Zoom: PLAYING + selectedChapter 변경 시 해당 지역으로 줌인 ────────
-  useEffect(() => {
-    if (!width || !height || gameState !== 'PLAYING' || !selectedChapter) return;
-
-    const md = mapDataRef.current;
-    const pg = pathGeneratorRef.current;
-    if (!md?.features?.length) return;
-
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const feature of md.features) {
-      const [[fx0, fy0], [fx1, fy1]] = pg.bounds(feature);
-      if (fx0 < x0) x0 = fx0;
-      if (fy0 < y0) y0 = fy0;
-      if (fx1 > x1) x1 = fx1;
-      if (fy1 > y1) y1 = fy1;
-    }
-
-    if (!isFinite(x0) || !isFinite(y0)) return;
-
-    const padding = 60;
-    const bw = x1 - x0, bh = y1 - y0;
-    if (bw === 0 || bh === 0) return;
-
-    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
-    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
-  }, [gameState, selectedChapter, width, height, zoomTo]);
+  // ── Auto-Zoom Controller ────────────────────────────────────────────────────
+  useMapAutoZoom({
+    gameState,
+    selectedChapter,
+    width,
+    height,
+    zoomTo,
+    mapData,
+    pathGenerator,
+  });
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
   const [intelPopup, setIntelPopup] = useState<{ x: number; y: number; data: any } | null>(null);

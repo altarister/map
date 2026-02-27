@@ -2,8 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { ZoomBehavior, D3ZoomEvent } from 'd3-zoom';
 import { select } from 'd3-selection';
-import type { RefObject } from 'react';
-import type { CanvasLayerHandle } from '../types/canvas';
 
 export interface MapTransform {
     x: number;
@@ -22,8 +20,10 @@ interface UseMapZoomProps {
     onCrossfadeStart?: () => void;
     minZoom?: number;
     maxZoom?: number;
-    /** draw() / setCssTransform()을 구현하는 Canvas 레이어 refs. 순서대로 제어됩니다. */
-    canvasLayerRefs?: RefObject<CanvasLayerHandle | null>[];
+    /** 매 프레임 CSS 스케일만 갱신할 때 호출 (React 리렌더링 우회용 패스트 패스) */
+    onTransformTick?: (t: MapTransform, lastDrawn: MapTransform) => void;
+    /** 최종 해상도로 캔버스를 다시 그려야 할 때 호출 */
+    onTransformEnd?: (t: MapTransform) => void;
 }
 
 // easeInOutQuad
@@ -38,7 +38,8 @@ export const useMapZoom = ({
     onCrossfadeStart,
     minZoom = 1,
     maxZoom = 8,
-    canvasLayerRefs = [],
+    onTransformTick,
+    onTransformEnd,
 }: UseMapZoomProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const gRef = useRef<SVGGElement>(null);
@@ -63,9 +64,12 @@ export const useMapZoom = ({
         onCrossfadeStartRef.current = onCrossfadeStart;
     }, [onMomentumStart, onCrossfadeStart]);
 
-    // canvasLayerRefs를 ref로 관리 → useCallback 의존성에서 제외
-    const canvasLayerRefsRef = useRef(canvasLayerRefs);
-    useLayoutEffect(() => { canvasLayerRefsRef.current = canvasLayerRefs; }, [canvasLayerRefs]);
+    const onTransformTickRef = useRef(onTransformTick);
+    const onTransformEndRef = useRef(onTransformEnd);
+    useLayoutEffect(() => { 
+        onTransformTickRef.current = onTransformTick; 
+        onTransformEndRef.current = onTransformEnd;
+    }, [onTransformTick, onTransformEnd]);
 
     // 관성 감지용 디바운스 타이머 ref
     const momentumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,10 +89,8 @@ export const useMapZoom = ({
             gRef.current.style.transform = `translate(${t.x}px,${t.y}px) scale(${t.k})`;
         }
 
-        // 3. 모든 Canvas 레이어 CSS 스케일 갱신 (리렌더링 없음)
-        canvasLayerRefsRef.current.forEach(ref => {
-            ref.current?.setCssTransform(t, lastDrawnTransformRef.current);
-        });
+        // 3. 콜백을 통해 부모 컴포넌트에게 CSS 스케일 갱신 위임 (리렌더링 없음)
+        onTransformTickRef.current?.(t, lastDrawnTransformRef.current);
     }, []);
 
     /**
@@ -99,10 +101,8 @@ export const useMapZoom = ({
 
         lastDrawnTransformRef.current = t;
 
-        // 모든 Canvas 레이어 완전 재드로우
-        canvasLayerRefsRef.current.forEach(ref => {
-            ref.current?.draw(t);
-        });
+        // 부모 컴포넌트에게 완전 재드로우 타임임을 통지
+        onTransformEndRef.current?.(t);
 
         setTransform(t);
         onZoomRef.current?.(t);
