@@ -28,13 +28,34 @@ export const generateStage1Question = (context: StageContext): LocateSingleQuest
     };
   }
 
-  const randomIndex = Math.floor(Math.random() * mapData.length);
-  const targetFeature = mapData[randomIndex];
+  // Deduplicate by code so probabilities are equal across Eup/Myeon (Basic mode)
+  const uniqueFeatures = [];
+  const seenCodes = new Set<string>();
+  for (const f of mapData) {
+    if (!seenCodes.has(f.properties.code)) {
+      uniqueFeatures.push(f);
+      seenCodes.add(f.properties.code);
+    }
+  }
+
+  const randomIndex = Math.floor(Math.random() * uniqueFeatures.length);
+  const targetFeature = uniqueFeatures[randomIndex];
   const props = targetFeature.properties;
 
-  // 문제 텍스트 생성: "[시/군] [읍/면/동]"
+  // 문제 텍스트 생성: "[시/군] [읍/면/동/리]"
   const cityName = props.SIG_KOR_NM || '';
-  const districtName = props.EMD_KOR_NM || props.name || '';
+
+  const emdName = props.EMD_KOR_NM;
+  const name = props.name;
+  let districtName = '';
+
+  // 리(Ri) 단위일 경우 "[읍/면] [리]" 형식으로 표시
+  if (emdName && name && emdName !== name && !name.endsWith('동')) {
+    districtName = `${emdName} ${name}`;
+  } else {
+    districtName = name || emdName || '';
+  }
+
   const displayName = `${cityName} ${districtName}`.trim() || '알 수 없는 지역';
 
   return {

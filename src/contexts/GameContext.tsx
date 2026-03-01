@@ -16,13 +16,15 @@ interface GameContextType {
   score: GameScore;
   startTime: number | null;
   endTime: number | null;
-  startGame: (chapterCode?: string) => void; // Changed from selectedCities array to single chapterCode
+  startGame: (options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => void;
   checkAnswer: (input: UserInput) => void;
   resetGame: () => void;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   levelState: any;
   currentStage: number;
+  isBasicMode: boolean;
+  highlightRegions: any[]; // Used for watermark Eup/Myeon rendering
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -32,17 +34,19 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 정적 지리 데이터 구독
-  const { 
-    fullMapData, 
-    cityData, 
-    filteredMapData, 
-    setFilteredMapData, 
-    selectedChapter, 
-    setSelectedChapter 
+  const {
+    fullMapData,
+    cityData,
+    filteredMapData,
+    setFilteredMapData,
+    selectedChapter,
+    setSelectedChapter
   } = useGeoContext();
 
   const { difficulty, updateTopScore, currentStage } = useSettings();
   const { layerVisibility } = useMapContext();
+  const [isBasicMode, setIsBasicMode] = React.useState<boolean>(false);
+  const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -101,31 +105,24 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [gameState, fullMapData, filteredMapData, setFilteredMapData, setSelectedChapter]);
 
-  // Start Game with Chapter Code
-  const startGame = useCallback((chapterCode?: string) => {
+  // Start Game with Chapter Code or Options
+  const startGame = useCallback((options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => {
     if (gameState === 'PLAYING') return;
 
     if (!fullMapData) return;
 
-    // Level 1: 도로 레이어 OFF (성능 최적화 + 게임 집중)
-    // Level 2+: 도로 레이어 ON (기본 설정 복원)
-    // if (currentStage === 1) {
-    //   setLayerVisibility({
-    //     roadMotorway: false,
-    //     roadTrunk: false,
-    //     roadPrimary: false,
-    //     roadSecondary: false,
-    //     roadOther: false,
-    //   });
-    // } else {
-    //   setLayerVisibility({
-    //     roadMotorway: true,
-    //     roadTrunk: true,
-    //     roadPrimary: true,
-    //   });
-    // }
+    setIsBasicMode(options?.isBasicMode ?? false);
+    setHighlightRegions(options?.highlightRegions ?? []);
 
-    if (chapterCode) {
+    const chapterCode = options?.chapterCode;
+    const overrideRegions = options?.overrideRegions;
+
+    if (overrideRegions) {
+      if (chapterCode) setSelectedChapter(chapterCode);
+      const newFilteredData = { ...fullMapData, features: overrideRegions };
+      setFilteredMapData(newFilteredData);
+      startGameLogic(overrideRegions);
+    } else if (chapterCode) {
       setSelectedChapter(chapterCode);
 
       const filteredFeatures = fullMapData.features.filter((f: any) =>
@@ -156,9 +153,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     answeredRegions,
     levelState,
     currentStage,
+    isBasicMode,
+    highlightRegions
   }), [
     gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
-    lastFeedback, answeredRegions, levelState, currentStage
+    lastFeedback, answeredRegions, levelState, currentStage, isBasicMode, highlightRegions
   ]);
 
   return (

@@ -1,9 +1,11 @@
 import { useGame } from '../../contexts/GameContext';
+import { useGeoContext } from '../../contexts/GeoDataContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
 export const ResultModal = () => {
-  const { gameState, score, startGame, resetGame, selectedChapter } = useGame();
+  const { gameState, score, startGame, resetGame } = useGame();
+  const { selectedChapter } = useGeoContext();
 
   // 숙련도(정확도) 계산
   const totalAttempts = score.correct + score.incorrect;
@@ -20,7 +22,7 @@ export const ResultModal = () => {
           <Button onClick={resetGame} variant="outline" className="flex-1" size="lg">
             지역 선택으로 이동
           </Button>
-          <Button onClick={() => startGame(selectedChapter || undefined)} className="flex-1" size="lg">
+          <Button onClick={() => startGame({ chapterCode: selectedChapter || undefined })} className="flex-1" size="lg">
             다시 하기
           </Button>
         </div>

@@ -26,7 +26,7 @@ export interface BaseMapLayerHandle {
 
 export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLayerCanvasProps>(({
     features,
-    cityData,
+    // cityData, // Unused due to commenting out Level 2 Context Borders
     projection,
     theme,
     themeColors,
@@ -52,7 +52,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         ctx.save();
         ctx.scale(pixelRatio, pixelRatio);
         ctx.clearRect(0, 0, width * CANVAS_SCALE, height * CANVAS_SCALE);
-        
+
         ctx.translate(offsetX, offsetY);
         ctx.translate(x, y);
         ctx.scale(k, k);
@@ -66,7 +66,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
 
         // Base line width adjusts to zoom level so it stays crisp but thin
         const baseStrokeWidth = 1 / k;
-        
+
         // 1. Draw Active Game Layer (features)
         features.forEach((feature: any) => {
             const code = feature.properties.code;
@@ -89,20 +89,21 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             canvasPath(feature as any);
             ctx.fillStyle = fillColor;
             ctx.fill();
-            
+
             ctx.lineWidth = baseStrokeWidth;
             ctx.strokeStyle = strokeColor;
             ctx.stroke();
         });
 
         // 2. Draw Context Layer: Level 2 Borders
+        /* PM 요청: 상세 코스 캔버스 외곽선(시 태두리) 가리기 테스트 
         if (showBoundaries && cityData) {
             const contextStrokeWidth = theme === 'tactical' ? 2.0 / k : 1.5 / k;
             const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b';
 
             cityData.features.forEach((feature: any) => {
                 const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
-                
+
                 ctx.beginPath();
                 canvasPath(feature as any);
                 ctx.lineWidth = contextStrokeWidth;
@@ -113,6 +114,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 ctx.globalAlpha = 1.0;
             });
         }
+        */
 
         ctx.restore();
     };
@@ -149,7 +151,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
     }, [width, height, theme, features, answeredRegions, lastFeedback, showBoundaries]);
 
     return (
-        <div 
+        <div
             ref={containerRef}
             className="absolute top-0 left-0 w-full h-full pointer-events-none"
             style={{

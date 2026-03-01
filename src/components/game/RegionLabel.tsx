@@ -15,6 +15,7 @@ interface RegionLabelProps {
   lastFeedback: AnswerFeedback | null;
   fontScale?: number;
   baseArea?: number;
+  isWatermark?: boolean;
 }
 
 // Theme Color Definitions for Labels
@@ -41,18 +42,22 @@ export const RegionLabel = memo(({
   feature,
   projection,
   transform,
-  gameState,
   answeredRegions,
   lastFeedback,
   fontScale = 1,
-  baseArea = 0
+  baseArea = 0,
+  isWatermark = false
 }: RegionLabelProps) => {
   const { theme } = useSettings();
   const colors = THEME_LABEL_COLORS[theme];
 
   const code = feature.properties.code;
+
   const name = feature.properties.name;
-  
+
+  // 워터마크가 이미 부모 읍/면 이름을 크게 보여주므로, 개별 라벨은 자기 자신의 이름(리/동 등)만 1줄로 표기합니다.
+  const fullNameLines: string[] = [name || ''];
+
   // 무거운 위경도 중심점 연산(geoCentroid) 및 픽셀 투영 연산 캐싱 (렉 방지)
   const coords = useMemo(() => {
     const centroid = geoCentroid(feature);
@@ -92,24 +97,26 @@ export const RegionLabel = memo(({
   const isCorrectFeedback = lastFeedback?.regionCode === code && lastFeedback?.isCorrect;
   const isWrongFeedback = lastFeedback?.regionCode === code && !lastFeedback?.isCorrect;
 
-  if (isAnswered) {
+  if (isAnswered && !isWatermark) {
     textColor = colors.answered;
     fontWeight = 'bold';
   }
-  if (isCorrectFeedback) {
+  if (isCorrectFeedback && !isWatermark) {
     textColor = colors.correct;
     fontWeight = '900'; // font-black
     zIndex = 20;
   }
-  if (isWrongFeedback) {
+  if (isWrongFeedback && !isWatermark) {
     textColor = colors.wrong;
     fontWeight = '900'; // font-black
     zIndex = 20;
   }
 
   // 2. Fixed Screen Font Size Logic
-  // 줌 레벨이 변해도 텍스트는 항상 스크린 기준 12px~14px 크기로 보여야 함
-  // SVG 내부에서는 scale이 적용되므로, 폰트 크기를 역으로 나눠줘야 함
+  // 워터마크인 경우 투명도를 대폭 낮추고 이벤트 오버레이와 뒤섞이지 않게 처리
+  const opacity = isWatermark ? 0.35 : 1;
+  const textShadow = isWatermark ? 'none' : colors.shadow;
+
   const TARGET_SCREEN_FONT_SIZE = 14 * fontScale; // px
   const finalFontSize = TARGET_SCREEN_FONT_SIZE / transform.k;
 
@@ -121,16 +128,25 @@ export const RegionLabel = memo(({
       dominantBaseline="central"
       fontSize={finalFontSize}
       fill={textColor}
+      fillOpacity={opacity}
       fontWeight={fontWeight}
       fontFamily="system-ui"
       style={{
         pointerEvents: 'none',
-        textShadow: colors.shadow, // Outline for contrast
+        textShadow: textShadow, // Outline for contrast
         transition: 'fill 0.2s ease, opacity 0.2s ease',
         zIndex: zIndex,
       }}
     >
-      {name}
+      {fullNameLines.map((line, i) => (
+        <tspan
+          key={`${code}-line-${i}`}
+          x={x}
+          dy={i === 0 ? (fullNameLines.length > 1 ? `-${finalFontSize * 0.4}px` : '0') : `${finalFontSize * 1.1}px`}
+        >
+          {line}
+        </tspan>
+      ))}
     </text>
   );
 });

@@ -339,32 +339,31 @@ const filteredCity = level2.features.filter(f =>
 );
 ```
 
-### 7.3 데이터 스키마 (Data Schema)
+### 7.3 데이터 스키마 및 그룹핑 (Data Schema & Grouping)
 
 **원본 데이터 (Raw Data)**
 
-`public/data/`의 GeoJSON 파일(`skorea-municipalities-2018-geo.json`, `skorea-submunicipalities-2018-geo.json`)은 다음 공통 속성을 가집니다:
+`public/data/gyeonggi_bupjeongdong.geojson` 파일의 최소 조각(Terminal Node)은 10자리의 코드를 가진 법정동 또는 법정리입니다.
 
 ```typescript
 interface RawRegionProperties {
-  code: string; // 행정동 코드 (예: "11010" 종로구, "1101053" 사직동)
-  name: string; // 지역 이름 (예: "종로구", "사직동")
-  name_eng: string; // 영문 이름 (예: "Jongno-gu", "Sajik-dong")
-  base_year: string; // 기준 연도 (예: "2018")
+  code: string; // 10자리 법정구역 코드 (예: "4161025025" 산이리)
+  name: string; // 지역 이름 (예: "태전동", "산이리")
+  SIG_KOR_NM?: string; // 소속 시군구 (예: "경기도")
+  EMD_KOR_NM?: string; // 소속 읍면동 (예: "초월읍") - 단, VWORLD 리 데이터에는 이 필드가 완벽하지 않음
 }
 ```
 
-**파생 데이터 (Enriched Data)**
+**동적 가상 객체 생성 (Dynamic Grouping)**
 
-`useGeoData` 훅을 통해 로딩된 데이터는 다음 속성이 추가됩니다:
+"기본 훈련" 모드 등에서는 리(Ri) 단위가 아닌 읍/면/동 덩어리로 출제해야 합니다. 이를 위해 `useGeoData` 로드 시점에 앞 **8자리 코드(읍/면/동 수준)**를 기준으로 여러 리 폴리곤을 묶어 하나의 논리적 덩어리(Virtual Polygon)로 취급하는 그룹핑 로직을 수행합니다.
 
-```typescript
-interface EnrichedRegionProperties extends RawRegionProperties {
-  // Level 3 데이터에만 추가됨
-  SIG_KOR_NM?: string; // 상위 시군구 이름 (예: "종로구")
-  EMD_KOR_NM?: string; // 읍면동 이름 (name과 동일, 예: "사직동") - 필터링 및 표시 편의성
-}
-```
+- **코드 구조:**
+  - `41` (시도 - 경기도)
+  - `610` (시군구 - 광주시) 
+  - `250` (읍면동 - 초월읍) 
+  - `25` (리 - 산이리)
+- **그룹핑 기준:** `feature.properties.code.substring(0, 8)` 이 같은 것들은 하나의 `EupMyeon` 그룹으로 관리합니다.
 
 ### 7.4 데이터 영속성 (Data Persistence)
 

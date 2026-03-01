@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import type { ReactNode } from 'react';
 import type { RegionFeature } from '../../types/geo';
-import type { Difficulty, GameState, AnswerFeedback } from '../../types/game';
+import type { Difficulty, AnswerFeedback } from '../../types/game';
 
 // 1. 문제 (Question) 타입 정의 (확장형 유니언 타입)
 export type QuestionType = 'LOCATE_SINGLE' | 'LOCATE_PAIR' | 'ESTIMATE_DIST' | 'ESTIMATE_TIME' | 'PROFIT_ANALYSIS';
@@ -55,13 +55,13 @@ export type GameQuestion = LocateSingleQuestion | LocatePairQuestion | EstimateD
 // 2. 사용자 입력 (User Input) 타입 정의
 export type InputType = 'MAP_CLICK' | 'OPTION_SELECT';
 
-export type UserInput = 
+export type UserInput =
   | { type: 'MAP_CLICK'; regionCode: string }
   | { type: 'OPTION_SELECT'; value: string | number }
   | { type: 'ESTIMATE_VALUE'; value: number }; // 거리 등 수치 입력
 
 // 3. 정답 검증 결과 (Validation Result)
-export type ValidationResult = 
+export type ValidationResult =
   | { status: 'CORRECT'; feedback: AnswerFeedback }      // 정답 (다음 문제로)
   | { status: 'WRONG'; feedback: AnswerFeedback }        // 오답 (패널티 or 재시도)
   | { status: 'CONTINUE'; feedback?: AnswerFeedback; nextStepInstruction?: string; nextState?: any }; // 진행 중 (예: 상차지 찍고 하차지 찍기 전)
@@ -79,7 +79,7 @@ export interface StageUnlockCondition {
 
 export interface StageMapOptions {
   // 1단계처럼 시/군/구 뿐 아니라 읍/면/동 기하구조도 항상 허용하는지 여부
-  forceShowTownGeometry?: boolean; 
+  forceShowTownGeometry?: boolean;
 }
 
 export interface LevelConfig {

@@ -34,6 +34,8 @@ export const Map = () => {
     answeredRegions,
     currentStage,
     startGame,
+    isBasicMode,
+    highlightRegions,
   } = useGame();
 
   const {
@@ -91,7 +93,7 @@ export const Map = () => {
     height,
     onZoom: handleZoom,
     onZoomStart: handleZoomStart,
-    onMomentumStart: () => {},
+    onMomentumStart: () => { },
     onCrossfadeStart: handleCrossfadeStart,
     onTransformTick: handleTransformTick,
     onTransformEnd: handleTransformEnd,
@@ -109,6 +111,7 @@ export const Map = () => {
   const { getFillColor, getStrokeColor } = useMapStyles({
     lastFeedback,
     answeredRegions,
+    isBasicMode,
   });
 
   const isSingleRegion = filteredCityFeatures.length === 1;
@@ -150,8 +153,6 @@ export const Map = () => {
 
   const handleRegionClick = useCallback((code: string) => {
     if (gameState === 'REGION_SELECT') {
-      log.game(`[Map] Selected Region: ${code}`);
-      startGame(code.substring(0, 5));
       return;
     }
     if (gameState !== 'PLAYING') return;
@@ -164,7 +165,7 @@ export const Map = () => {
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
-  if (error)   return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
+  if (error) return <div className="text-red-500 flex justify-center items-center h-full font-mono">Error: {error.message}</div>;
   if (!mapData || !cityData) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">No map data</div>;
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -237,6 +238,22 @@ export const Map = () => {
             onRegionClick={handleRegionClick}
           />
 
+          {/* Hierarchical Boundaries (EMD) Overlay: Rendered underneath hovers but above base map */}
+          {highlightRegions && highlightRegions.length > 0 && (
+            <g style={{ pointerEvents: 'none' }}>
+              {highlightRegions.map((region: any) => (
+                <path
+                  key={`highlight-${region.properties.code}`}
+                  d={pathGenerator(region) || ''}
+                  fill="none"
+                  stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
+                  strokeWidth={2.8 / zoomTransform.k}
+                  strokeOpacity={0.9}
+                />
+              ))}
+            </g>
+          )}
+
           {/* Visual Overlays: Hover, Selection, Feedback */}
           <g style={{ pointerEvents: 'none' }}>
             {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
@@ -252,14 +269,14 @@ export const Map = () => {
             )}
 
             {/* 정답/오답 피드백 오버레이 */}
-            {lastFeedback && (lastFeedback as any).feature && (
+            {lastFeedback && (
               <path
-                d={pathGenerator((lastFeedback as any).feature) || ''}
-                fill={getFillColor(lastFeedback.regionCode, false)}
-                fillOpacity={0.7}
-                stroke={getStrokeColor(lastFeedback.regionCode, false)}
-                strokeWidth={2 / zoomTransform.k}
-                className="transition-all duration-300"
+                d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === lastFeedback.regionCode) as any) || ''}
+                fill="none"
+                stroke={lastFeedback.isCorrect ? '#4ade80' : '#f87171'}
+                strokeWidth={3 / zoomTransform.k}
+                className="animate-pulse"
+                style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}
               />
             )}
           </g>
@@ -280,6 +297,24 @@ export const Map = () => {
                   baseArea={featureAreas[feature.properties.code] || 0}
                 />
               ))}
+
+              {/* Watermark Labels (EMD level labels) */}
+              {highlightRegions && highlightRegions.length > 0 && highlightRegions.map((feature: any) => (
+                <RegionLabel
+                  key={`label-watermark-${feature.properties.code}`}
+                  feature={feature}
+                  projection={projection}
+                  transform={zoomTransform}
+                  answeredRegions={answeredRegions}
+                  lastFeedback={lastFeedback}
+                  gameState={gameState}
+                  fontScale={1.5}  // 거대한 워터마크 크기 (기존 2.5에서 축소)
+                  baseArea={featureAreas[feature.properties.code] || 0}
+                  isWatermark={true}
+                />
+              ))}
+
+              {/* District (Ri-level) Labels */}
               {showDistrictLabels && featuresToRender.map((feature: any) => (
                 <RegionLabel
                   key={`label-district-${feature.properties.code}`}
@@ -313,7 +348,10 @@ export const Map = () => {
           distance={scaleDistance}
           unit={scaleUnit}
           zoom={zoomTransform.k}
-          hoveredRegion={featuresToRender.find((f: any) => f.properties.code === hoveredRegion)?.properties.name}
+          hoveredRegion={(() => {
+            const f = featuresToRender.find((feature: any) => feature.properties.code === hoveredRegion);
+            return f ? (f.properties.EMD_KOR_NM || f.properties.name) : undefined;
+          })()}
           renderedCount={featuresToRender.length}
           showDebug={showDebugInfo}
         />
