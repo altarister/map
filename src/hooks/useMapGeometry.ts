@@ -5,6 +5,7 @@ import type { RegionCollection, RegionFeature } from '../types/geo';
 
 interface UseMapGeometryProps {
   fullMapData: RegionCollection | null;
+  level1Data: RegionCollection | null;
   mapData: RegionCollection | null;
   cityData: RegionCollection | null;
   width: number;
@@ -13,6 +14,7 @@ interface UseMapGeometryProps {
 
 export function useMapGeometry({
   fullMapData,
+  level1Data,
   mapData,
   cityData,
   width,
@@ -50,8 +52,11 @@ export function useMapGeometry({
     cityData?.features?.forEach((f) => {
       if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
     });
+    level1Data?.features?.forEach((f) => {
+      if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
+    });
     return areas;
-  }, [features, cityData, pathGenerator]);
+  }, [features, cityData, level1Data, pathGenerator]);
 
   // 5. 파생 데이터: 읍면동이 속한 상위 시/군(Level 2) Features 추출
   const filteredCityFeatures: RegionFeature[] = useMemo(() => {

@@ -5,6 +5,7 @@ import type { RegionCollection, RoadCollection } from '../types/geo';
 
 interface GeoDataContextType {
   fullMapData: RegionCollection | null;
+  level1Data: RegionCollection | null;
   cityData: RegionCollection | null;
   filteredMapData: RegionCollection | null;
   setFilteredMapData: (data: RegionCollection | null) => void;
@@ -19,7 +20,7 @@ interface GeoDataContextType {
 const GeoDataContext = createContext<GeoDataContextType | undefined>(undefined);
 
 export const GeoDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { data: fullMapData, cityData, roadData, loading, progress, error } = useGeoData();
+  const { data: fullMapData, level1Data, cityData, roadData, loading, progress, error } = useGeoData();
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
@@ -32,6 +33,7 @@ export const GeoDataProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const value = useMemo(() => ({
     fullMapData,
+    level1Data,
     cityData,
     filteredMapData,
     setFilteredMapData,
@@ -41,7 +43,7 @@ export const GeoDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     error,
     selectedChapter,
     setSelectedChapter,
-  }), [fullMapData, cityData, filteredMapData, roadData, loading, progress, error, selectedChapter]);
+  }), [fullMapData, level1Data, cityData, filteredMapData, roadData, loading, progress, error, selectedChapter]);
 
   return (
     <GeoDataContext.Provider value={value}>

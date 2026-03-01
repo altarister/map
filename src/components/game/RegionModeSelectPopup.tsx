@@ -45,6 +45,12 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                     }
                 })) || [];
 
+            console.log('[RegionModeSelectPopup] prefix:', prefix, 'isGuCity:', selectedCity.isGuCity);
+            console.log('[RegionModeSelectPopup] guFeatures length:', guFeatures.length);
+            if (guFeatures.length === 0) {
+                console.warn('[RegionModeSelectPopup] No Gu features found for prefix', prefix, 'in cityData?', cityData?.features.length);
+            }
+
             if (mode === 'BASIC') {
                 startGame({
                     chapterCode: selectedCity.code,

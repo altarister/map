@@ -11,6 +11,7 @@ const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
+  const [level1Data, setLevel1Data] = useState<RegionCollection | null>(null);
   const [cityData, setCityData] = useState<RegionCollection | null>(null);
   const [roadData, setRoadData] = useState<RoadCollection | null>(null);
 
@@ -26,22 +27,26 @@ export const useGeoData = () => {
         setProgress(10); // Start
 
         // 1. Start fetching all resources
+        const fetchLevel1 = fetch('/data/gyeonggi_level1_merged.geojson');
         const fetchLevel2 = fetch(DATA_URL_LEVEL2);
         const fetchLevel3 = fetch(DATA_URL_LEVEL3);
         const fetchRoads = fetch(DATA_URL_ROADS);
 
-        // Await Level 2 & 3 first (Essential for Game Logic)
-        const [response2, response3] = await Promise.all([fetchLevel2, fetchLevel3]);
+        // Await Level 1, 2 & 3 first (Essential for Game Logic)
+        const [response1, response2, response3] = await Promise.all([fetchLevel1, fetchLevel2, fetchLevel3]);
         setProgress(40); // GeoJSONs fetched
 
+        if (!response1.ok) throw new Error(`Failed to load Level 1 data: ${response1.statusText}`);
         if (!response2.ok) throw new Error(`Failed to load Level 2 data: ${response2.statusText}`);
         if (!response3.ok) throw new Error(`Failed to load Level 3 data: ${response3.statusText}`);
 
+        const level1 = await response1.json();
         const level2 = await response2.json();
         const level3 = await response3.json();
         setProgress(60); // GeoJSONs parsed
 
         // Process GeoJSONs
+        log.data(`[useGeoData] Loaded Level 1: ${level1.features.length} features`);
         log.data(`[useGeoData] Loaded Level 2: ${level2.features.length} features`);
         log.data(`[useGeoData] Loaded Level 3: ${level3.features.length} features`);
 
@@ -127,6 +132,16 @@ export const useGeoData = () => {
           f.properties.centroid = geoCentroid(f);
         });
 
+        // [NEW UX Consistency] Update Level 1 data to use legal codes instead of original admin codes
+        level1.features.forEach((f: RegionFeature) => {
+          const name = f.properties.name;
+          if (name && sigNameToLegalCode.has(name)) {
+            f.properties.code = sigNameToLegalCode.get(name)!;
+          }
+          f.properties.centroid = geoCentroid(f);
+        });
+
+        setLevel1Data(level1);
         setCityData({ ...level2, features: filteredCity });
         setData({ ...level3, features: filteredLevel3 });
         setProgress(80); // Map Data Ready
@@ -155,5 +170,5 @@ export const useGeoData = () => {
     loadData();
   }, []);
 
-  return { data, cityData, roadData, loading, progress, error };
+  return { data, level1Data, cityData, roadData, loading, progress, error };
 };

@@ -34,14 +34,14 @@ export const useGameLogic = (
   const [answeredRegions, setAnsweredRegions] = useState<Set<string>>(new Set());
 
   // 레벨별 내부 상태 (예: 2단계에서 첫 번째 클릭 후 상태)
-   
+
   const [levelState, setLevelState] = useState<any>(null);
 
   const startTimeRef = useRef<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
 
-   
+
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProcessingRef = useRef<boolean>(false); // Concurrency control
 
@@ -147,7 +147,7 @@ export const useGameLogic = (
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
   useEffect(() => {
     // 1. Initialization Phase
-     
+
     setGameState('INITIAL');
     setCurrentQuestion(null);
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });

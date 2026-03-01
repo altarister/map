@@ -43,6 +43,7 @@ export const Map = () => {
 
   const {
     fullMapData,
+    level1Data,
     filteredMapData: mapData,
     cityData,
     roadData,
@@ -105,6 +106,7 @@ export const Map = () => {
   // ── Geometry & Derived Map Data ─────────────────────────────────────────────
   const { projection, pathGenerator, features, featureAreas, filteredCityFeatures } = useMapGeometry({
     fullMapData,
+    level1Data,
     mapData,
     cityData,
     width,
@@ -121,9 +123,10 @@ export const Map = () => {
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
   // 지역 선택 전(REGION_SELECT) 화면에서는 무조건 시/군/구 큰 단위만 렌더링해야 함 (렉 방지 & 시군구 클릭 유도)
-  // SUBREGION_SELECT 상태에서는 하위 행정구역(읍/면/구)을 그려야 하므로 town geometry 활성화
+  // [NEW UX UX Consistency] REGION_SELECT 일 때는 병합된 Level 1 데이터를 최우선 렌더링
   const showTownGeometry = gameState === 'SUBREGION_SELECT' || (gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5));
-  const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
+  const featuresToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
+  const labelsToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : filteredCityFeatures;
   const showDistrictLabels = gameState === 'SUBREGION_SELECT' || isSingleRegion || zoomTransform.k >= 1.5;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
@@ -158,19 +161,17 @@ export const Map = () => {
   const handleRegionClick = useCallback((code: string) => {
     if (gameState === 'REGION_SELECT') {
       // Find the clicked feature to extract its name
-      const feature = filteredCityFeatures.find(f => f.properties.code === code);
+      const feature = featuresToRender.find((f: any) => f.properties.code === code);
       if (!feature) return;
 
       const fullName = feature.properties.name || '';
-      let displayName = fullName;
-      let groupCode = code;
+      const displayName = fullName;
+      const groupCode = code;
       let isGuCity = false;
 
       // Group Gu-level cities
-      if (fullName.includes('시') && fullName.endsWith('구')) {
-        const siIndex = fullName.indexOf('시') + 1;
-        displayName = fullName.substring(0, siIndex);
-        groupCode = code.substring(0, 4);
+      // [NEW UX Consistency] `level1Data` 에서는 구가 존재하는 시들이 `_isMergedCity` 플래그를 달고 있습니다.
+      if ((feature.properties as any)._isMergedCity) {
         isGuCity = true;
       }
 
@@ -183,11 +184,11 @@ export const Map = () => {
       if (!feature) return;
 
       if (selectedRegionForMode?.isGuCity) {
-        // [Type A] 클릭한 '구(Gu)' 하위의 '동(Dong)' 데이터만 축출하여 게임 시작
+        // [Type A] 클릭한 '구(Gu)' 하위의 데이터(_isEmdGroup: 동/읍/면) 추출하여 게임 시작
         const guPrefix = feature.properties.code.substring(0, 5);
         const targetDongs = fullMapData?.features.filter((f: any) =>
           f.properties.code.startsWith(guPrefix) &&
-          f.properties.name.endsWith('동')
+          (f.properties as any)._isEmdGroup === true
         ) || [];
         startGame({
           chapterCode: selectedRegionForMode.code,
@@ -355,7 +356,7 @@ export const Map = () => {
               setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
           {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
             <>
-              {!showDistrictLabels && filteredCityFeatures.map((feature: any) => (
+              {!showDistrictLabels && labelsToRender.map((feature: any) => (
                 <RegionLabel
                   key={`label-city-${feature.properties.code}`}
                   feature={feature}
