@@ -24,11 +24,11 @@ export function useMapAutoZoom({
   // 클로저의 오래된 값을 방지하기 위해 Refs 사용
   const mapDataRef = useRef(mapData);
   const pathGeneratorRef = useRef(pathGenerator);
-  
+
   useLayoutEffect(() => {
     mapDataRef.current = mapData;
   }, [mapData]);
-  
+
   useLayoutEffect(() => {
     pathGeneratorRef.current = pathGenerator;
   }, [pathGenerator]);
@@ -39,7 +39,7 @@ export function useMapAutoZoom({
     if (!width || !height) return;
     const prev = prevGameStateRef.current;
     prevGameStateRef.current = gameState;
-    
+
     if (
       prev !== gameState &&
       (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')
@@ -48,9 +48,9 @@ export function useMapAutoZoom({
     }
   }, [gameState, width, height, zoomTo]);
 
-  // 2. 게임 플레이 시, 유저가 선택한 특정 챕터(시/군)의 바운딩 박스를 계산해 자동 줌인
+  // 2. 게임 플레이 시, 그리고 3-Depth 상세지역 선택 시, 유저가 선택한 챕터(시/군) 바운딩 박스를 계산해 자동 줌인
   useEffect(() => {
-    if (!width || !height || gameState !== 'PLAYING' || !selectedChapter) return;
+    if (!width || !height || (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') || !selectedChapter) return;
 
     const md = mapDataRef.current;
     const pg = pathGeneratorRef.current;
@@ -60,7 +60,7 @@ export function useMapAutoZoom({
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
-      
+
     for (const feature of md.features) {
       const [[fx0, fy0], [fx1, fy1]] = pg.bounds(feature);
       if (fx0 < x0) x0 = fx0;
@@ -79,7 +79,7 @@ export function useMapAutoZoom({
     const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
     const cx = (x0 + x1) / 2,
       cy = (y0 + y1) / 2;
-      
+
     zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
   }, [gameState, selectedChapter, width, height, zoomTo]);
 }

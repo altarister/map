@@ -3,8 +3,6 @@ import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/game/Map';
-// Changed: RegionSelectScreen -> GameOptionSelectScreen
-import { GameOptionSelectScreen } from './components/game/GameOptionSelectScreen';
 import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 
 import { ResultModal } from './components/game/ResultModal';
@@ -56,8 +54,7 @@ function GameContent() {
           {gameState === 'GAME_MODE_SELECT' && <GameModeSelectScreen />}
 
           {/* REGION_SELECT: 레벨/지역 선택 모달 */}
-          {/* Replaced RegionSelectScreen with GameOptionSelectScreen */}
-          {gameState === 'REGION_SELECT' && <GameOptionSelectScreen />}
+          {/* Now handled directly by Map.tsx and RegionModeSelectPopup */}
 
           {/* RESULT: 결과 모달 */}
           <ResultModal />

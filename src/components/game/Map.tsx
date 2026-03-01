@@ -10,6 +10,7 @@ import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
+import { RegionModeSelectPopup } from './RegionModeSelectPopup';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
@@ -33,9 +34,11 @@ export const Map = () => {
     lastFeedback,
     answeredRegions,
     currentStage,
-    startGame,
     isBasicMode,
     highlightRegions,
+    selectedRegionForMode,
+    setSelectedRegionForMode,
+    startGame,
   } = useGame();
 
   const {
@@ -118,9 +121,10 @@ export const Map = () => {
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
   // 지역 선택 전(REGION_SELECT) 화면에서는 무조건 시/군/구 큰 단위만 렌더링해야 함 (렉 방지 & 시군구 클릭 유도)
-  const showTownGeometry = gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
+  // SUBREGION_SELECT 상태에서는 하위 행정구역(읍/면/구)을 그려야 하므로 town geometry 활성화
+  const showTownGeometry = gameState === 'SUBREGION_SELECT' || (gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5));
   const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
-  const showDistrictLabels = isSingleRegion || zoomTransform.k >= 1.5;
+  const showDistrictLabels = gameState === 'SUBREGION_SELECT' || isSingleRegion || zoomTransform.k >= 1.5;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
   useMapAutoZoom({
@@ -153,15 +157,82 @@ export const Map = () => {
 
   const handleRegionClick = useCallback((code: string) => {
     if (gameState === 'REGION_SELECT') {
+      // Find the clicked feature to extract its name
+      const feature = filteredCityFeatures.find(f => f.properties.code === code);
+      if (!feature) return;
+
+      const fullName = feature.properties.name || '';
+      let displayName = fullName;
+      let groupCode = code;
+      let isGuCity = false;
+
+      // Group Gu-level cities
+      if (fullName.includes('시') && fullName.endsWith('구')) {
+        const siIndex = fullName.indexOf('시') + 1;
+        displayName = fullName.substring(0, siIndex);
+        groupCode = code.substring(0, 4);
+        isGuCity = true;
+      }
+
+      setSelectedRegionForMode({ code: groupCode, isGuCity, name: displayName });
       return;
     }
+
+    if (gameState === 'SUBREGION_SELECT') {
+      const feature = featuresToRender.find((f: any) => f.properties.code === code);
+      if (!feature) return;
+
+      if (selectedRegionForMode?.isGuCity) {
+        // [Type A] 클릭한 '구(Gu)' 하위의 '동(Dong)' 데이터만 축출하여 게임 시작
+        const guPrefix = feature.properties.code.substring(0, 5);
+        const targetDongs = fullMapData?.features.filter((f: any) =>
+          f.properties.code.startsWith(guPrefix) &&
+          f.properties.name.endsWith('동')
+        ) || [];
+        startGame({
+          chapterCode: selectedRegionForMode.code,
+          overrideRegions: targetDongs,
+          highlightRegions: [feature], // 워터마크 표시용
+          isBasicMode: false
+        });
+      } else {
+        // [Type B] 도농복합시
+        if ((feature.properties as any)._isEmdGroup) {
+          // '읍/면' 폴리곤 클릭 시 하위 '리(Ri)' 데이터 축출
+          const emdName = feature.properties.EMD_KOR_NM;
+          const cityPrefix = selectedRegionForMode?.code.substring(0, 4) || '';
+          const targetRis = fullMapData?.features.filter((f: any) =>
+            f.properties.code.startsWith(cityPrefix) &&
+            f.properties.EMD_KOR_NM === emdName &&
+            !(f.properties as any)._isEmdGroup
+          ) || [];
+          startGame({
+            chapterCode: selectedRegionForMode?.code,
+            overrideRegions: targetRis,
+            highlightRegions: [feature], // 워터마크 표시용
+            isBasicMode: false
+          });
+        } else {
+          // '동(Dong)' 클릭 시 해당 동 1개만으로 게임 진입 (예외적 상황)
+          startGame({
+            chapterCode: selectedRegionForMode?.code,
+            overrideRegions: [feature],
+            highlightRegions: [],
+            isBasicMode: false
+          });
+        }
+      }
+      return;
+    }
+
     if (gameState !== 'PLAYING') return;
+
     if (!forceShowTowns && !showTownGeometry) {
       log.game('[Map] Cannot answer: zoom in to see towns.');
       return;
     }
     checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-  }, [gameState, forceShowTowns, showTownGeometry, startGame, checkAnswer]);
+  }, [gameState, forceShowTowns, showTownGeometry, checkAnswer, filteredCityFeatures]);
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
@@ -256,7 +327,7 @@ export const Map = () => {
 
           {/* Visual Overlays: Hover, Selection, Feedback */}
           <g style={{ pointerEvents: 'none' }}>
-            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
+            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT' || gameState === 'SUBREGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
               <path
                 d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any) || ''}
                 fill={getFillColor(hoveredRegion, true)}
@@ -361,6 +432,14 @@ export const Map = () => {
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
+      )}
+
+      {/* Map First Interaction: Region Mode Select Popup */}
+      {gameState === 'REGION_SELECT' && selectedRegionForMode && (
+        <RegionModeSelectPopup
+          selectedCity={selectedRegionForMode}
+          onClose={() => setSelectedRegionForMode(null)}
+        />
       )}
     </div>
   );

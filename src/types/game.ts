@@ -1,10 +1,11 @@
 // GDD 3-State 구조 지원
 // INITIAL: 최초 진입 (Map만 표시, START 버튼 활성화)
 // REGION_SELECT: Level/지역 선택 모달
+// SUBREGION_SELECT: 상세 코스 시 읍/면/동 선택 상태 (Depth 2)
 // PLAYING: 게임 진행 중
 // PAUSED: 일시정지
 // RESULT: 결과 화면
-export type GameState = 'INITIAL' | 'GAME_MODE_SELECT' | 'REGION_SELECT' | 'PLAYING' | 'PAUSED' | 'RESULT';
+export type GameState = 'INITIAL' | 'GAME_MODE_SELECT' | 'REGION_SELECT' | 'SUBREGION_SELECT' | 'PLAYING' | 'PAUSED' | 'RESULT';
 
 export interface QuizQuestion {
   regionCode: string;
