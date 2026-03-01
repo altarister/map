@@ -57,16 +57,14 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                     overrideRegions: guFeatures,
                     isBasicMode: true
                 });
-                onClose();
             } else if (mode === 'DETAILED') {
                 // [NEW] 3-Depth Map-First UX: Show Gu polygons instead of Dongs
                 setSelectedChapter(selectedCity.code);
                 setFilteredMapData({ ...fullMapData!, features: guFeatures });
                 setGameState('SUBREGION_SELECT');
-                onClose();
             }
         } else {
-            // [Type B] 일반 도농복합 시/군
+            // [Type B] 일반 도농복합 시군 (Gu 생략)
             if (mode === 'BASIC') {
                 const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup);
                 startGame({
@@ -74,7 +72,6 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                     overrideRegions: emdFeatures,
                     isBasicMode: true
                 });
-                onClose();
             } else if (mode === 'DETAILED') {
                 // [NEW] 3-Depth Map-First UX: Show Eup/Myeon/Dong polygons instead of Ris
                 const emdAndDongFeatures = targetRegionsLevel3.filter(f =>
@@ -83,7 +80,6 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 setSelectedChapter(selectedCity.code);
                 setFilteredMapData({ ...fullMapData!, features: emdAndDongFeatures });
                 setGameState('SUBREGION_SELECT');
-                onClose();
             }
         }
         // Retain selectedRegionForMode for Retry flow (do not clear it here)
