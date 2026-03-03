@@ -15,7 +15,7 @@ const getQuestionText = (question: GameQuestion): string => {
 };
 
 export const ActionBar = () => {
-    const { gameState, currentQuestion, lastFeedback } = useGame();
+    const { gameState, currentQuestion, lastFeedback, isHintActive, setHintActive } = useGame();
 
     if (gameState !== 'PLAYING') return null;
 
@@ -26,9 +26,17 @@ export const ActionBar = () => {
             </h3>
 
             {currentQuestion ? (
-                <p className="text-base font-bold text-white leading-snug">
-                    {getQuestionText(currentQuestion)}
-                </p>
+                <div className="flex items-center justify-between">
+                    <p className="text-base font-bold text-white leading-snug">
+                        {getQuestionText(currentQuestion)}
+                    </p>
+                    <button 
+                        onClick={() => setHintActive(!isHintActive)}
+                        className={`ml-2 px-2 py-1 text-xs font-bold rounded transition-colors ${isHintActive ? 'bg-yellow-500/20 text-yellow-500' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                    >
+                        🔍 찾기
+                    </button>
+                </div>
             ) : (
                 <p className="text-sm text-gray-500 font-mono">준비 중...</p>
             )}

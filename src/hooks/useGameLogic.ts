@@ -18,23 +18,29 @@ interface UseGameLogicReturn {
   startTime: number | null;
   endTime: number | null;
   levelState: any;
+  isHintActive: boolean;
+  setHintActive: (active: boolean) => void;
 }
 
 export const useGameLogic = (
   regions: RegionFeature[],
   difficulty: Difficulty,
   currentStage: number, // 현재 게임 단계
-  onGameEnd: (score: GameScore) => void,
-  cityData: RegionFeature[] = [] // 시군구 데이터
+  onGameEnd: (score: GameScore) => void
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('REGION_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [lastFeedback, setLastFeedback] = useState<AnswerFeedback | null>(null);
   const [answeredRegions, setAnsweredRegions] = useState<Set<string>>(new Set());
+  
+  // ✅ 1DAL Trainer Spaced Repetition Queue 도입
+  const [questionQueue, setQuestionQueue] = useState<RegionFeature[]>([]);
+
+  // ✅ 힌트 모드 추가
+  const [isHintActive, setHintActive] = useState<boolean>(false);
 
   // 레벨별 내부 상태 (예: 2단계에서 첫 번째 클릭 후 상태)
-
   const [levelState, setLevelState] = useState<any>(null);
 
   const startTimeRef = useRef<number | null>(null);
@@ -64,72 +70,35 @@ export const useGameLogic = (
   }, [onGameEnd]);
 
   // 다음 문제 출제
-  const setNextQuestion = useCallback((currentAnsweredRegions: Set<string>, regionsOverride?: RegionFeature[]) => {
-    // ✅ BUG-003 FIX: Level 1은 Level 2 데이터 사용
-    // 게임 1단계: 읍·면·동 단위로 문제 출제 (cityData 기반 regions 사용)
-    let mapDataToUse: RegionFeature[];
-
-    // ✅ FIX: Use override regions if provided (for game start), otherwise use current regions prop
-    const targetRegions = regionsOverride || regions;
-
-    if (currentStage === 1) {
-      // Level 1: Level 2 (시군구) 데이터 사용
-
-      console.log('[GameLogic] setNextQuestion Level 1');
-      console.log('[GameLogic] targetRegions length:', targetRegions?.length);
-      if (targetRegions?.length > 0) {
-        console.log('[GameLogic] Sample targetRegion code:', targetRegions[0].properties.code);
-      }
-
-      // 1. 현재 regions(Level 3)에 포함된 Level 2 코드 추출 (유효성 검증용)
-      const validLevel2Codes = new Set<string>();
-      targetRegions.forEach(r => {
-        if (r.properties.code && r.properties.code.length >= 5) {
-          validLevel2Codes.add(r.properties.code.substring(0, 5));
-        }
-      });
-
-      // GDD v2.0 Update: 항상 읍/면/동(Level 3) 단위로 문제 출제
-      // 시/군(Level 2) 선택 여부와 관계없이 상세 지역 학습 유도
-      mapDataToUse = targetRegions.filter(r => !currentAnsweredRegions.has(r.properties.code));
-
-    } else {
-      // Level 2+: 기존 로직 (Level 3 데이터 사용)
-      mapDataToUse = targetRegions.filter(r => !currentAnsweredRegions.has(r.properties.code));
-    }
-
-    if (mapDataToUse.length === 0) {
+  const setNextQuestion = useCallback((currentQueue: RegionFeature[]) => {
+    if (currentQueue.length === 0) {
       endGame();
       return;
     }
 
-    /* Debug logs removed */
-
-    if (mapDataToUse.length === 0) {
-      endGame();
-      return;
-    }
+    // 큐의 첫 번째 요소를 출제 대상으로 확정
+    const mapDataToUse = [currentQueue[0]];
 
     const strategy = getStageStrategy(currentStage);
     const question = strategy.generateQuestion({
-      mapData: mapDataToUse, // ✅ Level에 맞는 데이터 전달
+      mapData: mapDataToUse,
       difficulty
     });
 
     setCurrentQuestion(question);
     setLevelState(null); // 문제 바뀌면 레벨 상태 초기화
+    setHintActive(false); // ✅ 새 문제가 출제되면 힌트 비활성화
 
     // Unlock processing for next question
     setTimeout(() => {
       isProcessingRef.current = false;
     }, 100); // Slight delay to ensure UI updates
-  }, [regions, currentStage, difficulty, endGame, cityData]);
+  }, [currentStage, difficulty, endGame]);
 
   // 게임 시작
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
-    const newAnsweredRegions = new Set<string>();
-    setAnsweredRegions(newAnsweredRegions);
+    setAnsweredRegions(new Set());
     setLastFeedback(null);
     setEndTime(null);
     setLevelState(null);
@@ -140,9 +109,24 @@ export const useGameLogic = (
 
     setGameState('PLAYING');
 
-    // ✅ FIX: Pass overrideRegions to setNextQuestion to ensure correct initial question
-    setNextQuestion(newAnsweredRegions, overrideRegions);
-  }, [setNextQuestion]);
+    // 큐 초기화 로직: 중복 제거 후 섞기
+    const targetRegions = overrideRegions || regions;
+    const uniqueFeatures: RegionFeature[] = [];
+    const seen = new Set<string>();
+    for (const f of targetRegions) {
+      if (!seen.has(f.properties.code)) {
+        uniqueFeatures.push(f);
+        seen.add(f.properties.code);
+      }
+    }
+    
+    // 배열 랜덤 셔플
+    const shuffledQueue = uniqueFeatures.sort(() => Math.random() - 0.5);
+    setQuestionQueue(shuffledQueue);
+
+    // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달
+    setNextQuestion(shuffledQueue);
+  }, [regions, setNextQuestion]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
   useEffect(() => {
@@ -203,20 +187,24 @@ export const useGameLogic = (
         // 정답 처리
         setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
 
-        // 정답 맞추면 다음 문제로
-        if (currentQuestion.type === 'LOCATE_SINGLE') {
-          const newAnswered = new Set(answeredRegions);
-          newAnswered.add(currentQuestion.target.code);
-          setAnsweredRegions(newAnswered);
+        // 큐에서 선두 요소 제거 (정답)
+        const nextQueue = [...questionQueue];
+        if (nextQueue.length > 0) {
+          nextQueue.shift();
         }
-        // ...
+        setQuestionQueue(nextQueue);
 
-        // LOCATE_SINGLE인 경우 방금 추가된 것을 포함해서 넘겨야 함.
-        const nextAnswered = new Set(answeredRegions);
+        // 시각화용 지도 기록
         if (currentQuestion.type === 'LOCATE_SINGLE') {
-          nextAnswered.add(currentQuestion.target.code);
+          setAnsweredRegions(prev => {
+            const newSet = new Set(prev);
+            newSet.add(currentQuestion.target.code);
+            return newSet;
+          });
         }
-        setNextQuestion(nextAnswered);
+        
+        // 곧바로 다음 문제로 (큐의 다음 타자)
+        setNextQuestion(nextQueue);
 
       } else if (result.status === 'WRONG') {
         // 오답 노트: 지역 이름 추가
@@ -230,6 +218,24 @@ export const useGameLogic = (
           incorrect: prev.incorrect + 1,
           missedRegions: [...prev.missedRegions, missedName]
         }));
+        
+        // [Spaced Repetition] 큐에서 팝(Pop) 후 3칸 뒤(또는 맨 뒤)로 재삽입(Splice)
+        const nextQueue = [...questionQueue];
+        if (nextQueue.length > 1) { // 2개 이상일 때만 뒤로 미루기 무빙 가능
+          const wrongItem = nextQueue.shift();
+          if (wrongItem) {
+            const insertIndex = Math.min(3, nextQueue.length); // 3칸 뒤로 미루거나 배열 끝에 삽입
+            nextQueue.splice(insertIndex, 0, wrongItem);
+          }
+          setQuestionQueue(nextQueue);
+          
+          // 오답 직후에도 곧바로 다음 문제 출제 (큐가 변동되었으므로)
+          // 기존 코드처럼 머무르지 않고, 벌칙 대상(오답 문제)을 큐 뒤로 버리고 다음 걸로 넘어감
+          setNextQuestion(nextQueue);
+        } else {
+          // 남은 문제가 딱 1개뿐인데 틀린 경우 그 문제를 계속 다시 풀어야 함
+          setNextQuestion(nextQueue);
+        }
       } else if (result.status === 'CONTINUE') {
         // 진행 중 (예: 포인트 하나 찍음)
         if (result.nextState) {
@@ -241,7 +247,7 @@ export const useGameLogic = (
       // 에러 발생 시 별도 처리 없음 (입력 무시)
     }
 
-  }, [gameState, currentQuestion, currentStage, levelState, answeredRegions, setNextQuestion]);
+  }, [gameState, currentQuestion, currentStage, levelState, answeredRegions, questionQueue, setNextQuestion]);
 
   // 게임 초기화
   const resetGame = useCallback(() => {
@@ -268,6 +274,8 @@ export const useGameLogic = (
     answeredRegions,
     startTime,
     endTime,
-    levelState
+    levelState,
+    isHintActive,
+    setHintActive
   };
 };

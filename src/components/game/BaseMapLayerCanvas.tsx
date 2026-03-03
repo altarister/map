@@ -17,6 +17,8 @@ interface BaseMapLayerCanvasProps {
     answeredRegions: Set<string>;
     lastFeedback: AnswerFeedback | null;
     showBoundaries: boolean;
+    isHintActive: boolean;
+    currentQuestionTargetCode?: string;
 }
 
 export interface BaseMapLayerHandle {
@@ -35,7 +37,9 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
     height,
     answeredRegions,
     lastFeedback,
-    showBoundaries
+    showBoundaries,
+    isHintActive,
+    currentQuestionTargetCode
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -72,6 +76,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             const code = feature.properties.code;
             const isAnswered = answeredRegions.has(code);
             const isCorrectFeedback = lastFeedback?.regionCode === code && lastFeedback?.isCorrect;
+            const isTargetHint = isHintActive && code === currentQuestionTargetCode;
 
             let fillColor = themeColors.fill;
             let strokeColor = themeColors.stroke;
@@ -84,15 +89,23 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 fillColor = themeColors.correctFill;
                 strokeColor = themeColors.correctStroke;
             }
+            if (isTargetHint) {
+                fillColor = 'rgba(234, 179, 8, 0.4)'; // bright yellow
+                strokeColor = '#eab308';
+            }
 
             ctx.beginPath();
             canvasPath(feature as any);
             ctx.fillStyle = fillColor;
             ctx.fill();
 
-            ctx.lineWidth = baseStrokeWidth;
+            // Set dynamic line width based on zoom and hint
+            ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
             ctx.strokeStyle = strokeColor;
             ctx.stroke();
+            
+            // Restore line width
+            ctx.lineWidth = baseStrokeWidth;
         });
 
         // 2. Draw Context Layer: Level 2 Borders
@@ -148,7 +161,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             canvas.style.height = `${scaledHeight}px`;
         }
         drawCanvas(initialTransform.x, initialTransform.y, initialTransform.k);
-    }, [width, height, theme, features, answeredRegions, lastFeedback, showBoundaries]);
+    }, [width, height, theme, features, answeredRegions, lastFeedback, showBoundaries, isHintActive, currentQuestionTargetCode]);
 
     return (
         <div

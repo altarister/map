@@ -16,11 +16,15 @@ export const validateStage1Answer = (question: LocateSingleQuestion, input: User
     };
   }
 
-  // 클릭한 지역 코드와 정답 코드 비교
-  // Stage 1 타겟은 시군구(5자리)이지만, 줌 인 상태에서 읍면동(8-10자리)을 클릭할 수도 있음
-  // 따라서 startsWith로 포함 여부를 확인해야 함
   const isCorrect = input.regionCode === question.target.code ||
     input.regionCode.startsWith(question.target.code);
+
+  console.log('[DEBUG-Validation]', {
+    inputCode: input.regionCode,
+    targetCode: question.target.code,
+    targetName: question.target.name,
+    isCorrect
+  });
 
   // ✅ BUG-002 관련: 정답/오답 모두 feedback 객체 반환
   return {

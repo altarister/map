@@ -22,6 +22,8 @@ interface GameContextType {
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   levelState: any;
+  isHintActive: boolean;
+  setHintActive: (active: boolean) => void;
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[]; // Used for watermark Eup/Myeon rendering
@@ -38,7 +40,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 정적 지리 데이터 구독
   const {
     fullMapData,
-    cityData,
     filteredMapData,
     setFilteredMapData,
     selectedChapter,
@@ -88,13 +89,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetGame,
     lastFeedback,
     answeredRegions,
-    levelState
+    levelState,
+    isHintActive,
+    setHintActive
   } = useGameLogic(
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
     currentStage,
-    handleGameEnd,
-    cityData?.features || EMPTY_REGIONS
+    handleGameEnd
   );
 
   // Reset Map Data when entering Level Select or Mode Select
@@ -156,6 +158,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     lastFeedback,
     answeredRegions,
     levelState,
+    isHintActive,
+    setHintActive,
     currentStage,
     isBasicMode,
     highlightRegions,
@@ -163,7 +167,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSelectedRegionForMode
   }), [
     gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
-    lastFeedback, answeredRegions, levelState, currentStage, isBasicMode, highlightRegions, selectedRegionForMode, setSelectedRegionForMode
+    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions, selectedRegionForMode, setSelectedRegionForMode
   ]);
 
   return (

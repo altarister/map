@@ -39,6 +39,8 @@ export const Map = () => {
     selectedRegionForMode,
     setSelectedRegionForMode,
     startGame,
+    isHintActive,
+    currentQuestion,
   } = useGame();
 
   const {
@@ -268,6 +270,8 @@ export const Map = () => {
           answeredRegions={answeredRegions}
           lastFeedback={lastFeedback}
           showBoundaries={layerVisibility.boundaries}
+          isHintActive={isHintActive}
+          currentQuestionTargetCode={currentQuestion?.type === 'LOCATE_SINGLE' ? currentQuestion.target.code : undefined}
         />
 
         {/* Layer 2: Roads (Canvas) */}

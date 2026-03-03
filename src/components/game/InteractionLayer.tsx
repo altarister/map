@@ -63,11 +63,14 @@ export const InteractionLayer = memo(({
     );
 }, (prev, next) => {
     // Interaction layer rarely changes. features and gameState are main dependencies.
+    // [단일 폴리곤 정답 오답 버그 수정]: 최신 currentQuestion 클로저 반영을 위해 클릭 핸들러 변경시 리렌더링 허용
     return (
         prev.features === next.features &&
         prev.gameState === next.gameState &&
         prev.showTownGeometry === next.showTownGeometry &&
         prev.pathGenerator === next.pathGenerator && // Critical for resize handling
-        prev.answeredRegions === next.answeredRegions // Need to re-render when answered regions change to update cursor/click
+        prev.answeredRegions === next.answeredRegions && // Need to re-render when answered regions change to update cursor/click
+        prev.onRegionClick === next.onRegionClick &&
+        prev.onRegionHover === next.onRegionHover
     );
 });
