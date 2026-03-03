@@ -3,7 +3,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 
 type SelectionStep = 1 | 2;
-type ModeSelection = 'BASIC' | 'DETAILED' | null;
+type ModeSelection = 'BASIC' | 'DETAILED' | 'ALL' | null;
 
 export const GameOptionSelectScreen = () => {
     const { startGame, setGameState } = useGame();
@@ -86,6 +86,14 @@ export const GameOptionSelectScreen = () => {
                     highlightRegions: guFeatures, // 워터마크
                     isBasicMode: false
                 });
+            } else if (mode === 'ALL') {
+                const allFeatures = targetRegionsLevel3.filter(f => f.properties.name.endsWith('동') || !(f as any).properties._isEmdGroup);
+                startGame({
+                    chapterCode: selectedCity.code,
+                    overrideRegions: allFeatures,
+                    highlightRegions: guFeatures,
+                    isBasicMode: false
+                });
             }
         } else {
             // [Type B] 일반 도농복합 시/군
@@ -104,6 +112,18 @@ export const GameOptionSelectScreen = () => {
                     !(f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
                 );
                 // 읍/면 워터마크 라벨과 굵은 테두리
+                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
+
+                startGame({
+                    chapterCode: selectedCity.code,
+                    overrideRegions: targetRis,
+                    highlightRegions: emdFeatures,
+                    isBasicMode: false
+                });
+            } else if (mode === 'ALL') {
+                const targetRis = targetRegionsLevel3.filter(f =>
+                    !(f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
+                );
                 const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
 
                 startGame({
@@ -190,6 +210,19 @@ export const GameOptionSelectScreen = () => {
                                 </div>
                                 <p className="text-slate-400 leading-relaxed group-hover:text-slate-300">
                                     특정 지역(하나의 읍/면) 안으로 깊게 파고들어, **세부 법정리(Ri)** 단위의 소규모 구역들을 완벽히 암기합니다.
+                                </p>
+                            </button>
+
+                            <button
+                                onClick={() => handleModeSelect('ALL')}
+                                className="group p-8 bg-slate-800/80 hover:bg-purple-900/40 border-2 border-slate-600 hover:border-purple-500 rounded-2xl transition-all shadow-lg text-left"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-black text-slate-200 group-hover:text-purple-400">모든 코스 <span className="text-sm font-normal text-slate-400 ml-2">ALL</span></h2>
+                                    <span className="px-3 py-1 bg-purple-500/20 text-purple-400 font-mono text-xs rounded">HARDCORE</span>
+                                </div>
+                                <p className="text-slate-400 leading-relaxed group-hover:text-slate-300">
+                                    해당 시/군의 넓은 읍·면·동은 물론 가장 작은 법정리 단위의 구역들까지 한 번에 출제합니다. 가장 험난한 도전입니다!
                                 </p>
                             </button>
                         </div>

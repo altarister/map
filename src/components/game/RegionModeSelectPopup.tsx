@@ -29,7 +29,7 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
         };
     }, []);
 
-    const handleModeSelect = (mode: 'BASIC' | 'DETAILED') => {
+    const handleModeSelect = (mode: 'BASIC' | 'DETAILED' | 'ALL') => {
         const prefix = selectedCity.code.substring(0, 4);
         const targetRegionsLevel3 = filteredMapData?.features.filter(f => f.properties.code.startsWith(prefix)) || [];
 
@@ -62,6 +62,14 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 setSelectedChapter(selectedCity.code);
                 setFilteredMapData({ ...fullMapData!, features: guFeatures });
                 setGameState('SUBREGION_SELECT');
+            } else if (mode === 'ALL') {
+                const targetDongs = targetRegionsLevel3.filter(f => f.properties.name.endsWith('동') || !(f as any).properties._isEmdGroup);
+                startGame({
+                    chapterCode: selectedCity.code,
+                    overrideRegions: targetDongs,
+                    highlightRegions: guFeatures,
+                    isBasicMode: false
+                });
             }
         } else {
             // [Type B] 일반 도농복합 시군 (Gu 생략)
@@ -80,6 +88,19 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 setSelectedChapter(selectedCity.code);
                 setFilteredMapData({ ...fullMapData!, features: emdAndDongFeatures });
                 setGameState('SUBREGION_SELECT');
+            } else if (mode === 'ALL') {
+                // 모든 코스: 쪼개진 원본 '리' 단위들 + 분할되지 않는 '동' 단위들을 같이 플레이함
+                const targetRis = targetRegionsLevel3.filter(f =>
+                    !(f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
+                );
+                // 읍/면 워터마크 라벨과 굵은 테두리
+                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
+                startGame({
+                    chapterCode: selectedCity.code,
+                    overrideRegions: targetRis,
+                    highlightRegions: emdFeatures,
+                    isBasicMode: false
+                });
             }
         }
         // Retain selectedRegionForMode for Retry flow (do not clear it here)
@@ -129,6 +150,19 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                         </div>
                         <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300">
                             지역 안으로 깊게 진입하여 가장 작은 단위(동/리)를 마스터합니다.
+                        </p>
+                    </button>
+
+                    <button
+                        onClick={() => handleModeSelect('ALL')}
+                        className="group w-full p-5 bg-slate-800/80 hover:bg-purple-900/40 border-2 border-slate-700 hover:border-purple-500 rounded-xl transition-all shadow-md text-left"
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xl font-bold text-slate-200 group-hover:text-purple-400">모든 코스 <span className="text-xs font-normal text-slate-400 ml-2">ALL</span></h3>
+                            <span className="px-2 py-1 bg-purple-500/20 text-purple-400 font-mono text-[10px] rounded">HARDCORE</span>
+                        </div>
+                        <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300">
+                            시/군 전체의 모든 동과 리를 한 번에 플레이합니다. 가장 길고 어려운 시험입니다!
                         </p>
                     </button>
                 </div>

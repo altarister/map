@@ -426,7 +426,7 @@ export const Map = () => {
           zoom={zoomTransform.k}
           hoveredRegion={(() => {
             const f = featuresToRender.find((feature: any) => feature.properties.code === hoveredRegion);
-            return f ? (f.properties.EMD_KOR_NM || f.properties.name) : undefined;
+            return f ? f.properties.name : undefined;
           })()}
           renderedCount={featuresToRender.length}
           showDebug={showDebugInfo}
