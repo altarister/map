@@ -124,11 +124,10 @@ export const Map = () => {
   const isSingleRegion = filteredCityFeatures.length === 1;
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
-  // REGION_SELECT: cityData (sig.json 경기도 42개 시군구)로 렌더링
-  // level1_merged는 전국 범위 데이터라 사용 불가 → cityData(WGS84, emd.json과 동일 CRS) 사용
   const showTownGeometry = gameState === 'SUBREGION_SELECT' || (gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5));
-  const featuresToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
-  const labelsToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : filteredCityFeatures;
+  // REGION_SELECT: level1Data(경기도 시 단위 병합, 31개)로 전체 경기도 overview 렌더링
+  const featuresToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
+  const labelsToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : filteredCityFeatures;
   const showDistrictLabels = gameState === 'SUBREGION_SELECT' || isSingleRegion || zoomTransform.k >= 1.5;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
