@@ -139,6 +139,7 @@ export const Map = () => {
     height,
     zoomTo,
     mapData,
+    level1Data,
     pathGenerator,
   });
 

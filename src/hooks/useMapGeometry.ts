@@ -21,21 +21,26 @@ export function useMapGeometry({
   height,
 }: UseMapGeometryProps) {
   // 1. Projection (투영법) 설정
+  // fitExtent 기준: level1Data (경기도 31개 시/군 병합 폴리곤)를 우선 사용.
+  // level1Data가 없으면 fullMapData(읍면동)로 fallback.
   const projection = useMemo(() => {
     const proj = geoMercator();
-    if ((fullMapData?.features?.length ?? 0) > 0) {
+    const fitTarget = (level1Data?.features?.length ?? 0) > 0 ? level1Data
+                    : (fullMapData?.features?.length ?? 0) > 0 ? fullMapData
+                    : null;
+    if (fitTarget) {
       proj.fitExtent(
         [
           [50, 50],
           [width - 50, height - 50],
         ],
-        fullMapData as RegionCollection
+        fitTarget as RegionCollection
       );
     } else {
       proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
     }
     return proj;
-  }, [fullMapData, width, height]);
+  }, [fullMapData, level1Data, width, height]);
 
   // 2. Path Generator 생성
   const pathGenerator: GeoPath = useMemo(() => geoPath().projection(projection), [projection]);

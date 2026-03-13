@@ -9,7 +9,42 @@ interface UseMapAutoZoomProps {
   height: number;
   zoomTo: (t: { x: number; y: number; k: number }) => void;
   mapData: RegionCollection | null;
+  level1Data: RegionCollection | null;  // 경기도 시 단위 병합 데이터 (overview fit용)
   pathGenerator: GeoPath;
+}
+
+/** data 컬렉션 전체의 화면 바운딩 박스를 계산해 zoomTo로 fit */
+function fitCollectionToScreen(
+  collection: RegionCollection,
+  pathGenerator: GeoPath,
+  width: number,
+  height: number,
+  padding: number,
+  maxScale: number,
+  zoomTo: (t: { x: number; y: number; k: number }) => void
+) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+
+  for (const feature of collection.features) {
+    const [[fx0, fy0], [fx1, fy1]] = pathGenerator.bounds(feature);
+    if (fx0 < x0) x0 = fx0;
+    if (fy0 < y0) y0 = fy0;
+    if (fx1 > x1) x1 = fx1;
+    if (fy1 > y1) y1 = fy1;
+  }
+
+  if (!isFinite(x0) || !isFinite(y0)) return;
+
+  const bw = x1 - x0, bh = y1 - y0;
+  if (bw === 0 || bh === 0) return;
+
+  const scale = Math.min(
+    (width  - padding * 2) / bw,
+    (height - padding * 2) / bh,
+    maxScale
+  );
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
 }
 
 export function useMapAutoZoom({
@@ -19,21 +54,18 @@ export function useMapAutoZoom({
   height,
   zoomTo,
   mapData,
+  level1Data,
   pathGenerator,
 }: UseMapAutoZoomProps) {
-  // 클로저의 오래된 값을 방지하기 위해 Refs 사용
-  const mapDataRef = useRef(mapData);
+  const mapDataRef    = useRef(mapData);
+  const level1DataRef = useRef(level1Data);
   const pathGeneratorRef = useRef(pathGenerator);
 
-  useLayoutEffect(() => {
-    mapDataRef.current = mapData;
-  }, [mapData]);
+  useLayoutEffect(() => { mapDataRef.current    = mapData;       }, [mapData]);
+  useLayoutEffect(() => { level1DataRef.current = level1Data;    }, [level1Data]);
+  useLayoutEffect(() => { pathGeneratorRef.current = pathGenerator; }, [pathGenerator]);
 
-  useLayoutEffect(() => {
-    pathGeneratorRef.current = pathGenerator;
-  }, [pathGenerator]);
-
-  // 1. 메뉴 상태 (로비) 진입 시 맵 전체가 보이도록 초기 줌 스케일로 회귀
+  // 1. REGION_SELECT / INITIAL → 경기도 전체가 화면에 딱 맞도록 fit
   const prevGameStateRef = useRef<string | null>(null);
   useEffect(() => {
     if (!width || !height) return;
@@ -44,11 +76,17 @@ export function useMapAutoZoom({
       prev !== gameState &&
       (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')
     ) {
-      zoomTo({ x: 0, y: 0, k: 1 });
+      const overview = level1DataRef.current ?? mapDataRef.current;
+      if (overview?.features?.length) {
+        fitCollectionToScreen(overview, pathGeneratorRef.current, width, height, 60, 8, zoomTo);
+      } else {
+        // 데이터 없으면 중심만 맞춤
+        zoomTo({ x: 0, y: 0, k: 1 });
+      }
     }
   }, [gameState, width, height, zoomTo]);
 
-  // 2. 게임 플레이 시, 그리고 3-Depth 상세지역 선택 시, 유저가 선택한 챕터(시/군) 바운딩 박스를 계산해 자동 줌인
+  // 2. PLAYING / SUBREGION_SELECT → 선택한 챕터(시/군) bbox로 줌인
   useEffect(() => {
     if (!width || !height || (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') || !selectedChapter) return;
 
@@ -56,30 +94,6 @@ export function useMapAutoZoom({
     const pg = pathGeneratorRef.current;
     if (!md?.features?.length) return;
 
-    let x0 = Infinity,
-      y0 = Infinity,
-      x1 = -Infinity,
-      y1 = -Infinity;
-
-    for (const feature of md.features) {
-      const [[fx0, fy0], [fx1, fy1]] = pg.bounds(feature);
-      if (fx0 < x0) x0 = fx0;
-      if (fy0 < y0) y0 = fy0;
-      if (fx1 > x1) x1 = fx1;
-      if (fy1 > y1) y1 = fy1;
-    }
-
-    if (!isFinite(x0) || !isFinite(y0)) return;
-
-    const padding = 60;
-    const bw = x1 - x0,
-      bh = y1 - y0;
-    if (bw === 0 || bh === 0) return;
-
-    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
-    const cx = (x0 + x1) / 2,
-      cy = (y0 + y1) / 2;
-
-    zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
+    fitCollectionToScreen(md, pg, width, height, 60, 8, zoomTo);
   }, [gameState, selectedChapter, width, height, zoomTo]);
 }
