@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Map data files (large GeoJSON — managed via public/zip/data.zip)
+public/data/
+public/temp/
