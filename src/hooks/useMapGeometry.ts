@@ -21,26 +21,24 @@ export function useMapGeometry({
   height,
 }: UseMapGeometryProps) {
   // 1. Projection (투영법) 설정
-  // fitExtent 기준: level1Data (경기도 31개 시/군 병합 폴리곤)를 우선 사용.
-  // level1Data가 없으면 fullMapData(읍면동)로 fallback.
+  // fitExtent 사용 불가: emd.json/sig.json 모두 경기도 외 좌표를 포함해
+  // fitExtent 결과가 scale=113 (전국 스케일)으로 계산됨.
+  // 경기도 경계 lon 126.6~127.85° (1.25°), lat 37.0~38.3° (1.3°) 기준으로 수동 계산:
+  //   scale = width / (lon_span_rad) = 947 / (1.25 * π/180) ≈ 43400
+  const GYEONGGI_CENTER: [number, number] = [127.225, 37.59]; // 경기도 중심
+  const GYEONGGI_SCALE_BASE = 43407; // 경기도 전체가 가로 947px에 맞는 geoMercator scale
+
   const projection = useMemo(() => {
     const proj = geoMercator();
-    const fitTarget = (level1Data?.features?.length ?? 0) > 0 ? level1Data
-                    : (fullMapData?.features?.length ?? 0) > 0 ? fullMapData
-                    : null;
-    if (fitTarget) {
-      proj.fitExtent(
-        [
-          [50, 50],
-          [width - 50, height - 50],
-        ],
-        fitTarget as RegionCollection
-      );
-    } else {
-      proj.center([127.17, 37.45]).scale(60000).translate([width / 2, height / 2]);
-    }
+    // width/height에 비례해 scale 조정 (기준: 1047x809)
+    const baseWidth = 1047;
+    const scaleFactor = Math.min(width, height) / Math.min(baseWidth, 809);
+    proj
+      .center(GYEONGGI_CENTER)
+      .translate([width / 2, height / 2])
+      .scale(GYEONGGI_SCALE_BASE * scaleFactor);
     return proj;
-  }, [fullMapData, level1Data, width, height]);
+  }, [width, height]);
 
   // 2. Path Generator 생성
   const pathGenerator: GeoPath = useMemo(() => geoPath().projection(projection), [projection]);

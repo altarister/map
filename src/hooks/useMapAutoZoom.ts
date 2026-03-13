@@ -1,6 +1,6 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
-import type { GeoPath } from 'd3-geo';
-import type { RegionCollection } from '../types/geo';
+import type { GeoProjection } from 'd3-geo';
+import type { RegionCollection, RegionFeature } from '../types/geo';
 
 interface UseMapAutoZoomProps {
   gameState: string;
@@ -9,42 +9,33 @@ interface UseMapAutoZoomProps {
   height: number;
   zoomTo: (t: { x: number; y: number; k: number }) => void;
   mapData: RegionCollection | null;
-  level1Data: RegionCollection | null;  // 경기도 시 단위 병합 데이터 (overview fit용)
-  pathGenerator: GeoPath;
+  cityData: RegionCollection | null;   // sig.json 경기도 시군구 (zoom 계산에 사용)
+  level1Data: RegionCollection | null; // 미사용 (다른 CRS)
+  projection: GeoProjection;           // useMapGeometry의 geoMercator projection
 }
 
-/** data 컬렉션 전체의 화면 바운딩 박스를 계산해 zoomTo로 fit */
-function fitCollectionToScreen(
-  collection: RegionCollection,
-  pathGenerator: GeoPath,
-  width: number,
-  height: number,
-  padding: number,
-  maxScale: number,
-  zoomTo: (t: { x: number; y: number; k: number }) => void
-) {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-
-  for (const feature of collection.features) {
-    const [[fx0, fy0], [fx1, fy1]] = pathGenerator.bounds(feature);
-    if (fx0 < x0) x0 = fx0;
-    if (fy0 < y0) y0 = fy0;
-    if (fx1 > x1) x1 = fx1;
-    if (fy1 > y1) y1 = fy1;
+/**
+ * ring mean centroid 계산 — 자기교차 폴리곤에서 geoCentroid가 잘못된 값을 반환하므로
+ * 첫번째 ring의 좌표 평균을 사용
+ */
+function getRingMeanCentroid(feature: RegionFeature): [number, number] | null {
+  const geom = feature.geometry;
+  if (!geom) return null;
+  let ring: number[][];
+  if (geom.type === 'Polygon') {
+    ring = (geom as any).coordinates?.[0];
+  } else if (geom.type === 'MultiPolygon') {
+    ring = (geom as any).coordinates?.[0]?.[0];
+  } else {
+    return null;
   }
-
-  if (!isFinite(x0) || !isFinite(y0)) return;
-
-  const bw = x1 - x0, bh = y1 - y0;
-  if (bw === 0 || bh === 0) return;
-
-  const scale = Math.min(
-    (width  - padding * 2) / bw,
-    (height - padding * 2) / bh,
-    maxScale
-  );
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
+  if (!ring?.length) return null;
+  const lon = ring.reduce((s: number, [x]: number[]) => s + x, 0) / ring.length;
+  const lat = ring.reduce((s: number, [, y]: number[]) => s + y, 0) / ring.length;
+  if (!isFinite(lon) || !isFinite(lat)) return null;
+  // 경기도 합리적 범위 체크
+  if (lon < 126.0 || lon > 129.0 || lat < 36.0 || lat > 39.0) return null;
+  return [lon, lat];
 }
 
 export function useMapAutoZoom({
@@ -53,19 +44,18 @@ export function useMapAutoZoom({
   width,
   height,
   zoomTo,
-  mapData,
-  level1Data,
-  pathGenerator,
+  cityData,
+  projection,
 }: UseMapAutoZoomProps) {
-  const mapDataRef    = useRef(mapData);
-  const level1DataRef = useRef(level1Data);
-  const pathGeneratorRef = useRef(pathGenerator);
+  const projRef = useRef(projection);
+  useLayoutEffect(() => { projRef.current = projection; }, [projection]);
 
-  useLayoutEffect(() => { mapDataRef.current    = mapData;       }, [mapData]);
-  useLayoutEffect(() => { level1DataRef.current = level1Data;    }, [level1Data]);
-  useLayoutEffect(() => { pathGeneratorRef.current = pathGenerator; }, [pathGenerator]);
+  const cityDataRef = useRef(cityData);
+  useLayoutEffect(() => { cityDataRef.current = cityData; }, [cityData]);
 
-  // 1. REGION_SELECT / INITIAL → 경기도 전체가 화면에 딱 맞도록 fit
+  // 1. REGION_SELECT / INITIAL → k=1 리셋
+  // projection.center=[127.225,37.59], scale=43407이므로
+  // k=1, x=0, y=0이 정확히 경기도 전체 뷰 (projection 자체의 translate가 화면 중앙을 잡음)
   const prevGameStateRef = useRef<string | null>(null);
   useEffect(() => {
     if (!width || !height) return;
@@ -76,24 +66,53 @@ export function useMapAutoZoom({
       prev !== gameState &&
       (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')
     ) {
-      const overview = level1DataRef.current ?? mapDataRef.current;
-      if (overview?.features?.length) {
-        fitCollectionToScreen(overview, pathGeneratorRef.current, width, height, 60, 8, zoomTo);
-      } else {
-        // 데이터 없으면 중심만 맞춤
-        zoomTo({ x: 0, y: 0, k: 1 });
-      }
+      zoomTo({ x: 0, y: 0, k: 1 });
     }
   }, [gameState, width, height, zoomTo]);
 
-  // 2. PLAYING / SUBREGION_SELECT → 선택한 챕터(시/군) bbox로 줌인
+  // 2. PLAYING / SUBREGION_SELECT → selectedChapter에 해당하는 시/군 중심으로 줌인
+  const prevChapterRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!width || !height || (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') || !selectedChapter) return;
+    if (!width || !height) return;
+    if (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') return;
+    if (!selectedChapter) return;
 
-    const md = mapDataRef.current;
-    const pg = pathGeneratorRef.current;
-    if (!md?.features?.length) return;
+    // 같은 챕터면 스킵
+    if (prevChapterRef.current === selectedChapter) return;
+    prevChapterRef.current = selectedChapter;
 
-    fitCollectionToScreen(md, pg, width, height, 60, 8, zoomTo);
+    const proj = projRef.current;
+    const cityFeatures = cityDataRef.current?.features ?? [];
+
+    // selectedChapter는 시/군의 SIG_CD (5자리). 구 있는 시는 parent code (앞4자리+'0')
+    // cityData에서 code가 selectedChapter로 시작하는 첫번째 feature 찾기
+    const chapterPrefix = selectedChapter.substring(0, 4);
+    const matchFeatures = cityFeatures.filter((f: RegionFeature) =>
+      String((f.properties as any).code ?? '').startsWith(chapterPrefix)
+    );
+
+    if (!matchFeatures.length) {
+      // fallback: 전체 경기도 뷰
+      zoomTo({ x: 0, y: 0, k: 1 });
+      return;
+    }
+
+    // ring mean centroid의 평균 → 시/군 전체 중심
+    let sumX = 0, sumY = 0, n = 0;
+    matchFeatures.forEach((f: RegionFeature) => {
+      const centroid = getRingMeanCentroid(f);
+      if (!centroid) return;
+      const [px, py] = proj(centroid) ?? [];
+      if (isFinite(px) && isFinite(py)) { sumX += px; sumY += py; n++; }
+    });
+
+    if (n === 0) {
+      zoomTo({ x: 0, y: 0, k: 1 });
+      return;
+    }
+
+    const cx = sumX / n, cy = sumY / n;
+    const k = 7; // 시/군 단위 적절 줌 레벨
+    zoomTo({ x: width / 2 - k * cx, y: height / 2 - k * cy, k });
   }, [gameState, selectedChapter, width, height, zoomTo]);
 }

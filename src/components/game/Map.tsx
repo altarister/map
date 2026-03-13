@@ -124,11 +124,11 @@ export const Map = () => {
   const isSingleRegion = filteredCityFeatures.length === 1;
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
-  // 지역 선택 전(REGION_SELECT) 화면에서는 무조건 시/군/구 큰 단위만 렌더링해야 함 (렉 방지 & 시군구 클릭 유도)
-  // [NEW UX UX Consistency] REGION_SELECT 일 때는 병합된 Level 1 데이터를 최우선 렌더링
+  // REGION_SELECT: cityData (sig.json 경기도 42개 시군구)로 렌더링
+  // level1_merged는 전국 범위 데이터라 사용 불가 → cityData(WGS84, emd.json과 동일 CRS) 사용
   const showTownGeometry = gameState === 'SUBREGION_SELECT' || (gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5));
-  const featuresToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
-  const labelsToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : filteredCityFeatures;
+  const featuresToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
+  const labelsToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : filteredCityFeatures;
   const showDistrictLabels = gameState === 'SUBREGION_SELECT' || isSingleRegion || zoomTransform.k >= 1.5;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
@@ -139,8 +139,9 @@ export const Map = () => {
     height,
     zoomTo,
     mapData,
+    cityData,
     level1Data,
-    pathGenerator,
+    projection,
   });
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
@@ -172,11 +173,19 @@ export const Map = () => {
       const groupCode = code;
       let isGuCity = false;
 
-      // Group Gu-level cities
-      // [NEW UX Consistency] `level1Data` 에서는 구가 존재하는 시들이 `_isMergedCity` 플래그를 달고 있습니다.
-      if ((feature.properties as any)._isMergedCity) {
-        isGuCity = true;
+      // COURSE_DESIGN_POLICY: SIG_KOR_NM에 공백이 있으면 구 있는 시 (예: "수원시 장안구")
+      // sig.json의 name이 "수원시" 형태면 구들의 부모 시를 클릭한 경우 → isGuCity=true 로 처리
+      // 단, cityData에서는 개별 구(区)가 별도 feature이므로 name에 공백이 포함됨
+      const sigName = (feature.properties as any).name || '';
+      if (sigName.includes(' ')) {
+        // '수원시 장안구' 형태 → 구가 있는 시의 구를 클릭
+        // code를 상위 시 코드(앞 4자리 + '0')로 올려서 전달
+        const parentCode = code.substring(0, 4) + '0';
+        const parentName = sigName.split(' ')[0]; // '수원시'
+        setSelectedRegionForMode({ code: parentCode, isGuCity: true, name: parentName });
+        return;
       }
+      isGuCity = false;
 
       setSelectedRegionForMode({ code: groupCode, isGuCity, name: displayName });
       return;
