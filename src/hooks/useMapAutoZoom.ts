@@ -1,4 +1,5 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
+import { geoPath } from 'd3-geo';
 import type { GeoProjection } from 'd3-geo';
 import type { RegionCollection, RegionFeature } from '../types/geo';
 
@@ -9,33 +10,71 @@ interface UseMapAutoZoomProps {
   height: number;
   zoomTo: (t: { x: number; y: number; k: number }) => void;
   mapData: RegionCollection | null;
-  cityData: RegionCollection | null;   // sig.json 경기도 시군구 (zoom 계산에 사용)
-  level1Data: RegionCollection | null; // 미사용 (다른 CRS)
-  projection: GeoProjection;           // useMapGeometry의 geoMercator projection
+  cityData: RegionCollection | null;
+  level1Data: RegionCollection | null;
+  projection: GeoProjection;
 }
 
 /**
- * ring mean centroid 계산 — 자기교차 폴리곤에서 geoCentroid가 잘못된 값을 반환하므로
- * 첫번째 ring의 좌표 평균을 사용
+ * Cartesian bounds로 bbox 계산 → 화면에 fit
+ * projection(null) = 구면 기하학 없이 순수 lon/lat 좌표로 bbox 계산
+ * 이후 그 bbox를 실제 projection으로 변환해 zoom 계산
  */
-function getRingMeanCentroid(feature: RegionFeature): [number, number] | null {
-  const geom = feature.geometry;
-  if (!geom) return null;
-  let ring: number[][];
-  if (geom.type === 'Polygon') {
-    ring = (geom as any).coordinates?.[0];
-  } else if (geom.type === 'MultiPolygon') {
-    ring = (geom as any).coordinates?.[0]?.[0];
-  } else {
-    return null;
+function fitFeaturesToScreen(
+  features: RegionFeature[],
+  projection: GeoProjection,
+  width: number,
+  height: number,
+  padding: number,
+  maxScale: number,
+  zoomTo: (t: { x: number; y: number; k: number }) => void
+) {
+  if (!features.length) return;
+
+  // Cartesian bounds: lon/lat 범위
+  const flatPath = geoPath().projection(null);
+  const [[lonMin, latMin], [lonMax, latMax]] = flatPath.bounds({
+    type: 'FeatureCollection',
+    features,
+  } as RegionCollection);
+
+  if (!isFinite(lonMin) || !isFinite(lonMax)) return;
+
+  // lon/lat 중심을 projection으로 변환
+  const lonCenter = (lonMin + lonMax) / 2;
+  const latCenter = (latMin + latMax) / 2;
+  const projected = projection([lonCenter, latCenter]);
+  if (!projected) return;
+  const [cx, cy] = projected;
+
+  // bbox 네 코너를 projection으로 변환해서 화면 픽셀 범위 계산
+  const corners = [
+    [lonMin, latMin], [lonMax, latMin],
+    [lonMin, latMax], [lonMax, latMax],
+  ] as [number, number][];
+
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const c of corners) {
+    const p = projection(c);
+    if (!p) continue;
+    const [px, py] = p;
+    if (!isFinite(px) || !isFinite(py)) continue;
+    if (px < x0) x0 = px; if (px > x1) x1 = px;
+    if (py < y0) y0 = py; if (py > y1) y1 = py;
   }
-  if (!ring?.length) return null;
-  const lon = ring.reduce((s: number, [x]: number[]) => s + x, 0) / ring.length;
-  const lat = ring.reduce((s: number, [, y]: number[]) => s + y, 0) / ring.length;
-  if (!isFinite(lon) || !isFinite(lat)) return null;
-  // 경기도 합리적 범위 체크
-  if (lon < 126.0 || lon > 129.0 || lat < 36.0 || lat > 39.0) return null;
-  return [lon, lat];
+
+  const bw = x1 - x0, bh = y1 - y0;
+  if (bw <= 0 || bh <= 0) return;
+
+  const scale = Math.min(
+    (width  - padding * 2) / bw,
+    (height - padding * 2) / bh,
+    maxScale
+  );
+
+  if (!isFinite(scale) || scale <= 0) return;
+
+  zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
 }
 
 export function useMapAutoZoom({
@@ -44,6 +83,7 @@ export function useMapAutoZoom({
   width,
   height,
   zoomTo,
+  mapData,
   cityData,
   projection,
 }: UseMapAutoZoomProps) {
@@ -53,9 +93,11 @@ export function useMapAutoZoom({
   const cityDataRef = useRef(cityData);
   useLayoutEffect(() => { cityDataRef.current = cityData; }, [cityData]);
 
-  // 1. REGION_SELECT / INITIAL → k=1 리셋
-  // projection.center=[127.225,37.59], scale=43407이므로
-  // k=1, x=0, y=0이 정확히 경기도 전체 뷰 (projection 자체의 translate가 화면 중앙을 잡음)
+  // fullMapData ref — REGION_SELECT overview fit용
+  const mapDataRef = useRef(mapData);
+  useLayoutEffect(() => { mapDataRef.current = mapData; }, [mapData]);
+
+  // 1. REGION_SELECT / INITIAL → 전체 경기도 overview fit
   const prevGameStateRef = useRef<string | null>(null);
   useEffect(() => {
     if (!width || !height) return;
@@ -66,53 +108,39 @@ export function useMapAutoZoom({
       prev !== gameState &&
       (gameState === 'REGION_SELECT' || gameState === 'GAME_MODE_SELECT' || gameState === 'INITIAL')
     ) {
-      zoomTo({ x: 0, y: 0, k: 1 });
+      // 전체 경기도(fullMapData 또는 cityData)로 overview fit
+      // projection이 이미 fullMapData로 계산됐으므로 k=1, x=0, y=0이 경기도 전체 뷰
+      // projection.translate=[0,0] 이므로 경기도 중심이 SVG (0,0)에 위치.
+      // 화면 중앙으로 이동하려면 x=w/2, y=h/2
+      zoomTo({ x: width / 2, y: height / 2, k: 1 });
     }
   }, [gameState, width, height, zoomTo]);
 
-  // 2. PLAYING / SUBREGION_SELECT → selectedChapter에 해당하는 시/군 중심으로 줌인
+  // 2. PLAYING / SUBREGION_SELECT → selectedChapter 시/군으로 줌인
   const prevChapterRef = useRef<string | null>(null);
   useEffect(() => {
     if (!width || !height) return;
     if (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') return;
     if (!selectedChapter) return;
-
-    // 같은 챕터면 스킵
     if (prevChapterRef.current === selectedChapter) return;
     prevChapterRef.current = selectedChapter;
 
     const proj = projRef.current;
-    const cityFeatures = cityDataRef.current?.features ?? [];
 
-    // selectedChapter는 시/군의 SIG_CD (5자리). 구 있는 시는 parent code (앞4자리+'0')
-    // cityData에서 code가 selectedChapter로 시작하는 첫번째 feature 찾기
+    // cityData에서 selectedChapter에 해당하는 시/군 피처 찾기
     const chapterPrefix = selectedChapter.substring(0, 4);
-    const matchFeatures = cityFeatures.filter((f: RegionFeature) =>
+    const cityFeatures = (cityDataRef.current?.features ?? []).filter((f: RegionFeature) =>
       String((f.properties as any).code ?? '').startsWith(chapterPrefix)
     );
 
-    if (!matchFeatures.length) {
-      // fallback: 전체 경기도 뷰
-      zoomTo({ x: 0, y: 0, k: 1 });
-      return;
+    if (cityFeatures.length > 0) {
+      fitFeaturesToScreen(cityFeatures, proj, width, height, 60, 8, zoomTo);
+    } else {
+      // fallback: mapData로 시도
+      const mf = mapDataRef.current?.features;
+      if (mf?.length) {
+        fitFeaturesToScreen(mf, proj, width, height, 60, 8, zoomTo);
+      }
     }
-
-    // ring mean centroid의 평균 → 시/군 전체 중심
-    let sumX = 0, sumY = 0, n = 0;
-    matchFeatures.forEach((f: RegionFeature) => {
-      const centroid = getRingMeanCentroid(f);
-      if (!centroid) return;
-      const [px, py] = proj(centroid) ?? [];
-      if (isFinite(px) && isFinite(py)) { sumX += px; sumY += py; n++; }
-    });
-
-    if (n === 0) {
-      zoomTo({ x: 0, y: 0, k: 1 });
-      return;
-    }
-
-    const cx = sumX / n, cy = sumY / n;
-    const k = 7; // 시/군 단위 적절 줌 레벨
-    zoomTo({ x: width / 2 - k * cx, y: height / 2 - k * cy, k });
   }, [gameState, selectedChapter, width, height, zoomTo]);
 }

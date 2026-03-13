@@ -56,6 +56,7 @@ export const useGeoData = () => {
         // 필드 정규화: SIG_CD → code, SIG_KOR_NM → name
         // 대상 시도 필터링 (41 = 경기도)
         const sigCodeToName = new Map<string, string>(); // SIG_CD(5자리) → SIG_KOR_NM
+        const sigNameToCode = new Map<string, string>(); // SIG_KOR_NM → SIG_CD(5자리) (역방향, level1 코드 변환용)
 
         const filteredSig = rawSig.features
           .filter((f: RegionFeature) => {
@@ -68,6 +69,19 @@ export const useGeoData = () => {
             const sigNm: string  = String(raw.SIG_KOR_NM || '');
 
             sigCodeToName.set(sigCd, sigNm);
+
+            // 역방향 맵: 시 이름으로 공식 SIG_CD 찾기 (level1_merged 코드 변환용)
+            // 예: "광주시" → "41610", "수원시" → "41111" (수원시 장안구), "수원시(합산)" → 앞 4자리+0
+            if (!sigNameToCode.has(sigNm)) {
+              sigNameToCode.set(sigNm, sigCd);
+            }
+            // 구 있는 시의 경우 "수원시 장안구" → 상위 "수원시" 코드도 추가 (5번째 자리 0)
+            const baseName = sigNm.split(' ')[0]; // "수원시 장안구" → "수원시"
+            if (baseName !== sigNm && !sigNameToCode.has(baseName)) {
+              // 상위 시 코드: 앞 4자리 + '0' (예: 41111 → 41110)
+              const parentCode = sigCd.substring(0, 4) + '0';
+              sigNameToCode.set(baseName, parentCode);
+            }
 
             return {
               ...f,
@@ -114,10 +128,16 @@ export const useGeoData = () => {
         log.data(`[useGeoData] 경기도 읍면동: ${filteredEmd.length}개`);
 
         // ── 4. Level 1 (경기도 시 단위 병합 폴리곤) ──────────────────────
-        // 기존 merged 파일 그대로 사용, centroid만 추가
+        // level1_merged.geojson의 code가 내부 시퀀스(31010)이므로
+        // sigNameToCode를 이용해 공식 SIG_CD(41110 등)로 교체
         rawLevel1.features.forEach((f: RegionFeature) => {
+          const name = f.properties.name;
+          if (name && sigNameToCode.has(name)) {
+            f.properties.code = sigNameToCode.get(name)!;
+          }
           f.properties.centroid = geoCentroid(f);
         });
+        log.data(`[useGeoData] level1 코드 변환: ${rawLevel1.features.map((f: RegionFeature) => f.properties.name + ':' + f.properties.code).slice(0,3).join(', ')} ...`);
 
         // ── 5. 상태 업데이트 ─────────────────────────────────────────────
         setLevel1Data(rawLevel1);

@@ -21,24 +21,64 @@ export function useMapGeometry({
   height,
 }: UseMapGeometryProps) {
   // 1. Projection (투영법) 설정
-  // fitExtent 사용 불가: emd.json/sig.json 모두 경기도 외 좌표를 포함해
-  // fitExtent 결과가 scale=113 (전국 스케일)으로 계산됨.
-  // 경기도 경계 lon 126.6~127.85° (1.25°), lat 37.0~38.3° (1.3°) 기준으로 수동 계산:
-  //   scale = width / (lon_span_rad) = 947 / (1.25 * π/180) ≈ 43400
-  const GYEONGGI_CENTER: [number, number] = [127.225, 37.59]; // 경기도 중심
-  const GYEONGGI_SCALE_BASE = 43407; // 경기도 전체가 가로 947px에 맞는 geoMercator scale
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // 문제: 한국 정부 공식 GIS 데이터(emd.json, sig.json)는 D3의 구면 기하학이 요구하는
+  //       GeoJSON right-hand rule(외부링 반시계 방향)을 따르지 않는 폴리곤이 다수 포함됨.
+  //       → d3.fitExtent(), geoCentroid(), geoPath.bounds() 등이 잘못된 값을 반환.
+  //         (예: fitExtent 결과 scale=113, geoCentroid=[−52°,−37°] 등)
+  //
+  // 해결: geoPath().projection(null).bounds()
+  //       - projection(null) = 구면 기하학 없이 순수 Cartesian(lon/lat 직교좌표) 계산
+  //       - 이 bbox로 geoMercator의 center/scale을 수동 설정
   const projection = useMemo(() => {
     const proj = geoMercator();
-    // width/height에 비례해 scale 조정 (기준: 1047x809)
-    const baseWidth = 1047;
-    const scaleFactor = Math.min(width, height) / Math.min(baseWidth, 809);
-    proj
-      .center(GYEONGGI_CENTER)
-      .translate([width / 2, height / 2])
-      .scale(GYEONGGI_SCALE_BASE * scaleFactor);
+
+    if ((fullMapData?.features?.length ?? 0) > 0) {
+      // Cartesian bounds: 구면 왜곡 없는 순수 위경도 범위
+      const [[lonMin, latMin], [lonMax, latMax]] =
+        geoPath().projection(null).bounds(fullMapData as RegionCollection);
+
+      if (isFinite(lonMin) && isFinite(lonMax) && isFinite(latMin) && isFinite(latMax)) {
+        const lonCenter = (lonMin + lonMax) / 2;
+        const latCenter = (latMin + latMax) / 2;
+
+        // Mercator에서 위도에 따른 y 스케일 왜곡을 고려한 올바른 scale 계산:
+        // scale=1짜리 테스트 projection으로 실제 픽셀 span을 측정
+        const testProj = geoMercator()
+          .center([lonCenter, latCenter])
+          .translate([0, 0])
+          .scale(1);
+        const [xLeft]  = testProj([lonMin, latCenter]) ?? [0, 0];
+        const [xRight] = testProj([lonMax, latCenter]) ?? [0, 0];
+        const [, yTop] = testProj([lonCenter, latMin]) ?? [0, 0];
+        const [, yBot] = testProj([lonCenter, latMax]) ?? [0, 0];
+
+        const spanX = xRight - xLeft;
+        const spanY = Math.abs(yBot - yTop);
+
+        if (spanX > 0 && spanY > 0) {
+          const scale = Math.min(
+            (width  - 100) / spanX,
+            (height - 100) / spanY
+          );
+          // translate=[0,0]: canvas의 ctx.translate(offsetX=w/2,offsetY=h/2)가
+          // 경기도 중심을 화면 중앙으로 이동시킴.
+          // SVG는 zoom transform {x=0,y=0,k=1} 아래에 그려지고,
+          // 경기도 중심이 (0,0)에 있으면 zoom {x=w/2, y=h/2}로 화면 중앙으로 이동 필요.
+          // ※ REGION_SELECT useMapAutoZoom에서 zoomTo({x:w/2, y:h/2, k:1})을 호출해야 함
+          proj
+            .center([lonCenter, latCenter])
+            .translate([0, 0])
+            .scale(scale);
+          return proj;
+        }
+      }
+    }
+
+    // fallback: 경기도 기본값 (translate=[0,0])
+    proj.center([127.11, 37.59]).translate([0, 0]).scale(23182);
     return proj;
-  }, [width, height]);
+  }, [fullMapData, width, height]);
 
   // 2. Path Generator 생성
   const pathGenerator: GeoPath = useMemo(() => geoPath().projection(projection), [projection]);
@@ -48,49 +88,28 @@ export function useMapGeometry({
 
   // 4. 면적 사전 계산 (라벨 스케일 조정 등 계산 부하 방지용)
   const featureAreas = useMemo(() => {
-    const areas: Record<string, number> = {};
+    const areaMap = new Map<string, number>();
+    const flatFn = geoPath().projection(null);
     features.forEach((f) => {
-      if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
+      const area = flatFn.area(f);
+      areaMap.set(f.properties.code, area);
     });
     cityData?.features?.forEach((f) => {
-      if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
+      const area = flatFn.area(f);
+      areaMap.set(f.properties.code, area);
     });
     level1Data?.features?.forEach((f) => {
-      if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
+      const area = flatFn.area(f);
+      areaMap.set(f.properties.code, area);
     });
-    return areas;
+    return areaMap;
   }, [features, cityData, level1Data, pathGenerator]);
 
-  // 5. 파생 데이터: 읍면동이 속한 상위 시/군(Level 2) Features 추출
-  const filteredCityFeatures: RegionFeature[] = useMemo(() => {
-    if (!cityData || features.length === 0) return [];
+  // 5. 도시 피처 필터 (게임 상태에 따라 렌더링 결정용)
+  const filteredCityFeatures: RegionFeature[] = useMemo(
+    () => cityData?.features ?? [],
+    [cityData]
+  );
 
-    // 법정동 코드 체계: 
-    // 기본 시/군/구는 앞 5자리로 매칭 (예: 41110)
-    // 단, 구(Gu)가 있는 시(예: 고양시 41280, 안산시 41270)의 하위 구들은 41281, 41285 등 5번째 자리가 0이 아님.
-    // cityData의 상위 시 단위 폴리곤 코드는 보통 5번째 자리가 '0'으로 끝남.
-    // 상위 시를 포함하기 위해 4자리 앞자리 + '0' 형태의 부모 코드도 함께 activePrefixes에 추가.
-    const activePrefixes = new Set<string>();
-
-    features.forEach((f) => {
-      const prefix5 = f.properties.code.substring(0, 5);
-      activePrefixes.add(prefix5);
-
-      // 구(Gu)가 있는 시의 최상위 시(Si) 코드를 추론 (5번째 자리를 0으로 만듦)
-      if (prefix5.endsWith('1') || prefix5.endsWith('3') || prefix5.endsWith('5') || prefix5.endsWith('7') || prefix5.endsWith('9')) {
-        const parentCityCode = prefix5.substring(0, 4) + '0';
-        activePrefixes.add(parentCityCode);
-      }
-    });
-
-    return cityData.features.filter((f) => activePrefixes.has(f.properties.code));
-  }, [cityData, features]);
-
-  return {
-    projection,
-    pathGenerator,
-    features,
-    featureAreas,
-    filteredCityFeatures,
-  };
+  return { projection, pathGenerator, features, featureAreas, filteredCityFeatures };
 }

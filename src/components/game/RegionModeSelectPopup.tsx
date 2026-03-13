@@ -30,13 +30,21 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
     }, []);
 
     const handleModeSelect = (mode: 'BASIC' | 'DETAILED' | 'ALL') => {
-        const prefix = selectedCity.code.substring(0, 4);
-        const targetRegionsLevel3 = filteredMapData?.features.filter(f => f.properties.code.startsWith(prefix)) || [];
+        // 선택한 시/군의 공식 5자리 SIG_CD (level1 코드가 이미 41610 등으로 변환됨)
+        const sigCode5 = selectedCity.code.length >= 5
+            ? selectedCity.code.substring(0, 5)  // 41610
+            : selectedCity.code;
+
+        // filteredMapData는 전체 경기 emd(745개), 5자리 prefix로 해당 시/군로만 필터
+        const targetRegionsLevel3 = filteredMapData?.features.filter(f =>
+            f.properties.code.startsWith(sigCode5)
+        ) || [];
 
         if (selectedCity.isGuCity) {
             // [Type A] 대도시 (구 존재)
+            // sig.json의 구 피쳐: SIG_CD가 41110~41119 중 '구'로 끝나는 것
             const guFeatures = cityData?.features
-                .filter(f => f.properties.code.startsWith(prefix) && f.properties.name.endsWith('구'))
+                .filter(f => f.properties.code.startsWith(sigCode5.substring(0, 4)) && f.properties.name.endsWith('구'))
                 .map(f => ({
                     ...f,
                     properties: {
@@ -45,10 +53,10 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                     }
                 })) || [];
 
-            console.log('[RegionModeSelectPopup] prefix:', prefix, 'isGuCity:', selectedCity.isGuCity);
+            console.log('[RegionModeSelectPopup] sigCode5:', sigCode5, 'isGuCity:', selectedCity.isGuCity);
             console.log('[RegionModeSelectPopup] guFeatures length:', guFeatures.length);
             if (guFeatures.length === 0) {
-                console.warn('[RegionModeSelectPopup] No Gu features found for prefix', prefix, 'in cityData?', cityData?.features.length);
+                console.warn('[RegionModeSelectPopup] No Gu features found for prefix', sigCode5, 'in cityData?', cityData?.features.length);
             }
 
             if (mode === 'BASIC') {
@@ -58,47 +66,45 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                     isBasicMode: true
                 });
             } else if (mode === 'DETAILED') {
-                // [NEW] 3-Depth Map-First UX: Show Gu polygons instead of Dongs
                 setSelectedChapter(selectedCity.code);
                 setFilteredMapData({ ...fullMapData!, features: guFeatures });
                 setGameState('SUBREGION_SELECT');
             } else if (mode === 'ALL') {
-                const targetDongs = targetRegionsLevel3.filter(f => f.properties.name.endsWith('동') || !(f as any).properties._isEmdGroup);
+                // ALL 코스: 구 있는 시의 경우 앞 4자리로 전체 구의 emd를 가져옴
+                // 예: 수원시 code=41110, 하위 emd들은 41111xxx~41115xxx → 4자리 "4111"로 쿼리
+                const sigCode4 = sigCode5.substring(0, 4);
+                const allCityEmd = filteredMapData?.features.filter(f =>
+                    f.properties.code.startsWith(sigCode4)
+                ) || [];
                 startGame({
                     chapterCode: selectedCity.code,
-                    overrideRegions: targetDongs,
+                    overrideRegions: allCityEmd,
                     highlightRegions: guFeatures,
                     isBasicMode: false
                 });
             }
         } else {
             // [Type B] 일반 도농복합 시군 (Gu 생략)
+            // 새 emd.json에서는 모든 피쳐가 _isEmdGroup=true (리 데이터 없음)
+            const emdFeatures = targetRegionsLevel3.filter(f =>
+                (f as any).properties._isEmdGroup === true
+            );
+
             if (mode === 'BASIC') {
-                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup);
                 startGame({
                     chapterCode: selectedCity.code,
                     overrideRegions: emdFeatures,
                     isBasicMode: true
                 });
             } else if (mode === 'DETAILED') {
-                // [NEW] 3-Depth Map-First UX: Show Eup/Myeon/Dong polygons instead of Ris
-                const emdAndDongFeatures = targetRegionsLevel3.filter(f =>
-                    (f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
-                );
                 setSelectedChapter(selectedCity.code);
-                setFilteredMapData({ ...fullMapData!, features: emdAndDongFeatures });
+                setFilteredMapData({ ...fullMapData!, features: emdFeatures });
                 setGameState('SUBREGION_SELECT');
             } else if (mode === 'ALL') {
-                // 모든 코스: 쪼개진 원본 '리' 단위들 + 분할되지 않는 '동' 단위들을 같이 플레이함
-                const targetRis = targetRegionsLevel3.filter(f =>
-                    !(f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
-                );
-                // 읍/면 워터마크 라벨과 굵은 테두리
-                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
+                // ALL 코스: 읽음/면/동 전체 (emd.json에는 리 없으므로 모든 = 기본코스와 동일)
                 startGame({
                     chapterCode: selectedCity.code,
-                    overrideRegions: targetRis,
-                    highlightRegions: emdFeatures,
+                    overrideRegions: emdFeatures,
                     isBasicMode: false
                 });
             }
