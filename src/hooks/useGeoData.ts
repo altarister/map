@@ -4,163 +4,147 @@ import { log } from '../lib/debug';
 import * as topojson from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
 
-// GeoJSON Data URLs
-const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // Sigun (City/County)
-const DATA_URL_LEVEL3 = '/data/gyeonggi_bupjeongdong.geojson'; // Bupjeong-dong/Ri (Terminal Nodes)
-const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
+// ── 데이터 URL ──────────────────────────────────────────────────────────────
+// 전국 법정동 GeoJSON (gisdeveloper.co.kr, 2023년 7월, 도로명주소 DB 기반)
+const DATA_URL_SIG   = '/data/sig.json';                    // 전국 시군구 (SIG_CD 5자리)
+const DATA_URL_EMD   = '/data/emd.json';                    // 전국 읍면동 법정동 (EMD_CD 8자리)
+const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3';   // TopoJSON 도로망
+const DATA_URL_LEVEL1 = '/data/gyeonggi_level1_merged.geojson'; // 경기도 시 단위 병합 (UI용)
+
+// ── 현재 서비스 지역 (추후 설정으로 변경 가능) ──────────────────────────────
+// 경기도 시도코드 = '41'
+const TARGET_SIDO_CODE = '41';
 
 export const useGeoData = () => {
-  const [data, setData] = useState<RegionCollection | null>(null);
+  const [data,      setData]      = useState<RegionCollection | null>(null);
   const [level1Data, setLevel1Data] = useState<RegionCollection | null>(null);
-  const [cityData, setCityData] = useState<RegionCollection | null>(null);
-  const [roadData, setRoadData] = useState<RoadCollection | null>(null);
+  const [cityData,  setCityData]  = useState<RegionCollection | null>(null);
+  const [roadData,  setRoadData]  = useState<RoadCollection | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0); // New: Loading Progress (0-100)
-  const [error, setError] = useState<Error | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [error,    setError]    = useState<Error | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         log.data("[useGeoData] Starting data load...");
         setLoading(true);
-        setProgress(10); // Start
+        setProgress(10);
 
-        // 1. Start fetching all resources
-        const fetchLevel1 = fetch('/data/gyeonggi_level1_merged.geojson');
-        const fetchLevel2 = fetch(DATA_URL_LEVEL2);
-        const fetchLevel3 = fetch(DATA_URL_LEVEL3);
-        const fetchRoads = fetch(DATA_URL_ROADS);
+        // ── 1. 병렬 Fetch ────────────────────────────────────────────────────
+        const [resSig, resEmd, resLevel1] = await Promise.all([
+          fetch(DATA_URL_SIG),
+          fetch(DATA_URL_EMD),
+          fetch(DATA_URL_LEVEL1),
+        ]);
+        setProgress(40);
 
-        // Await Level 1, 2 & 3 first (Essential for Game Logic)
-        const [response1, response2, response3] = await Promise.all([fetchLevel1, fetchLevel2, fetchLevel3]);
-        setProgress(40); // GeoJSONs fetched
+        if (!resSig.ok)    throw new Error(`sig.json 로드 실패: ${resSig.statusText}`);
+        if (!resEmd.ok)    throw new Error(`emd.json 로드 실패: ${resEmd.statusText}`);
+        if (!resLevel1.ok) throw new Error(`level1 로드 실패: ${resLevel1.statusText}`);
 
-        if (!response1.ok) throw new Error(`Failed to load Level 1 data: ${response1.statusText}`);
-        if (!response2.ok) throw new Error(`Failed to load Level 2 data: ${response2.statusText}`);
-        if (!response3.ok) throw new Error(`Failed to load Level 3 data: ${response3.statusText}`);
+        const rawSig    = await resSig.json();
+        const rawEmd    = await resEmd.json();
+        const rawLevel1 = await resLevel1.json();
+        setProgress(60);
 
-        const level1 = await response1.json();
-        const level2 = await response2.json();
-        const level3 = await response3.json();
-        setProgress(60); // GeoJSONs parsed
+        log.data(`[useGeoData] sig 로드: ${rawSig.features.length}개`);
+        log.data(`[useGeoData] emd 로드: ${rawEmd.features.length}개`);
 
-        // Process GeoJSONs
-        log.data(`[useGeoData] Loaded Level 1: ${level1.features.length} features`);
-        log.data(`[useGeoData] Loaded Level 2: ${level2.features.length} features`);
-        log.data(`[useGeoData] Loaded Level 3: ${level3.features.length} features`);
+        // ── 2. 시군구(sig.json) 처리 ──────────────────────────────────────
+        // 필드 정규화: SIG_CD → code, SIG_KOR_NM → name
+        // 대상 시도 필터링 (41 = 경기도)
+        const sigCodeToName = new Map<string, string>(); // SIG_CD(5자리) → SIG_KOR_NM
 
-        // Current level3 data could be our new Bupjeong-dong (starts with 41610 for Gwangju) 
-        // or old data (starts with 31 for Gyeonggi). Let's allow both for testing.
-        const filteredLevel3 = level3.features.filter((f: RegionFeature) => {
-          const code = f.properties.code || '';
-          return code.startsWith('31') || code.startsWith('41'); // VWorld Gyeonggi code is 41
-        });
+        const filteredSig = rawSig.features
+          .filter((f: RegionFeature) => {
+            const sigCd = String((f.properties as any).SIG_CD || '');
+            return sigCd.startsWith(TARGET_SIDO_CODE);
+          })
+          .map((f: RegionFeature) => {
+            const raw = f.properties as any;
+            const sigCd: string  = String(raw.SIG_CD  || '');
+            const sigNm: string  = String(raw.SIG_KOR_NM || '');
 
-        // Build Name -> 5-digit Legal Code map from Level 3
-        const sigNameToLegalCode = new Map<string, string>();
-        filteredLevel3.forEach((f: RegionFeature) => {
-          const sigName = f.properties.SIG_KOR_NM;
-          const legalCodeStr = f.properties.code;
-          if (sigName && legalCodeStr && legalCodeStr.length >= 5) {
-            const sigCode5 = legalCodeStr.substring(0, 5);
-            // 원본 이름 매핑 (예: "수원시 권선구" -> "수원시"를 제거하지 않은, "수원시권선구" 공백 제거)
-            const normalizedSigName = sigName.replace(/\s+/g, '');
-            if (!sigNameToLegalCode.has(normalizedSigName)) {
-              sigNameToLegalCode.set(normalizedSigName, sigCode5);
-            }
+            sigCodeToName.set(sigCd, sigNm);
 
-            // 고양시, 수원시, 등 구(Gu)가 포함된 대도시의 상위 시 매핑 (예: "수원시 권선구" -> "수원시")
-            // 공백을 기점으로 앞 단어가 '시'로 끝나면 최상위 시(Si) 이름으로 간주
-            const baseParts = sigName.split(' ');
-            if (baseParts.length > 1 && baseParts[0].endsWith('시')) {
-              const baseCityName = baseParts[0];
-              if (!sigNameToLegalCode.has(baseCityName)) {
-                // 부모 시 코드는 5번째 자리가 '0'임
-                const parentCityCode = sigCode5.substring(0, 4) + '0';
-                sigNameToLegalCode.set(baseCityName, parentCityCode);
-              }
-            }
-          }
-        });
+            return {
+              ...f,
+              properties: {
+                ...f.properties,
+                code:    sigCd,
+                name:    sigNm,
+                centroid: geoCentroid(f),
+              },
+            } as RegionFeature;
+          });
 
-        // Filter and update City Data (Level 2)
-        const targetPrefix = '31'; // Admin code for Gyeonggi
-        const filteredCity = level2.features.filter((f: RegionFeature) =>
-          f.properties.code.startsWith(targetPrefix)
-        );
+        log.data(`[useGeoData] 경기도 시군구: ${filteredSig.length}개`);
 
-        // Map Administrative Code to Legal Code
-        filteredCity.forEach((f: RegionFeature) => {
-          // Level 2 데이터의 name은 공백 없는 형태(e.g., "수원시권선구") 또는 상위 시("수원시")
-          const name = f.properties.name ? f.properties.name.replace(/\s+/g, '') : undefined;
+        // ── 3. 읍면동(emd.json) 처리 ──────────────────────────────────────
+        // 필드 정규화: EMD_CD → code, EMD_KOR_NM → name
+        // SIG_KOR_NM 을 sig.json에서 조인 (EMD_CD 앞 5자리 = SIG_CD)
+        const filteredEmd = rawEmd.features
+          .filter((f: RegionFeature) => {
+            const emdCd = String((f.properties as any).EMD_CD || '');
+            return emdCd.startsWith(TARGET_SIDO_CODE);
+          })
+          .map((f: RegionFeature) => {
+            const raw = f.properties as any;
+            const emdCd: string  = String(raw.EMD_CD     || '');
+            const emdNm: string  = String(raw.EMD_KOR_NM || '');
+            const sigCd5: string = emdCd.substring(0, 5);
+            const sigNm: string  = sigCodeToName.get(sigCd5) || '';
 
-          if (name && sigNameToLegalCode.has(name)) {
-            const legalCode = sigNameToLegalCode.get(name)!;
-            // overwrite code with legal code
-            f.properties.code = legalCode;
-          } else if (name) {
-            // Fallback: If "수원시권선구" fails but "수원시" exists 
-            const parentNameMatch = name.match(/^(.*?시)[\w\u3131-\uD79D]*구$/);
-            if (parentNameMatch && sigNameToLegalCode.has(parentNameMatch[1])) {
-              f.properties.code = sigNameToLegalCode.get(parentNameMatch[1])!.substring(0, 4) + f.properties.code.substring(4, 5);
-            }
-          }
-          // Calculate Centroid
+            return {
+              ...f,
+              properties: {
+                ...f.properties,
+                code:        emdCd,
+                name:        emdNm,
+                SIG_KOR_NM:  sigNm,    // 시군구 이름 (구 있는 시 감지에 사용)
+                EMD_KOR_NM:  emdNm,
+                _isEmdGroup: true,      // 리(里) 아님, 읍/면/동 단위임을 명시
+                centroid:    geoCentroid(f),
+              },
+            } as RegionFeature;
+          });
+
+        log.data(`[useGeoData] 경기도 읍면동: ${filteredEmd.length}개`);
+
+        // ── 4. Level 1 (경기도 시 단위 병합 폴리곤) ──────────────────────
+        // 기존 merged 파일 그대로 사용, centroid만 추가
+        rawLevel1.features.forEach((f: RegionFeature) => {
           f.properties.centroid = geoCentroid(f);
         });
 
-        // Enrichment Logic
-        const parentMap = new Map<string, string>();
-        filteredCity.forEach((f: RegionFeature) => {
-          if (f.properties.code && f.properties.name) {
-            parentMap.set(f.properties.code, f.properties.name);
+        // ── 5. 상태 업데이트 ─────────────────────────────────────────────
+        setLevel1Data(rawLevel1);
+        setCityData({ ...rawSig,  features: filteredSig });
+        setData(     { ...rawEmd,  features: filteredEmd });
+        setProgress(80);
+
+        // ── 6. 도로 데이터 (비핵심, 실패해도 계속) ───────────────────────
+        try {
+          const fetchRoads = fetch(DATA_URL_ROADS);
+          const responseRoads = await fetchRoads;
+          if (responseRoads.ok) {
+            const topology = await responseRoads.json();
+            const geojson = topojson.feature(topology, topology.objects.roads) as unknown as RoadCollection;
+            log.data(`[useGeoData] 도로 세그먼트: ${geojson.features.length}개`);
+            setRoadData(geojson);
+          } else {
+            console.warn("[useGeoData] 도로 데이터 로드 실패:", responseRoads.statusText);
           }
-        });
-
-        filteredLevel3.forEach((f: RegionFeature) => {
-          const code = f.properties.code;
-          if (code && code.length >= 5) {
-            const parentCode = code.substring(0, 5);
-            const parentName = parentMap.get(parentCode);
-            if (parentName) {
-              f.properties.SIG_KOR_NM = parentName;
-            }
-            // EMD_KOR_NM was properly populated by the python script already
-          }
-          // Calculate Centroid
-          f.properties.centroid = geoCentroid(f);
-        });
-
-        // [NEW UX Consistency] Update Level 1 data to use legal codes instead of original admin codes
-        level1.features.forEach((f: RegionFeature) => {
-          const name = f.properties.name;
-          if (name && sigNameToLegalCode.has(name)) {
-            f.properties.code = sigNameToLegalCode.get(name)!;
-          }
-          f.properties.centroid = geoCentroid(f);
-        });
-
-        setLevel1Data(level1);
-        setCityData({ ...level2, features: filteredCity });
-        setData({ ...level3, features: filteredLevel3 });
-        setProgress(80); // Map Data Ready
-
-        // Process Roads (TopoJSON)
-        const responseRoads = await fetchRoads;
-        if (responseRoads.ok) {
-          const topology = await responseRoads.json();
-          const geojson = topojson.feature(topology, topology.objects.roads) as unknown as RoadCollection;
-          log.data(`[useGeoData] Loaded Roads: ${geojson.features.length} segments`);
-          setRoadData(geojson);
-        } else {
-          console.warn("[useGeoData] Failed to load roads", responseRoads.statusText);
+        } catch (roadErr) {
+          console.warn("[useGeoData] 도로 데이터 로드 오류:", roadErr);
         }
 
-        setProgress(100); // All Done
+        setProgress(100);
 
       } catch (err) {
-        console.error("[useGeoData] Error loading data:", err);
+        console.error("[useGeoData] 데이터 로드 오류:", err);
         setError(err instanceof Error ? err : new Error('Unknown error'));
       } finally {
         setLoading(false);
