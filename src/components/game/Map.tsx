@@ -10,7 +10,6 @@ import { MapScale } from './MapScale';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
-import { RegionModeSelectPopup } from './RegionModeSelectPopup';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
@@ -36,8 +35,6 @@ export const Map = () => {
     currentStage,
     isBasicMode,
     highlightRegions,
-    selectedRegionForMode,
-    setSelectedRegionForMode,
     startGame,
     isHintActive,
     currentQuestion,
@@ -124,12 +121,18 @@ export const Map = () => {
   const isSingleRegion = filteredCityFeatures.length === 1;
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
-  // 지역 선택 전(REGION_SELECT) 화면에서는 무조건 시/군/구 큰 단위만 렌더링해야 함 (렉 방지 & 시군구 클릭 유도)
-  // [NEW UX UX Consistency] REGION_SELECT 일 때는 병합된 Level 1 데이터를 최우선 렌더링
-  const showTownGeometry = gameState === 'SUBREGION_SELECT' || (gameState !== 'REGION_SELECT' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5));
-  const featuresToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : (showTownGeometry ? features : filteredCityFeatures);
-  const labelsToRender = gameState === 'REGION_SELECT' ? (level1Data?.features || []) : filteredCityFeatures;
-  const showDistrictLabels = gameState === 'SUBREGION_SELECT' || isSingleRegion || zoomTransform.k >= 1.5;
+
+  // [NEW UX: Flat Level 2 Render] 
+  // REGION_SELECT 일 때는 모든 시/군/구 (Level 2, cityData) 77개를 모두 평등하게 랜더링.
+  // 선택하면 바로 PLAYING으로 넘어가므로 SUBREGION_SELECT 등 중간 뎁스 삭제.
+  const showTownGeometry = gameState === 'PLAYING' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
+
+  const featuresToRender = gameState === 'REGION_SELECT'
+    ? (cityData?.features || [])
+    : (showTownGeometry ? features : filteredCityFeatures);
+
+  const labelsToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : filteredCityFeatures;
+  const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
   useMapAutoZoom({
@@ -162,69 +165,26 @@ export const Map = () => {
 
   const handleRegionClick = useCallback((code: string) => {
     if (gameState === 'REGION_SELECT') {
-      // Find the clicked feature to extract its name
       const feature = featuresToRender.find((f: any) => f.properties.code === code);
       if (!feature) return;
 
-      const fullName = feature.properties.name || '';
-      const displayName = fullName;
       const groupCode = code;
-      let isGuCity = false;
+      const prefix = groupCode.substring(0, 5); // Level 2 Code (e.g., 41113 수원시 권선구)
 
-      // Group Gu-level cities
-      // [NEW UX Consistency] `level1Data` 에서는 구가 존재하는 시들이 `_isMergedCity` 플래그를 달고 있습니다.
-      if ((feature.properties as any)._isMergedCity) {
-        isGuCity = true;
-      }
+      // Select all Level 3 regions (Eup/Myeon/Dong) belonging to this Level 2 code
+      // We specifically want `_isEmdGroup` (Terminal Level 3 logic)
+      const targetDongs = fullMapData?.features.filter((f: any) =>
+        f.properties.code.startsWith(prefix) &&
+        (f.properties as any)._isEmdGroup === true
+      ) || [];
 
-      setSelectedRegionForMode({ code: groupCode, isGuCity, name: displayName });
-      return;
-    }
-
-    if (gameState === 'SUBREGION_SELECT') {
-      const feature = featuresToRender.find((f: any) => f.properties.code === code);
-      if (!feature) return;
-
-      if (selectedRegionForMode?.isGuCity) {
-        // [Type A] 클릭한 '구(Gu)' 하위의 데이터(_isEmdGroup: 동/읍/면) 추출하여 게임 시작
-        const guPrefix = feature.properties.code.substring(0, 5);
-        const targetDongs = fullMapData?.features.filter((f: any) =>
-          f.properties.code.startsWith(guPrefix) &&
-          (f.properties as any)._isEmdGroup === true
-        ) || [];
-        startGame({
-          chapterCode: selectedRegionForMode.code,
-          overrideRegions: targetDongs,
-          highlightRegions: [feature], // 워터마크 표시용
-          isBasicMode: false
-        });
-      } else {
-        // [Type B] 도농복합시
-        if ((feature.properties as any)._isEmdGroup) {
-          // '읍/면' 폴리곤 클릭 시 하위 '리(Ri)' 데이터 축출
-          const emdName = feature.properties.EMD_KOR_NM;
-          const cityPrefix = selectedRegionForMode?.code.substring(0, 4) || '';
-          const targetRis = fullMapData?.features.filter((f: any) =>
-            f.properties.code.startsWith(cityPrefix) &&
-            f.properties.EMD_KOR_NM === emdName &&
-            !(f.properties as any)._isEmdGroup
-          ) || [];
-          startGame({
-            chapterCode: selectedRegionForMode?.code,
-            overrideRegions: targetRis,
-            highlightRegions: [feature], // 워터마크 표시용
-            isBasicMode: false
-          });
-        } else {
-          // '동(Dong)' 클릭 시 해당 동 1개만으로 게임 진입 (예외적 상황)
-          startGame({
-            chapterCode: selectedRegionForMode?.code,
-            overrideRegions: [feature],
-            highlightRegions: [],
-            isBasicMode: false
-          });
-        }
-      }
+      // Start game immediately with Flat L2 -> L3 mapping
+      startGame({
+        chapterCode: groupCode,
+        overrideRegions: targetDongs,
+        highlightRegions: [], // [Anti Topo-Gap Culling] Do not pass Level 2 polygon to highlight
+        isBasicMode: false
+      });
       return;
     }
 
@@ -297,12 +257,11 @@ export const Map = () => {
       <svg
         ref={svgRef}
         width="100%" height="100%"
-        viewBox={`0 0 ${width} ${height}`}
         className="absolute inset-0"
         style={{ zIndex: 20 }}
       >
-        {/* InteractionLayer: gRef 내부 (CSS zoom transform 적용됨) */}
-        <g ref={gRef} style={{ willChange: 'transform' }}>
+        {/* InteractionLayer: gRef 내부 (SVG transform 적용됨) */}
+        <g ref={gRef} style={{ willChange: 'transform' }} transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -332,7 +291,7 @@ export const Map = () => {
 
           {/* Visual Overlays: Hover, Selection, Feedback */}
           <g style={{ pointerEvents: 'none' }}>
-            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT' || gameState === 'SUBREGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
+            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
               <path
                 d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any) || ''}
                 fill={getFillColor(hoveredRegion, true)}
@@ -439,13 +398,6 @@ export const Map = () => {
         </div>
       )}
 
-      {/* Map First Interaction: Region Mode Select Popup */}
-      {gameState === 'REGION_SELECT' && selectedRegionForMode && (
-        <RegionModeSelectPopup
-          selectedCity={selectedRegionForMode}
-          onClose={() => setSelectedRegionForMode(null)}
-        />
-      )}
     </div>
   );
 };

@@ -5,9 +5,9 @@ import { select } from 'd3-selection';
 
 // D3가 내부적으로 주입하는 숨겨진 속성을 위한 타입 확장
 interface ZoomableSVGElement extends SVGSVGElement {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  __zoom?: any;
-  __startTransform?: { x: number; y: number; k: number };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    __zoom?: any;
+    __startTransform?: { x: number; y: number; k: number };
 }
 
 export interface MapTransform {
@@ -44,7 +44,7 @@ export const useMapZoom = ({
     onMomentumStart,
     onCrossfadeStart,
     minZoom = 1,
-    maxZoom = 8,
+    maxZoom = 15,
     onTransformTick,
     onTransformEnd,
 }: UseMapZoomProps) => {
@@ -66,15 +66,15 @@ export const useMapZoom = ({
     // onMomentumStart, onCrossfadeStart를 ref로 관리
     const onMomentumStartRef = useRef(onMomentumStart);
     const onCrossfadeStartRef = useRef(onCrossfadeStart);
-    useLayoutEffect(() => { 
-        onMomentumStartRef.current = onMomentumStart; 
+    useLayoutEffect(() => {
+        onMomentumStartRef.current = onMomentumStart;
         onCrossfadeStartRef.current = onCrossfadeStart;
     }, [onMomentumStart, onCrossfadeStart]);
 
     const onTransformTickRef = useRef(onTransformTick);
     const onTransformEndRef = useRef(onTransformEnd);
-    useLayoutEffect(() => { 
-        onTransformTickRef.current = onTransformTick; 
+    useLayoutEffect(() => {
+        onTransformTickRef.current = onTransformTick;
         onTransformEndRef.current = onTransformEnd;
     }, [onTransformTick, onTransformEnd]);
 
@@ -94,7 +94,7 @@ export const useMapZoom = ({
         }
         // 2. SVG <g> 레이어 transform 직접 업데이트
         if (gRef.current) {
-            gRef.current.style.transform = `translate(${t.x}px,${t.y}px) scale(${t.k})`;
+            gRef.current.setAttribute('transform', `translate(${t.x},${t.y}) scale(${t.k})`);
         }
 
         // 3. 콜백을 통해 부모 컴포넌트에게 CSS 스케일 갱신 위임 (리렌더링 없음)
@@ -207,7 +207,7 @@ export const useMapZoom = ({
                 animFrameRef.current = null;
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [width, height, minZoom, maxZoom]);
 
     /**

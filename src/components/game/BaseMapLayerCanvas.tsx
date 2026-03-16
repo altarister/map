@@ -65,8 +65,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         ctx.lineJoin = 'round';
 
         // We must configure a D3 GeoPath to draw to this context
-        const localProjection = (projection as any).copy ? (projection as any).copy().clipExtent(null) : projection;
-        const canvasPath = geoPath(localProjection).context(ctx);
+        // Ensure we use the exact identical projection object as the SVG layer
+        const canvasPath = geoPath(projection).context(ctx);
 
         // Base line width adjusts to zoom level so it stays crisp but thin
         const baseStrokeWidth = 1 / k;
@@ -103,7 +103,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
             ctx.strokeStyle = strokeColor;
             ctx.stroke();
-            
+
             // Restore line width
             ctx.lineWidth = baseStrokeWidth;
         });
@@ -180,8 +180,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 ref={canvasRef}
                 className="absolute"
                 style={{
-                    left: `-${(CANVAS_SCALE - 1) * 50}%`,
-                    top: `-${(CANVAS_SCALE - 1) * 50}%`,
+                    left: `-${(width * (CANVAS_SCALE - 1)) / 2}px`,
+                    top: `-${(height * (CANVAS_SCALE - 1)) / 2}px`,
                     transition: 'none'
                 }}
             />

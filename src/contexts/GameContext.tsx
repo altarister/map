@@ -27,8 +27,6 @@ interface GameContextType {
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[]; // Used for watermark Eup/Myeon rendering
-  selectedRegionForMode: { code: string; isGuCity: boolean; name: string } | null;
-  setSelectedRegionForMode: (region: { code: string; isGuCity: boolean; name: string } | null) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -50,7 +48,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { layerVisibility } = useMapContext();
   const [isBasicMode, setIsBasicMode] = React.useState<boolean>(false);
   const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
-  const [selectedRegionForMode, setSelectedRegionForMode] = React.useState<{ code: string; isGuCity: boolean; name: string } | null>(null);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -162,12 +159,10 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setHintActive,
     currentStage,
     isBasicMode,
-    highlightRegions,
-    selectedRegionForMode,
-    setSelectedRegionForMode
+    highlightRegions
   }), [
     gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
-    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions, selectedRegionForMode, setSelectedRegionForMode
+    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions
   ]);
 
   return (

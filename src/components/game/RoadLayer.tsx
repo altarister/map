@@ -100,9 +100,8 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
             ctx.lineJoin = 'round';
         });
 
-        // Projection logic needs to match
-        const localProjection = (projection as any).copy ? (projection as any).copy().clipExtent(null) : projection;
-        const canvasPath = geoPath(localProjection);
+        // Projection logic needs to match exactly with SVG bounds for high zoom mapping
+        const canvasPath = geoPath(projection);
 
         // Inverse transform for culling
         const invertX = (px: number) => (px - x) / k;
@@ -278,8 +277,8 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                     style={{
                         zIndex: z,
                         opacity: o,
-                        left: `-${(CANVAS_SCALE - 1) * 50}%`,
-                        top: `-${(CANVAS_SCALE - 1) * 50}%`,
+                        left: `-${(width * (CANVAS_SCALE - 1)) / 2}px`,
+                        top: `-${(height * (CANVAS_SCALE - 1)) / 2}px`,
                         transition: 'none'
                     }}
                 />

@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "name": "skorea_municipalities_geo_simple",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    { "type": "Feature", "properties": { "code": "31011", "name": "수원시 장안구", "name_eng": "Suwon-si Jangangu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 126.98, 37.32 ], [ 127.02, 37.32 ], [ 127.02, 37.29 ], [ 126.98, 37.29 ], [ 126.98, 37.32 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31012", "name": "수원시 권선구", "name_eng": "Suwon-si Gwonseongu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 126.95, 37.29 ], [ 127.00, 37.29 ], [ 127.00, 37.24 ], [ 126.95, 37.24 ], [ 126.95, 37.29 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31013", "name": "수원시 팔달구", "name_eng": "Suwon-si Paldalgu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.00, 37.29 ], [ 127.04, 37.29 ], [ 127.04, 37.27 ], [ 127.00, 37.27 ], [ 127.00, 37.29 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31014", "name": "수원시 영통구", "name_eng": "Suwon-si Yeongtonggu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.04, 37.29 ], [ 127.08, 37.29 ], [ 127.08, 37.24 ], [ 127.04, 37.24 ], [ 127.04, 37.29 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31021", "name": "성남시 수정구", "name_eng": "Seongnam-si Sujeonggu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.10, 37.47 ], [ 127.17, 37.47 ], [ 127.17, 37.43 ], [ 127.10, 37.43 ], [ 127.10, 37.47 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31022", "name": "성남시 중원구", "name_eng": "Seongnam-si Jungwongu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.17, 37.47 ], [ 127.22, 37.47 ], [ 127.22, 37.42 ], [ 127.17, 37.42 ], [ 127.17, 37.47 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31023", "name": "성남시 분당구", "name_eng": "Seongnam-si Bundanggu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.08, 37.41 ], [ 127.17, 37.41 ], [ 127.17, 37.33 ], [ 127.08, 37.33 ], [ 127.08, 37.41 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31030", "name": "의정부시", "name_eng": "Uijeongbu-si", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 127.02, 37.76 ], [ 127.10, 37.76 ], [ 127.10, 37.70 ], [ 127.02, 37.70 ], [ 127.02, 37.76 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31041", "name": "안양시 만안구", "name_eng": "Anyang-si Manangu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 126.89, 37.43 ], [ 126.94, 37.43 ], [ 126.94, 37.37 ], [ 126.89, 37.37 ], [ 126.89, 37.43 ] ] ] } },
+    { "type": "Feature", "properties": { "code": "31042", "name": "안양시 동안구", "name_eng": "Anyang-si Dongangu", "base_year": "2018" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 126.94, 37.42 ], [ 126.98, 37.42 ], [ 126.98, 37.37 ], [ 126.94, 37.37 ], [ 126.94, 37.42 ] ] ] } }
+  ]
+}

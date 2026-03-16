@@ -6,7 +6,9 @@ import { geoCentroid } from 'd3-geo';
 
 // GeoJSON Data URLs
 const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // Sigun (City/County)
+const DATA_URL_SEOUL_INCHEON_GU = '/data/seoul_incheon_gu.geojson'; // Seoul/Incheon Gu
 const DATA_URL_LEVEL3 = '/data/gyeonggi_bupjeongdong.geojson'; // Bupjeong-dong/Ri (Terminal Nodes)
+const DATA_URL_SEOUL_INCHEON_DONG = '/data/seoul_incheon_dong.geojson'; // Seoul/Incheon Dong
 const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
 export const useGeoData = () => {
@@ -28,22 +30,40 @@ export const useGeoData = () => {
 
         // 1. Start fetching all resources
         const fetchLevel1 = fetch('/data/gyeonggi_level1_merged.geojson');
+        const fetchLevel1SeoulIncheon = fetch('/data/seoul_incheon_level1.geojson');
         const fetchLevel2 = fetch(DATA_URL_LEVEL2);
+        const fetchSeoulIncheonGu = fetch(DATA_URL_SEOUL_INCHEON_GU);
         const fetchLevel3 = fetch(DATA_URL_LEVEL3);
+        const fetchSeoulIncheonDong = fetch(DATA_URL_SEOUL_INCHEON_DONG);
         const fetchRoads = fetch(DATA_URL_ROADS);
 
         // Await Level 1, 2 & 3 first (Essential for Game Logic)
-        const [response1, response2, response3] = await Promise.all([fetchLevel1, fetchLevel2, fetchLevel3]);
+        const [response1, response1SI, response2, responseSeoulIncheonGu, response3, responseSeoulIncheonDong] = await Promise.all([fetchLevel1, fetchLevel1SeoulIncheon, fetchLevel2, fetchSeoulIncheonGu, fetchLevel3, fetchSeoulIncheonDong]);
         setProgress(40); // GeoJSONs fetched
 
         if (!response1.ok) throw new Error(`Failed to load Level 1 data: ${response1.statusText}`);
+        if (!response1SI.ok) throw new Error(`Failed to load Level 1 SI data: ${response1SI.statusText}`);
         if (!response2.ok) throw new Error(`Failed to load Level 2 data: ${response2.statusText}`);
+        if (!responseSeoulIncheonGu.ok) throw new Error(`Failed to load Seoul/Incheon Gu data: ${responseSeoulIncheonGu.statusText}`);
         if (!response3.ok) throw new Error(`Failed to load Level 3 data: ${response3.statusText}`);
+        if (!responseSeoulIncheonDong.ok) throw new Error(`Failed to load Seoul/Incheon Dong data: ${responseSeoulIncheonDong.statusText}`);
 
         const level1 = await response1.json();
+        const level1SI = await response1SI.json();
         const level2 = await response2.json();
+        const seoulIncheonGu = await responseSeoulIncheonGu.json();
         const level3 = await response3.json();
+        const seoulIncheonDong = await responseSeoulIncheonDong.json();
         setProgress(60); // GeoJSONs parsed
+
+        // Merge Level 1
+        level1.features = [...level1.features, ...level1SI.features];
+
+        // Merge Level 2
+        level2.features = [...level2.features, ...seoulIncheonGu.features];
+
+        // Merge Level 3
+        level3.features = [...level3.features, ...seoulIncheonDong.features];
 
         // Process GeoJSONs
         log.data(`[useGeoData] Loaded Level 1: ${level1.features.length} features`);
@@ -54,7 +74,7 @@ export const useGeoData = () => {
         // or old data (starts with 31 for Gyeonggi). Let's allow both for testing.
         const filteredLevel3 = level3.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
-          return code.startsWith('31') || code.startsWith('41'); // VWorld Gyeonggi code is 41
+          return code.startsWith('31') || code.startsWith('41') || code.startsWith('11') || code.startsWith('23'); // VWorld Gyeonggi code is 41, Seoul 11, Incheon 23
         });
 
         // Build Name -> 5-digit Legal Code map from Level 3
@@ -85,9 +105,8 @@ export const useGeoData = () => {
         });
 
         // Filter and update City Data (Level 2)
-        const targetPrefix = '31'; // Admin code for Gyeonggi
         const filteredCity = level2.features.filter((f: RegionFeature) =>
-          f.properties.code.startsWith(targetPrefix)
+          f.properties.code.startsWith('31') || f.properties.code.startsWith('11') || f.properties.code.startsWith('23')
         );
 
         // Map Administrative Code to Legal Code
