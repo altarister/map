@@ -8,6 +8,7 @@ export interface RegionIntel {
   orderVolume: OrderVolume; // 오더 수
   importance: number; // 중요도 (1~5 별점)
   fieldTips: string[]; // 특징 및 실전 팁
+  landmarks?: string[]; // 주요 랜드마크 (역, 구청, 터미널, 대형 마트 등)
 }
 
 // Key is regionCode

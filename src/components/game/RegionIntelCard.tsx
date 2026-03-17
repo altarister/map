@@ -68,6 +68,20 @@ export const RegionIntelCard = ({ intel, onClose, className = '' }: RegionIntelC
                 </div>
             )}
 
+            {/* 핵심 거점(Landmarks) */}
+            {intel.landmarks && intel.landmarks.length > 0 && (
+                <div className="text-xs">
+                    <h4 className="text-emerald-400 mb-1 font-mono uppercase text-[10px]">📍 주요 거점</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {intel.landmarks.map((mark, idx) => (
+                            <span key={idx} className="bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded shadow-sm text-[10px] font-bold border border-emerald-500/30">
+                                {mark}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* 특징 및 실전 팁 */}
             {intel.fieldTips.length > 0 && (
                 <div className="text-xs bg-black/20 rounded p-2 border border-white/5">
