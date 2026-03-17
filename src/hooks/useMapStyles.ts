@@ -26,18 +26,19 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
     // 2. 이미 맞춘 지역
     if (answeredRegions.has(code)) return '#86efac'; // 정답 맞춤: 연한 초록
 
-    // 3. 히트맵(orderVolume) 베이스 + Hover 색상
-    if (orderVolume) {
-      if (orderVolume === '최상') return isHovered ? 'rgba(4, 120, 87, 0.95)' : 'rgba(5, 150, 105, 0.85)';
-      if (orderVolume === '상') return isHovered ? 'rgba(5, 150, 105, 0.85)' : 'rgba(16, 185, 129, 0.7)';
-      if (orderVolume === '중상') return isHovered ? 'rgba(16, 185, 129, 0.7)' : 'rgba(52, 211, 153, 0.55)';
-      if (orderVolume === '중') return isHovered ? 'rgba(52, 211, 153, 0.6)' : 'rgba(110, 231, 183, 0.4)';
-      if (orderVolume === '중하') return isHovered ? 'rgba(110, 231, 183, 0.5)' : 'rgba(167, 243, 208, 0.25)';
-      if (orderVolume === '하') return isHovered ? 'rgba(167, 243, 208, 0.3)' : 'rgba(209, 250, 229, 0.1)';
+    // 3. Hover 시 색상 (히트맵 적용)
+    if (isHovered) {
+      if (orderVolume === '최상') return 'rgba(5, 150, 105, 0.9)'; // 진하고 꽉찬 에메랄드
+      if (orderVolume === '상') return 'rgba(16, 185, 129, 0.75)';
+      if (orderVolume === '중상') return 'rgba(52, 211, 153, 0.6)';
+      if (orderVolume === '중') return 'rgba(110, 231, 183, 0.45)';
+      if (orderVolume === '중하') return 'rgba(167, 243, 208, 0.3)';
+      if (orderVolume === '하') return 'rgba(209, 250, 229, 0.15)'; // 거의 투명한
+      return 'rgba(255, 255, 255, 0.15)'; // 기본 균일 호버 색상 (데이터 없을 때)
     }
 
-    // 기본 색상
-    return isHovered ? 'rgba(71, 85, 105, 0.6)' : 'rgba(30, 41, 59, 0.4)';
+    // Hover가 아닐 때 (보통 불리어지지 않지만 방어 코드)
+    return 'transparent';
   }, [lastFeedback, answeredRegions]);
 
   const getStrokeColor = useCallback((code: string, isHovered: boolean = false) => {
