@@ -9,9 +9,11 @@ interface UseGameLogicReturn {
   gameState: GameState;
   setGameState: (state: GameState) => void; // 추가
   currentQuestion: GameQuestion | null;
+  totalQuestions: number; // 전체 문제 수 추가
   score: GameScore;
   startGame: (overrideRegions?: RegionFeature[]) => void;
   checkAnswer: (input: UserInput) => void; // string code -> UserInput 객체로 변경
+  skipQuestion: () => void; // 오답 처리 후 다음 문제로 스킵
   resetGame: () => void;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
@@ -36,6 +38,7 @@ export const useGameLogic = (
   
   // ✅ 1DAL Trainer Spaced Repetition Queue 도입
   const [questionQueue, setQuestionQueue] = useState<RegionFeature[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0); // 전체 문제 수 상태 추가
 
   // ✅ 힌트 모드 추가
   const [isHintActive, setHintActive] = useState<boolean>(false);
@@ -99,6 +102,7 @@ export const useGameLogic = (
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setAnsweredRegions(new Set());
+    setTotalQuestions(0);
     setLastFeedback(null);
     setEndTime(null);
     setLevelState(null);
@@ -122,6 +126,7 @@ export const useGameLogic = (
     
     // 배열 랜덤 셔플
     const shuffledQueue = uniqueFeatures.sort(() => Math.random() - 0.5);
+    setTotalQuestions(shuffledQueue.length);
     setQuestionQueue(shuffledQueue);
 
     // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달
@@ -135,6 +140,7 @@ export const useGameLogic = (
     setGameState('INITIAL');
     setCurrentQuestion(null);
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
+    setTotalQuestions(0);
     setLastFeedback(null);
     setAnsweredRegions(new Set());
     setLevelState(null);
@@ -249,10 +255,46 @@ export const useGameLogic = (
 
   }, [gameState, currentQuestion, currentStage, levelState, answeredRegions, questionQueue, setNextQuestion]);
 
+  // 현재 문제를 오답 처리하고 다음 문제로 스킵
+  const skipQuestion = useCallback(() => {
+    if (gameState !== 'PLAYING' || !currentQuestion) return;
+    if (isProcessingRef.current) return;
+
+    const now = Date.now();
+    const missedName =
+      currentQuestion.type === 'LOCATE_SINGLE' ? currentQuestion.target.name :
+      currentQuestion.type === 'LOCATE_PAIR' ? `${currentQuestion.start.name} → ${currentQuestion.end.name}` :
+      '알 수 없는 지역';
+
+    setLastFeedback({ isCorrect: false, regionCode: '', correctCode: '', regionName: '스킵', timestamp: now });
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = setTimeout(() => setLastFeedback(null), 2000);
+
+    setScore(prev => ({
+      ...prev,
+      incorrect: prev.incorrect + 1,
+      missedRegions: [...prev.missedRegions, missedName],
+    }));
+
+    const nextQueue = [...questionQueue];
+    if (nextQueue.length > 1) {
+      const skippedItem = nextQueue.shift();
+      if (skippedItem) {
+        const insertIndex = Math.min(3, nextQueue.length);
+        nextQueue.splice(insertIndex, 0, skippedItem);
+      }
+    } else {
+      // 1개뿐이면 그대로 유지 (계속 같은 문제)
+    }
+    setQuestionQueue(nextQueue);
+    setNextQuestion(nextQueue);
+  }, [gameState, currentQuestion, questionQueue, setNextQuestion]);
+
   // 게임 초기화
   const resetGame = useCallback(() => {
     setGameState('REGION_SELECT');
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
+    setTotalQuestions(0);
     setCurrentQuestion(null);
 
     setLastFeedback(null);
@@ -266,9 +308,11 @@ export const useGameLogic = (
     gameState,
     setGameState, // 추가
     currentQuestion,
+    totalQuestions,
     score,
     startGame,
     checkAnswer,
+    skipQuestion,
     resetGame,
     lastFeedback,
     answeredRegions,

@@ -24,8 +24,9 @@ interface SettingsContextType {
     showLayerControl: boolean;
     showScaleBar: boolean;
     showGameLog: boolean;
+    showIntelCard: boolean; // 인텔 카드 상시 노출 여부
   };
-  setViewOptions: (options: { showLayerControl: boolean; showScaleBar: boolean; showGameLog: boolean; }) => void;
+  setViewOptions: (options: { showLayerControl: boolean; showScaleBar: boolean; showGameLog: boolean; showIntelCard: boolean }) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -45,6 +46,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     showLayerControl: true,
     showScaleBar: true,
     showGameLog: true,
+    showIntelCard: true, // 기본값: 켜짐
   });
 
   // Apply theme class to body

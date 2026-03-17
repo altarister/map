@@ -142,6 +142,24 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
               </div>
             </div>
 
+            {/* Intel Card Toggle */}
+            <div
+              className="flex items-center justify-between cursor-pointer group"
+              onClick={() => setViewOptions({ ...viewOptions, showIntelCard: !viewOptions.showIntelCard })}
+            >
+              <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">지역 인텔 카드</span>
+              <div className="relative w-10 h-5">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={viewOptions.showIntelCard}
+                  readOnly
+                />
+                <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${viewOptions.showIntelCard ? 'bg-green-600' : 'bg-slate-700'}`} />
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${viewOptions.showIntelCard ? 'translate-x-6' : 'translate-x-1'} left-0`} />
+              </div>
+            </div>
+
           </div>
         </div>
 

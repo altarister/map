@@ -13,11 +13,13 @@ interface GameContextType {
   gameState: GameState;
   setGameState: (state: GameState) => void;
   currentQuestion: GameQuestion | null;
+  totalQuestions: number;
   score: GameScore;
   startTime: number | null;
   endTime: number | null;
   startGame: (options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => void;
   checkAnswer: (input: UserInput) => void;
+  skipQuestion: () => void;
   resetGame: () => void;
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
@@ -79,10 +81,12 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setGameState,
     score,
     currentQuestion,
+    totalQuestions,
     startTime,
     endTime,
     startGame: startGameLogic,
     checkAnswer,
+    skipQuestion,
     resetGame,
     lastFeedback,
     answeredRegions,
@@ -146,11 +150,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     gameState,
     setGameState,
     currentQuestion,
+    totalQuestions,
     score,
     startTime,
     endTime,
     startGame,
     checkAnswer,
+    skipQuestion,
     resetGame,
     lastFeedback,
     answeredRegions,
@@ -161,8 +167,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isBasicMode,
     highlightRegions
   }), [
-    gameState, setGameState, currentQuestion, score, startTime, endTime, startGame, checkAnswer, resetGame,
-    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions
+    gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGame,
+    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
+    skipQuestion
   ]);
 
   return (

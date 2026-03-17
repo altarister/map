@@ -12,6 +12,7 @@ interface MapScaleProps {
 
 import { useState } from 'react';
 import { useMapContext } from '../../contexts/MapContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { Button } from '../ui/Button';
 
 interface MapScaleProps {
@@ -31,7 +32,8 @@ export const MapScale = ({
   hoveredRegion,
   renderedCount,
 }: MapScaleProps) => {
-  const { layerVisibility, toggleLayer } = useMapContext(); // Revert hook
+  const { layerVisibility, toggleLayer } = useMapContext();
+  const { viewOptions, setViewOptions } = useSettings();
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(true);
 
   // Layer Definitions
@@ -123,6 +125,28 @@ export const MapScale = ({
                 </div>
               </div>
             ))}
+
+            {/* 별도 구분선 후 인텔 카드 옵션 */}
+            <div className="my-1 border-t border-white/10" />
+            <div
+              onClick={() => setViewOptions({ ...viewOptions, showIntelCard: !viewOptions.showIntelCard })}
+              className="flex items-center justify-between cursor-pointer group hover:bg-white/5 p-1.5 rounded transition-colors"
+            >
+              <span className={`text-[10px] font-bold tracking-tight transition-colors ${viewOptions.showIntelCard ? 'text-yellow-400' : 'text-muted-foreground'}`}>
+                💡 인텔 카드 표시
+              </span>
+              <div className="relative w-9 h-4">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={viewOptions.showIntelCard}
+                  readOnly
+                />
+                <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${viewOptions.showIntelCard ? 'bg-yellow-600/50' : 'bg-slate-700'}`} />
+                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${viewOptions.showIntelCard ? 'translate-x-4' : 'translate-x-0'} left-1`} />
+              </div>
+            </div>
+
           </div>
         </div>
 
