@@ -1,35 +1,7 @@
 import { useCallback } from 'react';
 import type { AnswerFeedback } from '../types/game';
 
-const CITY_COLORS = [
-  '#fee2e2', // Red-100
-  '#ffedd5', // Orange-100
-  '#fef3c7', // Amber-100
-  '#ecfccb', // Lime-100
-  '#d1fae5', // Emerald-100
-  '#cffafe', // Cyan-100
-  '#e0f2fe', // Sky-100
-  '#dbeafe', // Blue-100
-  '#e0e7ff', // Indigo-100
-  '#fae8ff', // Fuchsia-100
-  '#fce7f3', // Pink-100
-  '#ffe4e6', // Rose-100
-];
-
-const CITY_HOVER_COLORS = [
-  '#fca5a5', // Red-300
-  '#fdba74', // Orange-300
-  '#fcd34d', // Amber-300
-  '#bef264', // Lime-300
-  '#6ee7b7', // Emerald-300
-  '#67e8f9', // Cyan-300
-  '#7dd3fc', // Sky-300
-  '#93c5fd', // Blue-300
-  '#a5b4fc', // Indigo-300
-  '#e879f9', // Fuchsia-300
-  '#f9a8d4', // Pink-300
-  '#fda4af', // Rose-300
-];
+// 삭제된 잡다한 색깔 테이블
 
 interface UseMapStylesProps {
   lastFeedback: AnswerFeedback | null;
@@ -38,7 +10,10 @@ interface UseMapStylesProps {
 }
 
 export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = false }: UseMapStylesProps) => {
-  const getFillColor = useCallback((code: string, isHovered: boolean = false) => {
+  const getFillColor = useCallback((feature: any, isHovered: boolean = false) => {
+    const code = typeof feature === 'string' ? feature : feature?.properties?.code;
+    const orderVolume = typeof feature === 'object' ? feature?.properties?.intel?.orderVolume : undefined;
+
     // 1. 피드백 상태 (정답/오답 확인 중) - Hover보다 우선순위 높음
     if (lastFeedback) {
       if (lastFeedback.isCorrect && lastFeedback.regionCode === code) return '#22c55e'; // 정답: 초록
@@ -48,31 +23,21 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
       }
     }
 
-    // 2. Hover 상태 (피드백 중이 아닐 때)
-    if (isHovered && !lastFeedback) {
-      const cityCode = code.substring(0, 4);
-      const colorIndex = parseInt(cityCode, 10) % CITY_COLORS.length;
-      return CITY_HOVER_COLORS[colorIndex];
-    }
-
-    // 3. 이미 맞춘 지역
+    // 2. 이미 맞춘 지역
     if (answeredRegions.has(code)) return '#86efac'; // 정답 맞춤: 연한 초록
 
-    // 4. 기본 지역 색상 (시/군 구분에 따른 색상)
-    // BASIC 모드이면 무조건 앞 8자리(읍/면/동) 기준으로 코드를 통일해 같은 색상을 반환하도록 강제
-    let colorCode = code.length > 5 ? code : code.substring(0, 4);
-    if (isBasicMode && code.length >= 8) {
-      colorCode = code.substring(0, 8);
+    // 3. 히트맵(orderVolume) 베이스 + Hover 색상
+    if (orderVolume) {
+      if (orderVolume === '최상') return isHovered ? 'rgba(4, 120, 87, 0.95)' : 'rgba(5, 150, 105, 0.85)';
+      if (orderVolume === '상') return isHovered ? 'rgba(5, 150, 105, 0.85)' : 'rgba(16, 185, 129, 0.7)';
+      if (orderVolume === '중상') return isHovered ? 'rgba(16, 185, 129, 0.7)' : 'rgba(52, 211, 153, 0.55)';
+      if (orderVolume === '중') return isHovered ? 'rgba(52, 211, 153, 0.6)' : 'rgba(110, 231, 183, 0.4)';
+      if (orderVolume === '중하') return isHovered ? 'rgba(110, 231, 183, 0.5)' : 'rgba(167, 243, 208, 0.25)';
+      if (orderVolume === '하') return isHovered ? 'rgba(167, 243, 208, 0.3)' : 'rgba(209, 250, 229, 0.1)';
     }
 
-    // 문자열 코드를 숫자로 해싱하여 안정적인 인덱스 생성
-    let hash = 0;
-    for (let i = 0; i < colorCode.length; i++) {
-      hash = colorCode.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colorIndex = Math.abs(hash) % CITY_COLORS.length;
-
-    return CITY_COLORS[colorIndex];
+    // 기본 색상
+    return isHovered ? 'rgba(71, 85, 105, 0.6)' : 'rgba(30, 41, 59, 0.4)';
   }, [lastFeedback, answeredRegions]);
 
   const getStrokeColor = useCallback((code: string, isHovered: boolean = false) => {

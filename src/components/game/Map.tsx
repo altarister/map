@@ -291,17 +291,20 @@ export const Map = () => {
 
           {/* Visual Overlays: Hover, Selection, Feedback */}
           <g style={{ pointerEvents: 'none' }}>
-            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (
-              <path
-                d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any) || ''}
-                fill={getFillColor(hoveredRegion, true)}
-                fillOpacity={0.8}
-                stroke={getStrokeColor(hoveredRegion, true)}
-                strokeWidth={1.5 / zoomTransform.k}
-                className="transition-all duration-200"
-                style={{ mixBlendMode: 'multiply' }}
-              />
-            )}
+            {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (() => {
+              const feature = featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any;
+              return feature ? (
+                <path
+                  d={pathGenerator(feature) || ''}
+                  fill={getFillColor(feature, true)}
+                  fillOpacity={0.8}
+                  stroke={getStrokeColor(hoveredRegion, true)}
+                  strokeWidth={1.5 / zoomTransform.k}
+                  className="transition-all duration-200"
+                  style={{ mixBlendMode: 'multiply' }}
+                />
+              ) : null;
+            })()}
 
             {/* 정답/오답 피드백 오버레이 */}
             {lastFeedback && (

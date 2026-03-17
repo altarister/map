@@ -81,6 +81,18 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             let fillColor = themeColors.fill;
             let strokeColor = themeColors.stroke;
 
+            // [NEW] 히트맵 렌더링 로직
+            const orderVolume = feature.properties?.intel?.orderVolume;
+            if (!isAnswered && !isCorrectFeedback && !isTargetHint) {
+                if (orderVolume === '최상') fillColor = 'rgba(5, 150, 105, 0.85)';
+                else if (orderVolume === '상') fillColor = 'rgba(16, 185, 129, 0.7)';
+                else if (orderVolume === '중상') fillColor = 'rgba(52, 211, 153, 0.55)';
+                else if (orderVolume === '중') fillColor = 'rgba(110, 231, 183, 0.4)';
+                else if (orderVolume === '중하') fillColor = 'rgba(167, 243, 208, 0.25)';
+                else if (orderVolume === '하') fillColor = 'rgba(209, 250, 229, 0.1)';
+                else fillColor = 'rgba(30, 41, 59, 0.4)'; // Default Base
+            }
+
             if (isAnswered) {
                 fillColor = themeColors.answeredFill;
                 strokeColor = themeColors.answeredStroke;
