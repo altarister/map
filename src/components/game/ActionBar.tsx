@@ -1,8 +1,8 @@
 import type { GameQuestion, UserInput } from '../../game/core/types';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMemo } from 'react';
-import { getIntelForRegion } from '../../data/regionIntelDB';
 import { RegionIntelCard } from './RegionIntelCard';
 
 const getQuestionText = (question: GameQuestion): string => {
@@ -21,6 +21,7 @@ const getQuestionText = (question: GameQuestion): string => {
 export const ActionBar = () => {
     const { gameState, currentQuestion, lastFeedback, isHintActive, setHintActive, checkAnswer, levelState, skipQuestion, score, totalQuestions } = useGame();
     const { viewOptions } = useSettings();
+    const { filteredMapData: geoData } = useGeoContext();
 
     if (gameState !== 'PLAYING') return null;
 
@@ -41,19 +42,25 @@ export const ActionBar = () => {
         }
     };
 
-    // 타겟 지역의 인텔 정보 유추
+    // 타겟 지역의 인텔 정보 유추 (이제 geoJSON의 properties.intel 에 바로 접근)
     const targetIntel = useMemo(() => {
-        if (!currentQuestion) return null;
-        const code = currentQuestion.type === 'LOCATE_SINGLE' 
-            ? currentQuestion.target.code 
-            : currentQuestion.type === 'LOCATE_PAIR' && !levelState?.startCode 
-                ? currentQuestion.start.code 
-                : currentQuestion.type === 'LOCATE_PAIR' && levelState?.startCode 
-                    ? currentQuestion.end.code
-                    : null;
+        if (!currentQuestion || !geoData) return null;
         
-        return code ? getIntelForRegion(code) : null;
-    }, [currentQuestion, levelState?.startCode]);
+        // 1. 타겟 코드 판별
+        let targetCode: string | null = null;
+        if (currentQuestion.type === 'LOCATE_SINGLE') {
+            targetCode = currentQuestion.target.code;
+        } else if (currentQuestion.type === 'LOCATE_PAIR') {
+            targetCode = !levelState?.startCode ? currentQuestion.start.code : currentQuestion.end.code;
+        }
+
+        if (!targetCode) return null;
+
+        // 2. 통합된 GeoJSON 에서 Feature 탐색
+        console.log("targetCode", targetCode);
+        const targetFeature = geoData.features.find((f: any) => f.properties.code === targetCode);
+        return targetFeature?.properties?.intel || null;
+    }, [currentQuestion, levelState?.startCode, geoData]);
 
     // 인텔 카드 노출 여부: 설정에서 켜져 있거나, (설정이 꺼져있어도) 힌트 켬 OR 오답/스킵 피드백 떴을 때
     const shouldShowIntel = viewOptions.showIntelCard || isHintActive || (lastFeedback && !lastFeedback.isCorrect);

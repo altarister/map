@@ -31,13 +31,13 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
 
     const handleModeSelect = (mode: 'BASIC' | 'DETAILED' | 'ALL') => {
         const prefix = selectedCity.code.substring(0, 4);
-        const targetRegionsLevel3 = filteredMapData?.features.filter(f => f.properties.code.startsWith(prefix)) || [];
+        const targetRegionsLevel3 = filteredMapData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
 
         if (selectedCity.isGuCity) {
             // [Type A] 대도시 (구 존재)
             const guFeatures = cityData?.features
-                .filter(f => f.properties.code.startsWith(prefix) && f.properties.name.endsWith('구'))
-                .map(f => ({
+                .filter((f: any) => f.properties.code.startsWith(prefix) && f.properties.name.endsWith('구'))
+                .map((f: any) => ({
                     ...f,
                     properties: {
                         ...f.properties,
@@ -63,7 +63,7 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 setFilteredMapData({ ...fullMapData!, features: guFeatures });
                 setGameState('SUBREGION_SELECT');
             } else if (mode === 'ALL') {
-                const targetDongs = targetRegionsLevel3.filter(f => f.properties.name.endsWith('동') || !(f as any).properties._isEmdGroup);
+                const targetDongs = targetRegionsLevel3.filter((f: any) => f.properties.name.endsWith('동') || !(f as any).properties._isEmdGroup);
                 startGame({
                     chapterCode: selectedCity.code,
                     overrideRegions: targetDongs,
@@ -74,7 +74,7 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
         } else {
             // [Type B] 일반 도농복합 시군 (Gu 생략)
             if (mode === 'BASIC') {
-                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup);
+                const emdFeatures = targetRegionsLevel3.filter((f: any) => (f as any).properties._isEmdGroup);
                 startGame({
                     chapterCode: selectedCity.code,
                     overrideRegions: emdFeatures,
@@ -82,7 +82,7 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 });
             } else if (mode === 'DETAILED') {
                 // [NEW] 3-Depth Map-First UX: Show Eup/Myeon/Dong polygons instead of Ris
-                const emdAndDongFeatures = targetRegionsLevel3.filter(f =>
+                const emdAndDongFeatures = targetRegionsLevel3.filter((f: any) =>
                     (f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
                 );
                 setSelectedChapter(selectedCity.code);
@@ -90,11 +90,11 @@ export const RegionModeSelectPopup = ({ selectedCity, onClose }: Props) => {
                 setGameState('SUBREGION_SELECT');
             } else if (mode === 'ALL') {
                 // 모든 코스: 쪼개진 원본 '리' 단위들 + 분할되지 않는 '동' 단위들을 같이 플레이함
-                const targetRis = targetRegionsLevel3.filter(f =>
+                const targetRis = targetRegionsLevel3.filter((f: any) =>
                     !(f as any).properties._isEmdGroup || f.properties.name.endsWith('동')
                 );
                 // 읍/면 워터마크 라벨과 굵은 테두리
-                const emdFeatures = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
+                const emdFeatures = targetRegionsLevel3.filter((f: any) => (f as any).properties._isEmdGroup && !f.properties.name.endsWith('동'));
                 startGame({
                     chapterCode: selectedCity.code,
                     overrideRegions: targetRis,

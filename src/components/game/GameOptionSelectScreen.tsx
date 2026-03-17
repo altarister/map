@@ -13,7 +13,7 @@ export const GameOptionSelectScreen = () => {
 
         const cityMap = new Map<string, { name: string, code: string }>();
 
-        cityData.features.forEach(f => {
+        cityData.features.forEach((f: any) => {
             const code = f.properties.code;
             if (!code.startsWith('41') && !code.startsWith('11') && !code.startsWith('23')) return;
 
@@ -31,10 +31,10 @@ export const GameOptionSelectScreen = () => {
         if (!filteredMapData) return;
 
         // 선택한 L2 지역(예: 41113 수원시 권선구)의 하위 L3 지역 추출
-        const targetRegionsLevel3 = filteredMapData.features.filter(f => f.properties.code.startsWith(city.code));
+        const targetRegionsLevel3 = filteredMapData.features.filter((f: any) => f.properties.code.startsWith(city.code));
 
         // 퀴즈 타겟: _isEmdGroup (동/읍/면 단위. '리' 제외)
-        const targetDongs = targetRegionsLevel3.filter(f => (f as any).properties._isEmdGroup);
+        const targetDongs = targetRegionsLevel3.filter((f: any) => (f as any).properties._isEmdGroup);
 
         startGame({
             chapterCode: city.code,

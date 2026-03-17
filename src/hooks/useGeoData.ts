@@ -7,7 +7,7 @@ import { geoCentroid } from 'd3-geo';
 // GeoJSON Data URLs
 const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // Sigun (City/County)
 const DATA_URL_SEOUL_INCHEON_GU = '/data/seoul_incheon_gu.geojson'; // Seoul/Incheon Gu
-const DATA_URL_LEVEL3 = '/data/gyeonggi_bupjeongdong.geojson'; // Bupjeong-dong/Ri (Terminal Nodes)
+const DATA_URL_LEVEL3 = '/map/merged_map.geojson'; // Bupjeong-dong/Ri (Terminal Nodes, Intel merged)
 const DATA_URL_SEOUL_INCHEON_DONG = '/data/seoul_incheon_dong.geojson'; // Seoul/Incheon Dong
 const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
 

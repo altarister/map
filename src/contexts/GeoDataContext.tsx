@@ -24,12 +24,12 @@ export const GeoDataProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [filteredMapData, setFilteredMapData] = useState<RegionCollection | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (fullMapData) {
-      // 함수형 업데이트: 아직 초기화되지 않은 경우에만 세팅 (deps에서 filteredMapData 제거)
-      setFilteredMapData(prev => prev ?? fullMapData);
-    }
-  }, [fullMapData]);
+    useEffect(() => {
+      if (fullMapData) {
+        // 함수형 업데이트: 아직 초기화되지 않은 경우에만 세팅 (deps에서 filteredMapData 제거)
+        setFilteredMapData((prev: any) => prev ?? fullMapData);
+      }
+    }, [fullMapData]);
 
   const value = useMemo(() => ({
     fullMapData,

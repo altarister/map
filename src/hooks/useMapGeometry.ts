@@ -49,10 +49,10 @@ export function useMapGeometry({
     features.forEach((f) => {
       if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
     });
-    cityData?.features?.forEach((f) => {
+    cityData?.features?.forEach((f: any) => {
       if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
     });
-    level1Data?.features?.forEach((f) => {
+    level1Data?.features?.forEach((f: any) => {
       if (f.properties?.code) areas[f.properties.code] = pathGenerator.area(f);
     });
     return areas;
@@ -80,7 +80,7 @@ export function useMapGeometry({
       }
     });
 
-    return cityData.features.filter((f) => activePrefixes.has(f.properties.code));
+    return cityData.features.filter((f: any) => activePrefixes.has(f.properties.code));
   }, [cityData, features]);
 
   return {
