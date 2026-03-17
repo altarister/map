@@ -1,4 +1,4 @@
-export type OrderVolume = '하' | '중하' | '중' | '중상' | '상';
+export type OrderVolume = '하' | '중하' | '중' | '중상' | '상' | '최상';
 
 export interface RegionIntel {
   regionCode: string;
