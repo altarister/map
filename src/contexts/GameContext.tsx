@@ -152,6 +152,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [gameState, fullMapData, currentStage, startGameLogic, setFilteredMapData, setSelectedChapter]);
 
+  // [4계층 연동] 나가기 시 depth 리셋 포함
+  const resetGameWithDepth = useCallback(() => {
+    resetGame();
+    setSelectionDepth(1);
+    setCurrentFocusCode(null);
+  }, [resetGame]);
+
   const value = useMemo(() => ({
     gameState,
     setGameState,
@@ -163,7 +170,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     startGame,
     checkAnswer,
     skipQuestion,
-    resetGame,
+    resetGame: resetGameWithDepth,
     lastFeedback,
     answeredRegions,
     levelState,
@@ -177,7 +184,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentFocusCode,
     setCurrentFocusCode
   }), [
-    gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGame,
+    gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
     skipQuestion, selectionDepth, currentFocusCode
   ]);

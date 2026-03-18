@@ -195,10 +195,22 @@ export const useGeoData = () => {
             cx /= group.children.length;
             cy /= group.children.length;
 
+            // turf.union + rewind 로 통짜 폴리곤 병합 (GeometryCollection 대신)
+            let mergedGeometry: any = null;
+            try {
+              const collection = featureCollection(group.children as any);
+              const merged = union(collection as any);
+              if (merged) {
+                const rewound: any = rewind(merged, { reverse: true });
+                mergedGeometry = rewound.geometry;
+              }
+            } catch (e) {
+              console.warn(`[useGeoData] turf.union 실패 (${group.name}), GeometryCollection 폴백:`, e);
+            }
+
             filteredCity.push({
               type: "Feature",
-              // 완전한 병합 기하도형(Geometry Collection)으로 만들어 지도에 그릴 수 있게 제공
-              geometry: {
+              geometry: mergedGeometry || {
                 type: "GeometryCollection",
                 geometries: group.geometries
               },

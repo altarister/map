@@ -500,6 +500,25 @@ export const Map = () => {
         />
       )}
 
+      {/* [4계층 연동] 뒤로가기 버튼: depth ≥ 2일 때 표시 */}
+      {gameState === 'REGION_SELECT' && selectionDepth > 1 && (
+        <button
+          className="absolute top-20 left-4 z-50 bg-slate-900/90 border border-slate-600 hover:border-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-mono transition-all duration-200 hover:bg-slate-800"
+          onClick={() => {
+            if (selectionDepth === 2) {
+              setSelectionDepth(1);
+              setCurrentFocusCode(null);
+            } else if (selectionDepth === 3) {
+              const parentPrefix = currentFocusCode?.substring(0, 2) || null;
+              setSelectionDepth(2);
+              setCurrentFocusCode(parentPrefix);
+            }
+          }}
+        >
+          ← 뒤로 ({selectionDepth === 2 ? '광역 선택' : '시/군 선택'})
+        </button>
+      )}
+
       {!showTownGeometry && gameState === 'PLAYING' && !forceShowTowns && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
