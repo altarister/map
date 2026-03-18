@@ -1,19 +1,301 @@
 {
-  "416701": {
-    "regionCode": "416701",
-    "name": "시내권 (여흥/중앙/오학동)",
+  "41670101": {
+    "regionCode": "41670101",
+    "name": "상동",
     "parentName": "여주시",
-    "roads": [
-      "국도 42호선",
-      "국도 37호선",
-      "여주대교"
-    ],
-    "orderVolume": "상",
-    "importance": 5,
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
     "fieldTips": [
-      "여주시청, 여주역, 여주터미널이 모여 있는 여주시 배달의 심장부.",
-      "강남(남한강 이남)의 '중앙동/여흥동'과 강북의 '오학동(아파트 밀집)'으로 나뉨.",
-      "출퇴근 시간에 여주대교가 꽤 막히므로 콜을 잡을 때 강을 건너는 동선인지 맵핑 필수."
+      "상동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670102": {
+    "regionCode": "41670102",
+    "name": "홍문동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "홍문동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670103": {
+    "regionCode": "41670103",
+    "name": "창동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "창동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670104": {
+    "regionCode": "41670104",
+    "name": "우만동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "우만동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670105": {
+    "regionCode": "41670105",
+    "name": "단현동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "단현동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670106": {
+    "regionCode": "41670106",
+    "name": "신진동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "신진동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670107": {
+    "regionCode": "41670107",
+    "name": "하동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "하동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670108": {
+    "regionCode": "41670108",
+    "name": "교동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "교동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670109": {
+    "regionCode": "41670109",
+    "name": "월송동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "월송동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670110": {
+    "regionCode": "41670110",
+    "name": "가업동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "가업동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670111": {
+    "regionCode": "41670111",
+    "name": "연라동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "연라동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670112": {
+    "regionCode": "41670112",
+    "name": "상거동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "상거동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670113": {
+    "regionCode": "41670113",
+    "name": "하거동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "하거동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670114": {
+    "regionCode": "41670114",
+    "name": "삼교동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "삼교동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670115": {
+    "regionCode": "41670115",
+    "name": "점봉동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "점봉동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670116": {
+    "regionCode": "41670116",
+    "name": "능현동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "능현동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670117": {
+    "regionCode": "41670117",
+    "name": "멱곡동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "멱곡동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670118": {
+    "regionCode": "41670118",
+    "name": "연양동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "연양동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670119": {
+    "regionCode": "41670119",
+    "name": "매룡동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "매룡동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670120": {
+    "regionCode": "41670120",
+    "name": "천송동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "천송동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670121": {
+    "regionCode": "41670121",
+    "name": "오학동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "오학동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670122": {
+    "regionCode": "41670122",
+    "name": "현암동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "현암동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
+    ]
+  },
+  "41670123": {
+    "regionCode": "41670123",
+    "name": "오금동",
+    "parentName": "여주시",
+    "roads": [],
+    "orderVolume": "중하",
+    "importance": 1,
+    "landmarks": [],
+    "fieldTips": [
+      "오금동 지역 상세 인텔 데이터 업데이트 필요",
+      "여주 시내권 및 교외 지역 배달 팁을 추가해주세요."
     ]
   },
   "41670250": {

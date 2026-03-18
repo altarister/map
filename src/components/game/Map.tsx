@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { getStageStrategy } from '../../game/stages/registry';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
@@ -38,6 +38,10 @@ export const Map = () => {
     startGame,
     isHintActive,
     currentQuestion,
+    selectionDepth,
+    setSelectionDepth,
+    currentFocusCode,
+    setCurrentFocusCode
   } = useGame();
 
   const {
@@ -56,7 +60,6 @@ export const Map = () => {
   const colors = MAP_THEME_COLORS[theme];
   const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
-  const [prototypeLayerVisible, setPrototypeLayerVisible] = useState(false);
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
   const containerNodeRef = useRef<HTMLDivElement | null>(null);
@@ -124,16 +127,29 @@ export const Map = () => {
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
 
-  // [NEW UX: Flat 시/군/자치구 Render] 
-  // REGION_SELECT 일 때는 모든 시/군/구 (cityData) 77개를 모두 평등하게 렌더링.
-  // 선택하면 바로 PLAYING으로 넘어가므로 SUBREGION_SELECT 등 중간 뎁스 삭제.
+  // [NEW UX: 4단계 선택 렌더링 스위칭]
   const showTownGeometry = gameState === 'PLAYING' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
 
-  const featuresToRender = gameState === 'REGION_SELECT'
-    ? (cityData?.features || [])
-    : (showTownGeometry ? features : filteredCityFeatures);
+  const featuresToRender = useMemo(() => {
+    if (gameState === 'REGION_SELECT') {
+      if (selectionDepth === 1) return level1Data?.features || [];
+      if (selectionDepth === 2) {
+        if (!currentFocusCode) return cityData?.features || [];
+        // Extract prefix (e.g. 41 for Gyeonggi)
+        const prefix = currentFocusCode.substring(0, 2);
+        return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
+      }
+      if (selectionDepth === 3) {
+        if (!currentFocusCode) return rawCityData?.features || [];
+        // Extract prefix (e.g. 4146 for Yongin)
+        const prefix = currentFocusCode.substring(0, 4);
+        return rawCityData?.features.filter((f: any) => f.properties.code.startsWith(prefix) && f.properties.code.length === 5 && !f.properties.code.endsWith('0')) || [];
+      }
+    }
+    return showTownGeometry ? features : filteredCityFeatures;
+  }, [gameState, selectionDepth, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, features, filteredCityFeatures]);
 
-  const labelsToRender = gameState === 'REGION_SELECT' ? (cityData?.features || []) : filteredCityFeatures;
+  const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
@@ -146,6 +162,37 @@ export const Map = () => {
     mapData,
     pathGenerator,
   });
+
+  // [NEW UX: 4단계 선택 동기화 줌 로직]
+  useEffect(() => {
+    if (gameState !== 'REGION_SELECT' || !width || !height) return;
+
+    if (selectionDepth === 1 || !currentFocusCode) {
+      zoomTo({ x: 0, y: 0, k: 1 });
+      return;
+    }
+
+    // currentFocusCode에 해당하는 상위 폴리곤 피처 도출
+    let feature: any = null;
+    if (selectionDepth === 2) {
+      feature = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
+    } else if (selectionDepth === 3) {
+      feature = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+    }
+
+    if (feature) {
+      const bounds = pathGenerator.bounds(feature);
+      if (bounds && bounds[0] && bounds[1]) {
+        const [[x0, y0], [x1, y1]] = bounds;
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const x = (x0 + x1) / 2;
+        const y = (y0 + y1) / 2;
+        const scale = Math.max(1, Math.min(12, 0.8 / Math.max(dx / width, dy / height)));
+        zoomTo({ x: width / 2 - scale * x, y: height / 2 - scale * y, k: scale });
+      }
+    }
+  }, [selectionDepth, currentFocusCode, gameState, width, height, zoomTo, pathGenerator, level1Data, cityData]);
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
   const [intelPopup, setIntelPopup] = useState<{ x: number; y: number; data: any } | null>(null);
@@ -170,23 +217,60 @@ export const Map = () => {
       const feature = featuresToRender.find((f: any) => f.properties.code === code);
       if (!feature) return;
 
-      const groupCode = code;
-      const prefix = groupCode.substring(0, 5); // 시/군/자치구 Code (e.g., 41113 수원시 권선구)
+      if (selectionDepth === 1) {
+        // 광역 클릭 -> 시군구(2단계) 진입
+        setCurrentFocusCode(code);
+        setSelectionDepth(2);
+        return;
+      }
 
-      // Select all 읍/면/법정동 regions belonging to this 시/군/자치구 code
-      // We specifically want `_isEmdGroup` (Terminal 읍/면/법정동 logic)
-      const targetDongs = fullMapData?.features.filter((f: any) =>
-        f.properties.code.startsWith(prefix) &&
-        (f.properties as any)._isEmdGroup === true
-      ) || [];
+      if (selectionDepth === 2) {
+        const groupCode = code;
+        
+        // 거대 도시 예외 처리 판단 (3단계 일반구 포함 여부)
+        const hasSubDistricts = rawCityData?.features.some((f: any) => 
+          f.properties.code.startsWith(groupCode.substring(0, 4)) && 
+          f.properties.code.length === 5 && 
+          !f.properties.code.endsWith('0')
+        );
 
-      // Start game immediately with Flat L2 -> L3 mapping
-      startGame({
-        chapterCode: groupCode,
-        overrideRegions: targetDongs,
-        highlightRegions: [], // [Anti Topo-Gap Culling] Do not pass 시/군/자치구 polygon to highlight
-        isBasicMode: false
-      });
+        if (hasSubDistricts && groupCode.endsWith('0')) {
+            setCurrentFocusCode(groupCode);
+            setSelectionDepth(3);
+            return;
+        }
+
+        // 일반 시/군이거나 일반구가 없는 구 -> 바로 PLAYING (4단계)
+        const prefix = groupCode.endsWith('0') ? groupCode.substring(0, 4) : groupCode;
+        const targetDongs = fullMapData?.features.filter((f: any) =>
+          f.properties.code.startsWith(prefix) &&
+          (f.properties as any)._isEmdGroup === true
+        ) || [];
+
+        startGame({
+          chapterCode: groupCode,
+          overrideRegions: targetDongs,
+          highlightRegions: [],
+          isBasicMode: false
+        });
+        return;
+      }
+
+      if (selectionDepth === 3) {
+        // 일반구 클릭 -> 바로 PLAYING (4단계)
+        const targetDongs = fullMapData?.features.filter((f: any) =>
+          f.properties.code.startsWith(code) &&
+          (f.properties as any)._isEmdGroup === true
+        ) || [];
+
+        startGame({
+          chapterCode: code,
+          overrideRegions: targetDongs,
+          highlightRegions: [],
+          isBasicMode: false
+        });
+        return;
+      }
       return;
     }
 
@@ -197,7 +281,7 @@ export const Map = () => {
       return;
     }
     checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-  }, [gameState, forceShowTowns, showTownGeometry, checkAnswer, filteredCityFeatures]);
+  }, [gameState, forceShowTowns, showTownGeometry, checkAnswer, filteredCityFeatures, featuresToRender, selectionDepth, setCurrentFocusCode, setSelectionDepth, rawCityData, fullMapData, startGame]);
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
@@ -419,96 +503,6 @@ export const Map = () => {
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
-      )}
-
-      {/* [프로토타입] 4단계 계층 폴리곤 직접 렌더링 토글 스위치 및 레이어 */}
-      <div className="absolute top-20 right-4 z-[9900] bg-slate-900 border border-slate-700 p-4 rounded shadow-2xl">
-        <label className="flex items-center text-white cursor-pointer select-none font-bold">
-          <input 
-            type="checkbox" 
-            checked={prototypeLayerVisible} 
-            onChange={e => setPrototypeLayerVisible(e.target.checked)} 
-            className="mr-2"
-          />
-          🧪 [프로토타입] 4계층 SVG 오버레이 보기
-        </label>
-        {prototypeLayerVisible && (
-          <p className="text-xs text-slate-400 mt-2 whitespace-nowrap">
-            1단계: 초록 (광역) / 2단계: 파랑 (시군구) <br/>
-            3단계: 주황 (일반구) / 4단계: 빨강 (읍면동) <br/>
-            - z-index 순서로 겹쳐 렌더링 됨
-          </p>
-        )}
-      </div>
-
-      {prototypeLayerVisible && (
-        <>
-          {/* 1단계: 광역 자치단체 (최하단) */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 8010, pointerEvents: 'none' }}>
-            <svg width="100%" height="100%">
-              <g id="1단계-광역" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
-                {level1Data?.features.map((f: any) => (
-                  <path 
-                    key={`p1-${f.properties.code}`} 
-                    d={pathGenerator(f) || ''} 
-                    fill="rgba(34, 197, 94, 0.4)" // Green
-                    stroke="#22c55e" strokeWidth={1/zoomTransform.k} 
-                  />
-                ))}
-              </g>
-            </svg>
-          </div>
-
-          {/* 2단계: 시/군/자치구 */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 8020, pointerEvents: 'none' }}>
-            <svg width="100%" height="100%">
-              <g id="2단계-시군구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
-                {cityData?.features.map((f: any) => (
-                  <path 
-                    key={`p2-${f.properties.code}`} 
-                    d={pathGenerator(f) || ''} 
-                    fill="rgba(59, 130, 246, 0.3)" // Blue
-                    stroke="#3b82f6" strokeWidth={0.8/zoomTransform.k} 
-                  />
-                ))}
-              </g>
-            </svg>
-          </div>
-
-          {/* 3단계: 대도시 일반구 (!중요: 방금 복원한 rawCityData 사용) */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 8030, pointerEvents: 'none' }}>
-            <svg width="100%" height="100%">
-              <g id="3단계-일반구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
-                {rawCityData?.features
-                  .filter((f: any) => f.properties.code.length === 5 && !f.properties.code.endsWith('0'))
-                  .map((f: any) => (
-                    <path 
-                      key={`p3-${f.properties.code}`} 
-                      d={pathGenerator(f) || ''} 
-                      fill="rgba(249, 115, 22, 0.4)" // Orange
-                      stroke="#f97316" strokeWidth={0.6/zoomTransform.k} 
-                    />
-                ))}
-              </g>
-            </svg>
-          </div>
-
-          {/* 4단계: 읍/면/법정동 (최상단) */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 8040, pointerEvents: 'none' }}>
-            <svg width="100%" height="100%">
-              <g id="4단계-읍면동" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
-                {mapData?.features.map((f: any) => (
-                  <path 
-                    key={`p4-${f.properties.code}`} 
-                    d={pathGenerator(f) || ''} 
-                    fill="rgba(239, 68, 68, 0.2)" // Red
-                    stroke="#ef4444" strokeWidth={0.4/zoomTransform.k} 
-                  />
-                ))}
-              </g>
-            </svg>
-          </div>
-        </>
       )}
 
     </div>

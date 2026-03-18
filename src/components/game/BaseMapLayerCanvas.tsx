@@ -11,6 +11,8 @@ interface BaseMapLayerCanvasProps {
     projection: GeoProjection;
     theme: string;
     themeColors: any;
+    getFillColor: (feature: any, isHovered?: boolean) => string;
+    getStrokeColor: (feature: any, isHovered?: boolean) => string;
     initialTransform: { x: number, y: number, k: number };
     width: number;
     height: number;
@@ -32,6 +34,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
     projection,
     theme,
     themeColors,
+    getFillColor,
+    getStrokeColor,
     initialTransform, // Used only for initial draw
     width,
     height,
@@ -82,12 +86,12 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             let strokeColor = themeColors.stroke;
 
             if (isAnswered) {
-                fillColor = themeColors.answeredFill;
-                strokeColor = themeColors.answeredStroke;
+                fillColor = getFillColor(feature, false);
+                strokeColor = getStrokeColor(feature, false);
             }
             if (isCorrectFeedback) {
-                fillColor = themeColors.correctFill;
-                strokeColor = themeColors.correctStroke;
+                // fillColor = themeColors.correctFill;
+                // strokeColor = themeColors.correctStroke;
             }
             if (isTargetHint) {
                 fillColor = 'rgba(234, 179, 8, 0.4)'; // bright yellow
@@ -165,8 +169,9 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
 
     return (
         <div
+            id="layer-1-base-canvas-wrapper"
             ref={containerRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            className="absolute top-0 left-0 w-full h-full pointer-events-none layer-1-base-map"
             style={{
                 width: `${width}px`,
                 height: `${height}px`,
@@ -177,6 +182,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             }}
         >
             <canvas
+                id="layer-1-base-canvas"
                 ref={canvasRef}
                 className="absolute"
                 style={{

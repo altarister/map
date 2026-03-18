@@ -16,17 +16,25 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
 
     // 1. 피드백 상태 (정답/오답 확인 중) - Hover보다 우선순위 높음
     if (lastFeedback) {
-      if (lastFeedback.isCorrect && lastFeedback.regionCode === code) return '#22c55e'; // 정답: 초록
+      // if (lastFeedback.isCorrect && lastFeedback.regionCode === code) return '#22c55e'; // 정답: 초록
       if (!lastFeedback.isCorrect) {
-        if (lastFeedback.regionCode === code) return '#ef4444'; // 내가 찍은 오답: 빨강
-        if (lastFeedback.correctCode === code) return '#3b82f6'; // 실제 정답: 파랑
+        // if (lastFeedback.regionCode === code) return '#ef4444'; // 내가 찍은 오답: 빨강
+        // if (lastFeedback.correctCode === code) return '#3b82f6'; // 실제 정답: 파랑
       }
     }
 
-    // 2. 이미 맞춘 지역
-    if (answeredRegions.has(code)) return '#86efac'; // 정답 맞춤: 연한 초록
+    // 2. 이미 맞춘 지역 (정답 데스크 맵 채색)
+    if (answeredRegions.has(code)) {
+      if (orderVolume === '최상') return '#047857'; // emerald-700
+      if (orderVolume === '상') return '#10b981';   // emerald-500
+      if (orderVolume === '중상') return '#34d399'; // emerald-400
+      if (orderVolume === '중') return '#6ee7b7';   // emerald-300
+      if (orderVolume === '중하') return '#a7f3d0'; // emerald-200
+      if (orderVolume === '하') return '#d1fae5';   // emerald-100
+      return '#86efac'; // 기본 정답(단일 연달색)
+    }
 
-    // 3. Hover 시 색상 (히트맵 적용)
+    // 3. Hover 시 색상 (히트맵 투명도 레이어 적용)
     if (isHovered) {
       if (orderVolume === '최상') return 'rgba(5, 150, 105, 0.9)'; // 진하고 꽉찬 에메랄드
       if (orderVolume === '상') return 'rgba(16, 185, 129, 0.75)';
@@ -41,21 +49,32 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
     return 'transparent';
   }, [lastFeedback, answeredRegions]);
 
-  const getStrokeColor = useCallback((code: string, isHovered: boolean = false) => {
+  const getStrokeColor = useCallback((feature: any, isHovered: boolean = false) => {
+    const code = typeof feature === 'string' ? feature : feature?.properties?.code;
+    
     // 1. Hover 상태
-    if (isHovered) return '#4f46e5'; // Indigo-600
+    // if (isHovered) return '#4f46e5'; // Indigo-600
 
     // 2. 피드백 상태
-    if (lastFeedback) {
-      if (lastFeedback.isCorrect && lastFeedback.regionCode === code) return '#15803d';
-      if (!lastFeedback.isCorrect) {
-        if (lastFeedback.regionCode === code) return '#b91c1c';
-        if (lastFeedback.correctCode === code) return '#1d4ed8';
-      }
-    }
+    // if (lastFeedback) {
+    //   if (lastFeedback.isCorrect && lastFeedback.regionCode === code) return '#15803d';
+    //   if (!lastFeedback.isCorrect) {
+    //     if (lastFeedback.regionCode === code) return '#b91c1c';
+    //     if (lastFeedback.correctCode === code) return '#1d4ed8';
+    //   }
+    // }
 
-    // 3. 이미 맞춘 지역
-    if (answeredRegions.has(code)) return '#cbd5e1'; // 정답 테두리 (Slate-300)
+    // 3. 이미 맞춘 지역 (정답 데스크 맵 채색)
+    const orderVolume = typeof feature === 'object' ? feature?.properties?.intel?.orderVolume : undefined;
+    if (answeredRegions.has(code)) {
+      if (orderVolume === '최상') return '#022c22'; // emerald-950
+      if (orderVolume === '상') return '#064e3b';   // emerald-900
+      if (orderVolume === '중상') return '#065f46'; // emerald-800
+      if (orderVolume === '중') return '#047857';   // emerald-700
+      if (orderVolume === '중하') return '#059669'; // emerald-600
+      if (orderVolume === '하') return '#10b981';   // emerald-500
+      return '#cbd5e1'; // 기존 정답 테두리 (Slate-300)
+    }
 
     // 4. 기본 테두리 색상
     // BASIC 모드에서는 내부 '리' 구획선들이 자연스럽게 합쳐져 보이도록 테두리를 아주 연하게 눈속임 처리

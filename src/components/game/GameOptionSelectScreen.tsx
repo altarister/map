@@ -3,89 +3,142 @@ import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 
 export const GameOptionSelectScreen = () => {
-    const { startGame, setGameState } = useGame();
-    const { cityData, filteredMapData } = useGeoContext();
+    const { 
+        startGame, 
+        setGameState, 
+        selectionDepth, 
+        setSelectionDepth, 
+        currentFocusCode, 
+        setCurrentFocusCode 
+    } = useGame();
+    const { level1Data, cityData, rawCityData, fullMapData } = useGeoContext();
 
-    // 1단계: 시/군/구 추출 (Flat Level 2 List)
-    // Level 2 데이터(skorea-municipalities-2018-geo.json) 전체를 가상의 묶음 없이 있는 그대로 노출합니다.
-    const availableCities = useMemo(() => {
-        if (!cityData) return [];
+    const availableOptions = useMemo(() => {
+        if (selectionDepth === 1) {
+            // 1단계: 광역 자치단체
+            if (!level1Data) return [];
+            return level1Data.features.map((f: any) => ({ name: f.properties.name, code: f.properties.code }));
+        }
+        
+        if (selectionDepth === 2) {
+            // 2단계: 시/군/자치구
+            if (!cityData) return [];
+            const prefix = currentFocusCode ? currentFocusCode.substring(0, 2) : '';
+            const filtered = cityData.features.filter((f: any) => f.properties.code.startsWith(prefix));
 
-        const cityMap = new Map<string, { name: string, code: string }>();
+            const cityMap = new Map<string, { name: string, code: string }>();
+            filtered.forEach((f: any) => {
+                let code = f.properties.code;
+                let name = f.properties.name || '';
+                const match = name.match(/^(.*?시)[\s]*([\w\u3131-\uD79D]*구)$/);
+                if (match) {
+                    name = match[1]; // 상위 '시' 명칭 사용
+                    code = code.substring(0, 4) + '0'; // 앞 4자리로 묶어 그룹 대표 코드 부여
+                }
+                if (!cityMap.has(code)) cityMap.set(code, { name, code });
+            });
+            return Array.from(cityMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+        }
 
-        cityData.features.forEach((f: any) => {
-            const code = f.properties.code;
-            if (!code.startsWith('41') && !code.startsWith('11') && !code.startsWith('23')) return;
+        if (selectionDepth === 3) {
+            // 3단계: 일반구
+            if (!rawCityData) return [];
+            const prefix = currentFocusCode ? currentFocusCode.substring(0, 4) : '';
+            const filtered = rawCityData.features.filter((f: any) => 
+                f.properties.code.startsWith(prefix) && 
+                f.properties.code.length === 5 && 
+                !f.properties.code.endsWith('0')
+            );
+            return filtered.map((f: any) => ({ name: f.properties.name, code: f.properties.code })).sort((a, b) => a.name.localeCompare(b.name));
+        }
 
-            const name: string = f.properties.name || '';
+        return [];
+    }, [selectionDepth, currentFocusCode, level1Data, cityData, rawCityData]);
 
-            if (!cityMap.has(code)) {
-                cityMap.set(code, { name, code });
+    const handleSelect = (item: { code: string; name: string }) => {
+        if (!fullMapData) return;
+
+        if (selectionDepth === 1) {
+            setCurrentFocusCode(item.code);
+            setSelectionDepth(2);
+            return;
+        }
+
+        if (selectionDepth === 2) {
+            const hasSubDistricts = rawCityData?.features.some((f: any) => 
+                f.properties.code.startsWith(item.code.substring(0, 4)) && 
+                f.properties.code.length === 5 && 
+                !f.properties.code.endsWith('0')
+            );
+
+            if (hasSubDistricts && item.code.endsWith('0')) {
+                setCurrentFocusCode(item.code);
+                setSelectionDepth(3);
+                return;
             }
-        });
 
-        return Array.from(cityMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-    }, [cityData]);
+            const filterPrefix = item.code.endsWith('0') ? item.code.substring(0, 4) : item.code;
+            const targetDongs = fullMapData.features.filter((f: any) => f.properties.code.startsWith(filterPrefix) && (f.properties as any)._isEmdGroup);
+            startGame({ chapterCode: item.code, overrideRegions: targetDongs, isBasicMode: false });
+            return;
+        }
 
-    const handleCitySelect = (city: { code: string; name: string }) => {
-        if (!filteredMapData) return;
-
-        // 선택한 L2 지역(예: 41113 수원시 권선구)의 하위 L3 지역 추출
-        const targetRegionsLevel3 = filteredMapData.features.filter((f: any) => f.properties.code.startsWith(city.code));
-
-        // 퀴즈 타겟: _isEmdGroup (동/읍/면 단위. '리' 제외)
-        const targetDongs = targetRegionsLevel3.filter((f: any) => (f as any).properties._isEmdGroup);
-
-        startGame({
-            chapterCode: city.code,
-            overrideRegions: targetDongs,
-            isBasicMode: false // 상세 모드(Level 3 타겟)로 바로 시작
-        });
+        if (selectionDepth === 3) {
+            const targetDongs = fullMapData.features.filter((f: any) => f.properties.code.startsWith(item.code) && (f.properties as any)._isEmdGroup);
+            startGame({ chapterCode: item.code, overrideRegions: targetDongs, isBasicMode: false });
+            return;
+        }
     };
 
     const handleBack = () => {
-        setGameState('GAME_MODE_SELECT');
+        if (selectionDepth === 3) {
+            setSelectionDepth(2);
+            setCurrentFocusCode(currentFocusCode ? currentFocusCode.substring(0, 2) : null);
+        } else if (selectionDepth === 2) {
+            setSelectionDepth(1);
+            setCurrentFocusCode(null);
+        } else {
+            setGameState('GAME_MODE_SELECT');
+        }
     };
 
-    if (!cityData) return null;
+    if (!fullMapData) return null;
 
     return (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto">
-            <div className="w-full max-w-4xl p-8 bg-slate-900/90 border-2 border-slate-700/50 rounded-2xl shadow-2xl backdrop-blur-lg flex flex-col max-h-[90vh]">
+        <div className="absolute inset-y-0 right-0 z-50 w-full max-w-sm flex flex-col bg-slate-900/80 border-l border-slate-700/50 shadow-2xl backdrop-blur-md animate-in slide-in-from-right duration-300 pointer-events-auto">
 
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8 border-b border-emerald-500/30 pb-4">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-emerald-400 tracking-tight uppercase flex items-center">
-                            <span className="text-emerald-500 mr-3">///</span> 지역 훈련 스코프 설정
-                        </h1>
-                        <p className="text-slate-400 font-mono text-sm ml-8">
-                            작전 지역(시/군/구) 선택
-                        </p>
-                    </div>
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-emerald-500/30">
+            <div className="space-y-1">
+                <h1 className="text-xl font-black text-emerald-400 tracking-tight uppercase flex text-left">
+                    작전 지역 선택
+                </h1>
+                <p className="text-slate-400 font-mono text-xs">
+                    {selectionDepth === 1 ? '1단계: 광역 자치단체' : selectionDepth === 2 ? '2단계: 시/군/자치구' : '3단계: 일반구'}
+                </p>
+            </div>
+            <button
+                onClick={handleBack}
+                className="px-3 py-1.5 text-xs font-mono text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors border border-emerald-500/50"
+            >
+                [ BACK ]
+            </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="grid grid-cols-1 gap-2">
+                {availableOptions.map(item => (
                     <button
-                        onClick={handleBack}
-                        className="px-4 py-2 text-sm font-mono text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors border border-emerald-500/50"
+                        key={item.code}
+                        onClick={() => handleSelect(item)}
+                        className="p-3 text-left bg-slate-800/80 hover:bg-emerald-900/50 border border-slate-700 hover:border-emerald-500 rounded-lg transition-all font-bold text-slate-200 hover:text-emerald-300 hover:scale-[1.02] active:scale-95 shadow-sm"
                     >
-                        [ BACK ]
+                        {item.name}
                     </button>
-                </div>
-
-                {/* Content Area */}
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {availableCities.map(city => (
-                            <button
-                                key={city.code}
-                                onClick={() => handleCitySelect(city)}
-                                className="p-4 text-center bg-slate-800/80 hover:bg-emerald-900/50 border border-slate-700 hover:border-emerald-500 rounded-xl transition-all font-bold text-slate-200 hover:text-emerald-300 hover:scale-105 active:scale-95 shadow-sm"
-                            >
-                                {city.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                ))}
             </div>
         </div>
+    </div>
     );
 };

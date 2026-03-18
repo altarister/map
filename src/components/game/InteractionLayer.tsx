@@ -32,6 +32,10 @@ export const InteractionLayer = memo(({
 
                 return (
                     <path
+                        id={`interaction-path-${code}`}
+                        data-region-code={code}
+                        data-region-name={feature.properties.name}
+                        className="layer-3-interaction-target"
                         key={`interaction-${code || index}`}
                         d={pathGenerator(feature as any) || ''}
                         fill="transparent"

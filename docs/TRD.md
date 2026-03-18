@@ -327,8 +327,8 @@ const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
 const { data: mapData, cityData, loading, error } = useGeoData();
 ```
 
-- **Level 2**: `/data/skorea_municipalities_geo_simple.json` (250개 → 경기도 42개 필터링)
-- **Level 3**: `/data/skorea_submunicipalities_geo_simple.json` (3504개 → 경기도 563개 필터링)
+- **시/군/자치구**: `/data/skorea_municipalities_geo_simple.json` (전국 250개 → 경기도 42개 필터링)
+- **읍/면/법정동**: `/data/skorea_submunicipalities_geo_simple.json` (전국 3504개 → 경기도 563개 필터링)
 
 ### 7.2 필터링 로직
 
@@ -410,7 +410,7 @@ f.properties.centroid = geoCentroid(f); // [lon, lat]
 
 #### 문제
 
-`@vnedyalk0v/react19-simple-maps`의 `<Geographies>` 컴포넌트에 WeakMap 기반 캐싱 버그 존재. Level 2 (42개) ↔ Level 3 (563개) 전환 시 563개 지역이 표시되지 않음.
+`@vnedyalk0v/react19-simple-maps`의 `<Geographies>` 컴포넌트에 WeakMap 기반 캐싱 버그 존재. 시/군/자치구 (42개) ↔ 읍/면/법정동 (563개) 전환 시 563개 지역이 표시되지 않음.
 
 #### 결정
 

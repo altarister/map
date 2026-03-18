@@ -251,8 +251,9 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
 
     return (
         <div
+            id="layer-2-roads-wrapper"
             ref={containerRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            className="absolute top-0 left-0 w-full h-full pointer-events-none layer-2-roads"
             style={{
                 width: `${width}px`,
                 height: `${height}px`,
@@ -264,13 +265,14 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
             }}
         >
             {[
-                { ref: canvasOtherRef, z: 10, o: 1 },
-                { ref: canvasSecondaryRef, z: 11, o: 1 },
-                { ref: canvasPrimaryRef, z: 12, o: 1 },
-                { ref: canvasTrunkRef, z: 13, o: 1 },
-                { ref: canvasMotorwayRef, z: 14, o: 1 }
-            ].map(({ ref, z, o }, i) => (
+                { ref: canvasOtherRef, z: 10, o: 1, name: 'other' },
+                { ref: canvasSecondaryRef, z: 11, o: 1, name: 'secondary' },
+                { ref: canvasPrimaryRef, z: 12, o: 1, name: 'primary' },
+                { ref: canvasTrunkRef, z: 13, o: 1, name: 'trunk' },
+                { ref: canvasMotorwayRef, z: 14, o: 1, name: 'motorway' }
+            ].map(({ ref, z, o, name }, i) => (
                 <canvas
+                    id={`layer-2-road-canvas-${name}`}
                     key={i}
                     ref={ref}
                     className="absolute"

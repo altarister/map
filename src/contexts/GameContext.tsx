@@ -29,6 +29,10 @@ interface GameContextType {
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[]; // Used for watermark Eup/Myeon rendering
+  selectionDepth: number; // 1: 광역, 2: 시/군/자치구, 3: 일반구, 4: 읍/면/법정동
+  setSelectionDepth: (depth: number) => void;
+  currentFocusCode: string | null; // 현재 포커스된 상위 지역 코드
+  setCurrentFocusCode: (code: string | null) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -50,6 +54,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { layerVisibility } = useMapContext();
   const [isBasicMode, setIsBasicMode] = React.useState<boolean>(false);
   const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
+  const [selectionDepth, setSelectionDepth] = React.useState<number>(1);
+  const [currentFocusCode, setCurrentFocusCode] = React.useState<string | null>(null);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -165,11 +171,15 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setHintActive,
     currentStage,
     isBasicMode,
-    highlightRegions
+    highlightRegions,
+    selectionDepth,
+    setSelectionDepth,
+    currentFocusCode,
+    setCurrentFocusCode
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGame,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion
+    skipQuestion, selectionDepth, currentFocusCode
   ]);
 
   return (

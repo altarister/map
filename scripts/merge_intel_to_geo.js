@@ -46,6 +46,12 @@ async function run() {
     const geoJsonRaw = await fs.readFile(rawTargetMapPath, 'utf8');
     const geoJson = JSON.parse(geoJsonRaw);
 
+    // [필터링] 알루님 지도 전략: "우리는 시내권(법정동)과 읍/면(상위 8자리)만 취급한다. 잡다한 시골 '리'(10자리)는 버린다!"
+    // 이미 맵 원본에 8자리 둥근 읍/면 폴리곤이 들어있으므로, 10자리로 쪼개진 '리' 조각들만 쏙 빼주면 완벽히 해결.
+    const originalCount = geoJson.features.length;
+    geoJson.features = geoJson.features.filter(f => f.properties.code && f.properties.code.length <= 8);
+    console.log(`🧹 [Clean] 10자리 '리' 단위 조각 필터링 완료: ${originalCount}개 -> ${geoJson.features.length}개로 압축됨`);
+
     let matchCount = 0;
     
     geoJson.features = geoJson.features.map(feature => {
