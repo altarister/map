@@ -45,6 +45,7 @@ export const Map = () => {
     level1Data,
     filteredMapData: mapData,
     cityData,
+    rawCityData, // 방금 추가된 프롭
     roadData,
     loading,
     error,
@@ -55,6 +56,7 @@ export const Map = () => {
   const colors = MAP_THEME_COLORS[theme];
   const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
+  const [prototypeLayerVisible, setPrototypeLayerVisible] = useState(false);
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
   const containerNodeRef = useRef<HTMLDivElement | null>(null);
@@ -122,8 +124,8 @@ export const Map = () => {
   const stageConfig = useMemo(() => getStageStrategy(currentStage).config, [currentStage]);
   const forceShowTowns = stageConfig.mapOptions?.forceShowTownGeometry ?? false;
 
-  // [NEW UX: Flat Level 2 Render] 
-  // REGION_SELECT 일 때는 모든 시/군/구 (Level 2, cityData) 77개를 모두 평등하게 랜더링.
+  // [NEW UX: Flat 시/군/자치구 Render] 
+  // REGION_SELECT 일 때는 모든 시/군/구 (cityData) 77개를 모두 평등하게 렌더링.
   // 선택하면 바로 PLAYING으로 넘어가므로 SUBREGION_SELECT 등 중간 뎁스 삭제.
   const showTownGeometry = gameState === 'PLAYING' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
 
@@ -169,10 +171,10 @@ export const Map = () => {
       if (!feature) return;
 
       const groupCode = code;
-      const prefix = groupCode.substring(0, 5); // Level 2 Code (e.g., 41113 수원시 권선구)
+      const prefix = groupCode.substring(0, 5); // 시/군/자치구 Code (e.g., 41113 수원시 권선구)
 
-      // Select all Level 3 regions (Eup/Myeon/Dong) belonging to this Level 2 code
-      // We specifically want `_isEmdGroup` (Terminal Level 3 logic)
+      // Select all 읍/면/법정동 regions belonging to this 시/군/자치구 code
+      // We specifically want `_isEmdGroup` (Terminal 읍/면/법정동 logic)
       const targetDongs = fullMapData?.features.filter((f: any) =>
         f.properties.code.startsWith(prefix) &&
         (f.properties as any)._isEmdGroup === true
@@ -182,7 +184,7 @@ export const Map = () => {
       startGame({
         chapterCode: groupCode,
         overrideRegions: targetDongs,
-        highlightRegions: [], // [Anti Topo-Gap Culling] Do not pass Level 2 polygon to highlight
+        highlightRegions: [], // [Anti Topo-Gap Culling] Do not pass 시/군/자치구 polygon to highlight
         isBasicMode: false
       });
       return;
@@ -209,14 +211,18 @@ export const Map = () => {
       className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}
       onClick={closeIntelPopup}
     >
-      {/* Canvas 레이어 래퍼: 스냅샷 복제를 위해 ref 할당 */}
+      {/* =============== [START] 하위 Canvas 레이어 래퍼 =============== */}
+      {/* Canvas 레이어 래퍼: 이벤트 캡처 기능이 없고 그려지기만 하는 도화지들입니다. 스냅샷 복제를 위해 ref 할당 */}
       <div
+        id="layer-container-canvas"
         ref={canvasWrapperRef}
+        data-layer-group="canvas-basemap-container"
         style={{
           position: 'absolute', inset: 0,
         }}
       >
-        {/* Layer 1: Base Map (Canvas) */}
+        {/* Layer 1: Base Map (Canvas) - 가장 하단에 깔리는 행정구역 색칠 도화지 */}
+        {/* 정답을 맞춘 지역의 색상('#86efac')은 이 도화지 위에 영구적으로 칠해집니다. */}
         <BaseMapLayerCanvas
           ref={baseMapLayerRef}
           features={featuresToRender}
@@ -224,6 +230,8 @@ export const Map = () => {
           projection={projection}
           theme={theme}
           themeColors={colors}
+          getFillColor={getFillColor}
+          getStrokeColor={getStrokeColor}
           initialTransform={zoomTransform}
           width={width}
           height={height}
@@ -234,7 +242,7 @@ export const Map = () => {
           currentQuestionTargetCode={currentQuestion?.type === 'LOCATE_SINGLE' ? currentQuestion.target.code : undefined}
         />
 
-        {/* Layer 2: Roads (Canvas) */}
+        {/* Layer 2: Roads (Canvas) - 그 위에 얹어지는 도로망 도화지 */}
         {roadData && (
           <RoadLayer
             ref={roadLayerRef}
@@ -253,15 +261,23 @@ export const Map = () => {
         )}
       </div>
 
-      {/* Layer 3: Interaction & Overlays */}
+      {/* =============== [START] 상단 SVG 인터랙션 & 오버레이 레이어 =============== */}
+      {/* 사용자의 클릭, 마우스 오버(Hover) 이벤트를 수집하고 UI 피드백을 실시간으로 덧그리는 투명한 유리판입니다. */}
+      {/* 3층(투명 클릭영역), 4층(히트맵/펄스 외곽선), 5층(텍스트 라벨) 요소가 포함되어 있습니다. */}
       <svg
+        id="layer-container-svg"
         ref={svgRef}
+        data-layer-group="svg-interaction-overlay"
         width="100%" height="100%"
         className="absolute inset-0"
         style={{ zIndex: 20 }}
       >
         {/* InteractionLayer: gRef 내부 (SVG transform 적용됨) */}
-        <g ref={gRef} style={{ willChange: 'transform' }} transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+        <g id="layer-3-interaction-group" ref={gRef} 
+        // style={{ willChange: 'transform' }} 
+        // transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}
+        >
+          {/* Layer 3: Interaction Layer (투명한 폴리곤들로 사용자 클릭/호버 판정) */}
           <InteractionLayer
             features={featuresToRender}
             pathGenerator={pathGenerator}
@@ -278,30 +294,30 @@ export const Map = () => {
             <g style={{ pointerEvents: 'none' }}>
               {highlightRegions.map((region: any) => (
                 <path
-                  key={`highlight-${region.properties.code}`}
+                  // key={`highlight-${region.properties.code}`}
                   d={pathGenerator(region) || ''}
-                  fill="none"
-                  stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
-                  strokeWidth={2.8 / zoomTransform.k}
-                  strokeOpacity={0.9}
+                  // fill="none"
+                  // stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
+                  // strokeWidth={2.8 / zoomTransform.k}
+                  // strokeOpacity={0.9}
                 />
               ))}
             </g>
           )}
 
-          {/* Visual Overlays: Hover, Selection, Feedback */}
-          <g style={{ pointerEvents: 'none' }}>
+          {/* Layer 4: Visual Overlays (Hover 히트맵 채도, Selection 테두리, Feedback 오답 펄스 애니메이션) */}
+          <g id="layer-4-visual-overlays" data-layer-id="visual-overlays" style={{ pointerEvents: 'none' }}>
             {hoveredRegion && (gameState === 'PLAYING' || gameState === 'REGION_SELECT') && !answeredRegions.has(hoveredRegion) && (() => {
               const feature = featuresToRender.find((f: any) => f.properties.code === hoveredRegion) as any;
               return feature ? (
                 <path
                   d={pathGenerator(feature) || ''}
                   fill={getFillColor(feature, true)}
-                  fillOpacity={0.8}
-                  stroke={getStrokeColor(hoveredRegion, true)}
-                  strokeWidth={1.5 / zoomTransform.k}
-                  className="transition-all duration-200"
-                  style={{ mixBlendMode: 'multiply' }}
+                  // fillOpacity={0.8}
+                  // stroke={getStrokeColor(hoveredRegion, true)}
+                  // strokeWidth={1.5 / zoomTransform.k}
+                  // className="transition-all duration-200"
+                  // style={{ mixBlendMode: 'multiply' }}
                 />
               ) : null;
             })()}
@@ -311,15 +327,18 @@ export const Map = () => {
               <path
                 d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === lastFeedback.regionCode) as any) || ''}
                 fill="none"
-                stroke={lastFeedback.isCorrect ? '#4ade80' : '#f87171'}
-                strokeWidth={3 / zoomTransform.k}
-                className="animate-pulse"
-                style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}
+                // fill="none"
+                // stroke={lastFeedback.isCorrect ? '#4ade80' : '#f87171'}
+                // strokeWidth={3 / zoomTransform.k}
+                // className="animate-pulse"
+                // style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}
               />
             )}
           </g>
-          {/* 라벨: gRef 내부. CSS scale(k)로 위치 보정, font-size=14/k로 크기 상쇄.
-              setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
+          {/* Layer 5: Labels (SVG Texts) - 텍스트 라벨 (가장 최상단에 떠 있는 동네 이름표) */}
+          <g id="layer-5-text-labels" data-layer-id="svg-text-labels">
+            {/* 라벨: gRef 내부. CSS scale(k)로 위치 보정, font-size=14/k로 크기 상쇄.
+                setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
           {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
             <>
               {!showDistrictLabels && labelsToRender.map((feature: any) => (
@@ -368,6 +387,7 @@ export const Map = () => {
               ))}
             </>
           )}
+          </g>
         </g>
       </svg>
 
@@ -399,6 +419,96 @@ export const Map = () => {
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
+      )}
+
+      {/* [프로토타입] 4단계 계층 폴리곤 직접 렌더링 토글 스위치 및 레이어 */}
+      <div className="absolute top-20 right-4 z-[9900] bg-slate-900 border border-slate-700 p-4 rounded shadow-2xl">
+        <label className="flex items-center text-white cursor-pointer select-none font-bold">
+          <input 
+            type="checkbox" 
+            checked={prototypeLayerVisible} 
+            onChange={e => setPrototypeLayerVisible(e.target.checked)} 
+            className="mr-2"
+          />
+          🧪 [프로토타입] 4계층 SVG 오버레이 보기
+        </label>
+        {prototypeLayerVisible && (
+          <p className="text-xs text-slate-400 mt-2 whitespace-nowrap">
+            1단계: 초록 (광역) / 2단계: 파랑 (시군구) <br/>
+            3단계: 주황 (일반구) / 4단계: 빨강 (읍면동) <br/>
+            - z-index 순서로 겹쳐 렌더링 됨
+          </p>
+        )}
+      </div>
+
+      {prototypeLayerVisible && (
+        <>
+          {/* 1단계: 광역 자치단체 (최하단) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8010, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="1단계-광역" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {level1Data?.features.map((f: any) => (
+                  <path 
+                    key={`p1-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(34, 197, 94, 0.4)" // Green
+                    stroke="#22c55e" strokeWidth={1/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 2단계: 시/군/자치구 */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8020, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="2단계-시군구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {cityData?.features.map((f: any) => (
+                  <path 
+                    key={`p2-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(59, 130, 246, 0.3)" // Blue
+                    stroke="#3b82f6" strokeWidth={0.8/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 3단계: 대도시 일반구 (!중요: 방금 복원한 rawCityData 사용) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8030, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="3단계-일반구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {rawCityData?.features
+                  .filter((f: any) => f.properties.code.length === 5 && !f.properties.code.endsWith('0'))
+                  .map((f: any) => (
+                    <path 
+                      key={`p3-${f.properties.code}`} 
+                      d={pathGenerator(f) || ''} 
+                      fill="rgba(249, 115, 22, 0.4)" // Orange
+                      stroke="#f97316" strokeWidth={0.6/zoomTransform.k} 
+                    />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 4단계: 읍/면/법정동 (최상단) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8040, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="4단계-읍면동" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {mapData?.features.map((f: any) => (
+                  <path 
+                    key={`p4-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(239, 68, 68, 0.2)" // Red
+                    stroke="#ef4444" strokeWidth={0.4/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+        </>
       )}
 
     </div>
