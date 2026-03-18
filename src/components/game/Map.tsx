@@ -60,6 +60,7 @@ export const Map = () => {
   const colors = MAP_THEME_COLORS[theme];
   const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
+  const [prototypeLayerVisible, setPrototypeLayerVisible] = useState(false);
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
   const containerNodeRef = useRef<HTMLDivElement | null>(null);
@@ -503,6 +504,96 @@ export const Map = () => {
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass-panel text-white px-4 py-2 rounded-full text-xs font-mono">
           [확대하여 지역 탐색]
         </div>
+      )}
+
+      {/* [프로토타입] 4단계 계층 폴리곤 직접 렌더링 토글 스위치 및 레이어 */}
+      <div className="absolute top-20 right-4 z-[9900] bg-slate-900 border border-slate-700 p-4 rounded shadow-2xl">
+        <label className="flex items-center text-white cursor-pointer select-none font-bold">
+          <input 
+            type="checkbox" 
+            checked={prototypeLayerVisible} 
+            onChange={e => setPrototypeLayerVisible(e.target.checked)} 
+            className="mr-2"
+          />
+          🧪 [프로토타입] 4계층 SVG 오버레이 보기
+        </label>
+        {prototypeLayerVisible && (
+          <p className="text-xs text-slate-400 mt-2 whitespace-nowrap">
+            1단계: 초록 (광역) / 2단계: 파랑 (시군구) <br/>
+            3단계: 주황 (일반구) / 4단계: 빨강 (읍면동) <br/>
+            - z-index 순서로 겹쳐 렌더링 됨
+          </p>
+        )}
+      </div>
+
+      {prototypeLayerVisible && (
+        <>
+          {/* 1단계: 광역 자치단체 (최하단) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8010, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="1단계-광역" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {level1Data?.features.map((f: any) => (
+                  <path 
+                    key={`p1-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(34, 197, 94, 0.4)"
+                    stroke="#22c55e" strokeWidth={1/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 2단계: 시/군/자치구 */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8020, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="2단계-시군구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {cityData?.features.map((f: any) => (
+                  <path 
+                    key={`p2-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(59, 130, 246, 0.3)"
+                    stroke="#3b82f6" strokeWidth={0.8/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 3단계: 대도시 일반구 (rawCityData 사용) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8030, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="3단계-일반구" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {rawCityData?.features
+                  .filter((f: any) => f.properties.code.length === 5 && !f.properties.code.endsWith('0'))
+                  .map((f: any) => (
+                    <path 
+                      key={`p3-${f.properties.code}`} 
+                      d={pathGenerator(f) || ''} 
+                      fill="rgba(249, 115, 22, 0.4)"
+                      stroke="#f97316" strokeWidth={0.6/zoomTransform.k} 
+                    />
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* 4단계: 읍/면/법정동 (최상단) */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 8040, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <g id="4단계-읍면동" transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+                {mapData?.features.map((f: any) => (
+                  <path 
+                    key={`p4-${f.properties.code}`} 
+                    d={pathGenerator(f) || ''} 
+                    fill="rgba(239, 68, 68, 0.2)"
+                    stroke="#ef4444" strokeWidth={0.4/zoomTransform.k} 
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
+        </>
       )}
 
     </div>

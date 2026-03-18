@@ -3,6 +3,9 @@ import type { RegionCollection, RoadCollection, RegionFeature } from '../types/g
 import { log } from '../lib/debug';
 import * as topojson from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
+import { featureCollection } from '@turf/helpers';
+import union from '@turf/union';
+import rewind from '@turf/rewind';
 
 // GeoJSON Data URLs
 const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // 시/군/자치구 (City/County/District)
@@ -59,6 +62,27 @@ export const useGeoData = () => {
 
         // Merge 광역 자치단체
         level1.features = [...level1.features, ...level1SI.features];
+
+        // [Level1 병합] 경기도 31개 시/군 Feature → 1개 통짜 "경기도" 폴리곤으로 Union
+        {
+          const gyeonggiFeatures = level1.features.filter((f: any) => f.properties.code?.startsWith('31'));
+          const nonGyeonggiFeatures = level1.features.filter((f: any) => !f.properties.code?.startsWith('31'));
+
+          if (gyeonggiFeatures.length > 1) {
+            try {
+              const collection = featureCollection(gyeonggiFeatures);
+              const merged = union(collection as any);
+              if (merged) {
+                const rewound: any = rewind(merged, { reverse: true });
+                rewound.properties = { code: '41', name: '경기도', base_year: '2018' };
+                level1.features = [rewound as any, ...nonGyeonggiFeatures];
+                log.data(`[useGeoData] Level1 경기도 ${gyeonggiFeatures.length}개 시/군 → 1개 통짜 폴리곤으로 병합 완료`);
+              }
+            } catch (e) {
+              console.warn('[useGeoData] 경기도 Level1 union 실패, 원본 유지:', e);
+            }
+          }
+        }
 
         // Merge 시/군/자치구
         level2.features = [...level2.features, ...seoulIncheonGu.features];
