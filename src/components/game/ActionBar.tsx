@@ -3,7 +3,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMemo, useState } from 'react';
-import { RegionIntelCard } from '../overlays/RegionIntelCard';
+
 
 const getQuestionText = (question: GameQuestion): string => {
     switch (question.type) {
@@ -145,7 +145,7 @@ export const ActionBar = () => {
                 )}
             </div>
 
-            {/* 인텔 카드 (왼쪽 패널 하단에 통합) */}
+            {/* 인텔 카드 (ActionBar에 인라인 통합) */}
             {shouldShowIntel && targetIntel && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                     {/* 인텔 접기/펼치기 토글 헤더 */}
@@ -153,14 +153,70 @@ export const ActionBar = () => {
                         onClick={() => setIntelExpanded(prev => !prev)}
                         className="w-full flex items-center justify-between px-3 py-1.5 glass-panel text-[10px] text-gray-400 font-mono uppercase tracking-widest hover:text-white transition-colors"
                     >
-                        <span>🗂 지역 인텔</span>
+                        <span>🗂 지역 인텔 — {targetIntel.parentName} {targetIntel.name}</span>
                         <span>{intelExpanded ? '▲ 접기' : '▼ 펼치기'}</span>
                     </button>
                     {intelExpanded && (
-                        <RegionIntelCard
-                            intel={targetIntel}
-                            onClose={isHintActive ? () => setHintActive(false) : undefined}
-                        />
+                        <div className="glass-panel p-4 flex flex-col gap-3 relative overflow-hidden">
+                            {/* 중요도 별점 */}
+                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                <div className="flex gap-1 text-[10px]">
+                                    {[1,2,3,4,5].map(s => (
+                                        <span key={s} className={s <= targetIntel.importance ? 'text-yellow-400' : 'text-gray-600'}>★</span>
+                                    ))}
+                                </div>
+                                {/* 오더량 뱃지 */}
+                                <div className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
+                                    targetIntel.orderVolume.includes('상') ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                    : targetIntel.orderVolume.includes('중') ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                                    : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                }`}>
+                                    오더 {targetIntel.orderVolume}
+                                </div>
+                                {isHintActive && (
+                                    <button onClick={() => setHintActive(false)} className="text-gray-400 hover:text-white transition-colors p-1">✕</button>
+                                )}
+                            </div>
+
+                            {/* 주요 도로 */}
+                            {targetIntel.roads.length > 0 && (
+                                <div className="text-xs">
+                                    <h4 className="text-gray-500 mb-1 font-mono uppercase text-[10px]">연결망/주요도로</h4>
+                                    <div className="flex flex-wrap gap-1">
+                                        {targetIntel.roads.map((road: string, idx: number) => (
+                                            <span key={idx} className="bg-white/10 text-white/90 px-1.5 py-0.5 rounded text-[10px]">{road}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 주요 거점 */}
+                            {targetIntel.landmarks && targetIntel.landmarks.length > 0 && (
+                                <div className="text-xs">
+                                    <h4 className="text-emerald-400 mb-1 font-mono uppercase text-[10px]">📍 주요 거점</h4>
+                                    <div className="flex flex-wrap gap-1">
+                                        {targetIntel.landmarks.map((mark: string, idx: number) => (
+                                            <span key={idx} className="bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 text-[10px] font-bold">{mark}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 실전 팁 */}
+                            {targetIntel.fieldTips.length > 0 && (
+                                <div className="text-xs bg-black/20 rounded p-2 border border-white/5">
+                                    <h4 className="text-yellow-500 mb-1.5 font-bold text-[10px]">💡 실전 인텔(Tips)</h4>
+                                    <ul className="space-y-1.5 text-gray-300">
+                                        {targetIntel.fieldTips.map((tip: string, idx: number) => (
+                                            <li key={idx} className="flex gap-1.5 leading-snug">
+                                                <span className="text-yellow-600 opacity-70">▸</span>
+                                                <span>{tip}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             )}
