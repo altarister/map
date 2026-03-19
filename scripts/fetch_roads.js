@@ -18,11 +18,11 @@ area(id:3600307756)->.searchArea;
 out geom;
 `;
 
-const OUTPUT_FILE = 'public/data/korea-roads-topo.json';
+const OUTPUT_FILE = 'public/mapData/korea-roads-topo.json';
 
 // Ensure directory exists
-if (!fs.existsSync('public/data')) {
-    fs.mkdirSync('public/data', { recursive: true });
+if (!fs.existsSync('public/mapData')) {
+    fs.mkdirSync('public/mapData', { recursive: true });
 }
 
 console.log("Fetching road data from Overpass API...");

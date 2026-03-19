@@ -8,11 +8,11 @@ import union from '@turf/union';
 import rewind from '@turf/rewind';
 
 // GeoJSON Data URLs
-const DATA_URL_LEVEL2 = '/data/skorea-municipalities-2018-geo.json'; // 시/군/자치구 (City/County/District)
-const DATA_URL_SEOUL_INCHEON_GU = '/data/seoul_incheon_gu.geojson'; // Seoul/Incheon Gu
-const DATA_URL_LEVEL3 = '/map/merged_map.geojson'; // 읍/면/법정동 (Terminal Nodes, Intel merged)
-const DATA_URL_SEOUL_INCHEON_DONG = '/data/seoul_incheon_dong.geojson'; // Seoul/Incheon Dong
-const DATA_URL_ROADS = '/data/korea-roads-topo.json?v=3'; // TopoJSON Roads
+const DATA_URL_LEVEL2 = '/download/skorea-municipalities-2018-geo.json'; // 시/군/자치구 (원본 다운로드)
+const DATA_URL_SEOUL_INCHEON_GU = '/download/seoul_incheon_gu.geojson'; // Seoul/Incheon Gu (원본 다운로드)
+const DATA_URL_LEVEL3 = '/mapData/merged_map.geojson'; // 읍/면/법정동 (Terminal Nodes, Intel merged)
+const DATA_URL_SEOUL_INCHEON_DONG = '/download/seoul_incheon_dong.geojson'; // Seoul/Incheon Dong (원본 다운로드)
+const DATA_URL_ROADS = '/mapData/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
@@ -33,8 +33,8 @@ export const useGeoData = () => {
         setProgress(10); // Start
 
         // 1. Start fetching all resources
-        const fetchLevel1 = fetch('/data/gyeonggi_level1_merged.geojson');
-        const fetchLevel1SeoulIncheon = fetch('/data/seoul_incheon_level1.geojson');
+        const fetchLevel1 = fetch('/mapData/gyeonggi_level1_merged.geojson');
+        const fetchLevel1SeoulIncheon = fetch('/download/seoul_incheon_level1.geojson');
         const fetchLevel2 = fetch(DATA_URL_LEVEL2);
         const fetchSeoulIncheonGu = fetch(DATA_URL_SEOUL_INCHEON_GU);
         const fetchLevel3 = fetch(DATA_URL_LEVEL3);

@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const INTEL_DIR = path.join(__dirname, 'data/intel');
 const RAW_MAP_PATH = path.join(__dirname, '../public/temp/gyeonggi_bupjeongdong.geojson');
-const OUTPUT_MAP_PATH = path.join(__dirname, '../public/map/merged_map.geojson');
+const OUTPUT_MAP_PATH = path.join(__dirname, '../public/mapData/merged_map.geojson');
 
 async function run() {
   console.log('🚀 [GeoJSON-Intel Build] 데이터 매핑 스크립트 시작');
@@ -38,7 +38,7 @@ async function run() {
     await fs.access(rawTargetMapPath);
   } catch {
     // 만약 temp/gyeonggi_bupjeongdong.geojson 이 없다면 다른 맵 참조 시도
-    rawTargetMapPath = path.join(__dirname, '../public/map/level1.geojson');
+    rawTargetMapPath = path.join(__dirname, '../public/mapData/level1.geojson');
     console.log(`⚠️ 기본 맵을 찾을 수 없어 대체 맵(${rawTargetMapPath})을 시도합니다.`);
   }
 
@@ -78,7 +78,7 @@ async function run() {
       return feature;
     });
 
-    // public/map 폴더가 없을 수도 있으니 미리 생성
+    // public/mapData 폴더가 없을 수도 있으니 미리 생성
     await fs.mkdir(path.dirname(OUTPUT_MAP_PATH), { recursive: true });
     await fs.writeFile(OUTPUT_MAP_PATH, JSON.stringify(geoJson));
     console.log(`🎉 [Success] GeoJSON 매핑 완료! (매칭된 인텔 구역 수: ${matchCount}개 / 맵의 전체 구역: ${geoJson.features.length})`);

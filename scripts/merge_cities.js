@@ -1,8 +1,8 @@
 import fs from 'fs';
 import * as topojson from 'topojson-client';
 
-const INPUT_TOPOJSON = 'public/data/skorea-municipalities-2018-topo.json';
-const OUTPUT_GEOJSON = 'public/data/gyeonggi_level1_merged.geojson';
+const INPUT_TOPOJSON = 'public/mapData/skorea-municipalities-2018-topo.json';
+const OUTPUT_GEOJSON = 'public/mapData/gyeonggi_level1_merged.geojson';
 
 // Map of names for merged cities (Fallback map if needed)
 const MERGED_CITY_NAMES = {
