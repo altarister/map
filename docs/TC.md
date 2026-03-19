@@ -57,7 +57,7 @@
 
 - ✅ Header 표시: `1DAL Trainer`, `[Game: OFF]` (빨간색), `[Map: ON]` (초록색)
 - ✅ START 버튼 표시: `▶ START` (초록 배경)
-- ✅ Map 표시: 경기도 지도 (시군구 42개 영역)
+- ✅ Map 표시: 수도권 지도 설정에 따른 초기 영역 표시
 - ✅ GameState: `INITIAL`
 
 **Status**: [ ] Pass / [ ] Fail  
@@ -189,7 +189,7 @@
 #### TC-F-007: 게임 종료 - 모든 문제 완료
 
 **Priority**: P0  
-**Precondition**: Level 1의 모든 지역(42개) 정답  
+**Precondition**: 챕터(지역 단위)의 모든 하위 지역 정답  
 **Steps**:
 
 1. 마지막 문제 정답 클릭
@@ -428,8 +428,8 @@
 
 **Expected Result**:
 
-- ✅ `k < 1.5`: Level 2 (시군구 42개), 단색 (`#e0e7ff`)
-- ✅ `k >= 1.5`: Level 3 (읍면동 563개), 해시 기반 컬러
+- ✅ `k < 1.5`: Level 2 (시군구), 단색 (`#e0e7ff`)
+- ✅ `k >= 1.5`: Level 3 (읍면동 맥락), 해시 기반 컬러
 - ✅ 전환 시간: 100ms 이하
 - ✅ 부드러운 전환
 

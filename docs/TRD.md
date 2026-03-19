@@ -43,35 +43,26 @@
 
 ```
 src/
-├── game/
-│   ├── core/           # 핵심 타입 및 인터페이스
-│   ├── stages/         # 각 레벨별 로직 (Generator, Validator, Strategy)
-│   │   ├── Stage1_Location/
-│   │   ├── Stage2_Route/
-│   │   ├── Stage3_Distance/
-│   │   └── registry.ts # 레벨 등록 및 관리
-│   └── ui/             # 게임 관련 공통 UI
 ├── components/
-│   ├── game/           # Map, QuizPanel, ScoreBoard 등
+│   ├── game/           # Map, QuizPanel, ScoreBoard, Overlays 등
 │   ├── layout/         # GameLayout, TopBar
 │   └── ui/             # Button, Modal 등 재사용 컴포넌트
 ├── contexts/           # 전역 상태 관리
 │   ├── GameContext.tsx
+│   ├── GeoDataContext.tsx
 │   └── SettingsContext.tsx
-├── hooks/              # 비즈니스 로직
+├── hooks/              # 비즈니스 로직 및 D3 제어
 │   ├── useGameLogic.ts
 │   ├── useGeoData.ts
 │   ├── useMapScale.ts
-│   ├── useMapZoom.ts   # D3 줌 동작 + Canvas/SVG 레이어 통합 제어
-│   └── useMapDimensions.ts
+│   └── useMapZoom.ts   # D3 줌 동작 + Canvas/SVG 레이어 제어
 ├── services/           # 비즈니스 로직 서비스
-│   └── MasteryStorage.ts # 숙련도 및 설정 영구 저장
-├── styles/             # 공통 스타일 상수
-│   └── themes.ts       # MAP_THEME_COLORS, ROAD_THEME_COLORS 중앙화
+│   └── MasteryStorage.ts # 숙련도 기록 저장
+├── styles/             # 공통 스타일
+├── lib/                # 유틸리티 함수
 └── types/              # 공통 타입 정의
     ├── game.ts
-    ├── geo.ts
-    └── canvas.ts       # CanvasLayerHandle 공유 인터페이스
+    └── geo.ts
 ```
 
 ### 2.2 디자인 패턴: 전략 패턴 (Strategy Pattern)

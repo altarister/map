@@ -12,18 +12,17 @@
 
 > 실제 `public/data/` 폴더의 GeoJSON 파일을 분석하여, 정책 설계가 구현 가능한지 검증.
 
-### 0.1 보유 데이터 파일
+### 0.1 보유 데이터 파일 (2025.3 기준)
 
-| 파일명 | 피처 수 | 코드 자릿수 | 커버 범위 | 용도 |
-|--------|---------|-------------|-----------|------|
-| `gyeonggi_bupjeongdong.geojson` | **2,139개** | 8자리 (또는 10자리) | 경기도 하위 | 경기도 읍면동 리스트 |
-| `gyeonggi_level1_merged.geojson` | 31개 | 5자리 | 경기도 시/군 | 선택형 UI 지도 |
-| `seoul_incheon_level1.geojson` | 2개 | 2자리 | 서울, 인천 광역 | 선택형 UI 지도 광역 단위 |
-| `seoul_incheon_gu.geojson` | 35개 | 5자리 | 서울/인천 자치구 | 광역 코스 (선택 화면) |
-| `seoul_incheon_dong.geojson` | 580개 | 7자리 | 서울/인천 읍면동 | 서울/인천 지역 코스 (퀴즈) |
-| `skorea-municipalities-2018-geo.json` | **250개** | 5자리 | 전국 시/군/구 | 전국 스케일업 시 활용 |
-| `skorea-submunicipalities-2018-geo.json` | **3,504개** | 7자리 | 전국 읍/면/동 | 전국 스케일업 시 활용 |
-| `korea-roads.json` | - | - | 전국 도로 | 도로 레이어 |
+| 파일 (위치) | 피처 수 | 기준 | 커버 범위 | 용도 |
+|-----------|---------|------|-----------|------|
+| `mapData/merged_map.geojson` | **741개+** | 8자리 | 전국 단위 (현재 경기) | 인텔 데이터가 병합된 퀴즈용 읍면동 리스트 |
+| `mapData/korea-municipalities-merged.geojson` | **229개** | 5자리 | 전국 시/군/구 | 시/군 폴리곤 (초기 병합본) |
+| `mapData/seoul_incheon_dong.geojson` | 580개 | 7자리 | 서울/인천 읍면동 | 서울/인천 지역 코스 (추후 merged_map 편입 시 삭제 예정) |
+| `download/skorea-municipalities-2018-geo.json` | 250개 | 5자리 | 전국 시/군/구 | 전국 스케일업 시 활용 (원본) |
+| `download/skorea-provinces-2018-geo.json` | 17개 | 2자리 | 전국 광역 지자체 | 광역 코스 (선택 화면) 원본 |
+| `download/skorea-submunicipalities-2018-geo.json` | 3,504개 | 7자리 | 전국 읍/면/동 | 전국 스케일업 및 원본 보관용 |
+| `download/korea-roads-topo.json` | - | - | 전국 도로 | TopoJSON 압축 도로 레이어 |
 
 ### 0.2 핵심 데이터 구조 확인 (광역 자치단체/시·군·자치구/읍·면·법정동 계층 시스템)
 
