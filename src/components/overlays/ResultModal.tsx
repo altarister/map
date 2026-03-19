@@ -34,7 +34,7 @@ export const ResultModal = () => {
   return (
     <Modal
       isOpen={gameState === 'RESULT'}
-      onClose={() => { }} // 강제로 닫지 못하게 함
+      onClose={handleBackOneDepth}
       title="게임 결과"
       footer={
         <div className="flex flex-col gap-2 w-full">
