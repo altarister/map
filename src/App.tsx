@@ -2,17 +2,17 @@ import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
-import { Map } from './components/game/Map';
-import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
+import { Map } from './components/map/Map';
+import { GameModeSelectScreen } from './components/overlays/GameModeSelectScreen';
 
-import { ResultModal } from './components/game/ResultModal';
+import { ResultModal } from './components/overlays/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 import { GameInfoPanel } from './components/game/GameInfoPanel';
 import { ActionBar } from './components/game/ActionBar';
 
 
 import { useState } from 'react';
-import { LoadingScreen } from './components/game/LoadingScreen';
+import { LoadingScreen } from './components/overlays/LoadingScreen';
 
 function GameContent() {
   const { gameState, setGameState } = useGame();
