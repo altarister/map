@@ -125,6 +125,15 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // 줌 배율에 반비례하여 선 굵기를 유지 → 어떤 줌 단계에서도 시각적 두께가 일정
         const baseStrokeWidth = 1 / k;
 
+        // ── LOD (Level of Detail): 줌 레벨에 따라 경계선 종류 전환 ──────────
+        // 낮은 줌(k < 2.5): 시/군 외곽선이 선명하게, 동 경계선은 희미하게
+        // 높은 줌(k >= 2.5): 동 경계선이 선명하게, 시/군 외곽선은 사라짐
+        // → 두 종류의 선이 동시에 진하게 보이지 않아 깔끔한 단일 레이어 느낌
+        const LOD_THRESHOLD = 2.5;
+        const dongAlpha = Math.min(1.0, Math.max(0.1, (k - 1.0) / (LOD_THRESHOLD - 1.0)));
+        const cityAlpha = Math.min(1.0, Math.max(0.0, 1.0 - (k - 1.0) / (LOD_THRESHOLD - 1.0)));
+        // ─────────────────────────────────────────────────────────────────────
+
         // ══════════════════════════════════════════════════════════════════
         // Pass 1: FILL (면색 채우기)
         //   - 게임 상태에 따라 각 구역의 fill 색상을 결정하여 그린다.
@@ -167,8 +176,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // ══════════════════════════════════════════════════════════════════
         // Pass 2: STROKE (경계선 그리기)
         //   - 모든 fill이 완료된 후 경계선만 한 번에 그린다.
-        //   - 일반 구역: baseStrokeWidth (줌 비례 1px)
-        //   - 힌트 구역: 3px 두꺼운 노란 테두리로 강조
+        //   - 일반 구역: baseStrokeWidth (줌 비례 1px), LOD에 따라 dongAlpha 적용
+        //   - 힌트 구역: 3px 두꺼운 노란 테두리로 강조 (항상 100% 불투명)
         //   → 이웃 구역의 fill이 경계선을 덮어씌우는 렌더 버그 방지
         // ══════════════════════════════════════════════════════════════════
         featureStyles.forEach(({ feature, strokeColor, isTargetHint }) => {
@@ -176,33 +185,33 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             canvasPath(feature as any);
             ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
             ctx.strokeStyle = strokeColor;
+            ctx.globalAlpha = isTargetHint ? 1.0 : dongAlpha; // 힌트는 항상 선명
             ctx.stroke();
         });
+        ctx.globalAlpha = 1.0;
         ctx.lineWidth = baseStrokeWidth; // 이후 드로잉을 위해 복원
 
         // ══════════════════════════════════════════════════════════════════
         // Pass 3: 시/군 단위 상위 경계선 (showBoundaries ON일 때만)
         //   - cityData: 시/군 단위 폴리곤 (동/읍/면보다 큰 단위)
-        //   - 현재 선택된 구역(isActiveSector)은 100% 불투명, 외부는 15%만
+        //   - LOD에 따라 cityAlpha 적용 → 낮은 줌에선 선명, 높은 줌에선 fade
         //   - LayerMapPanel의 "지역 경계" 토글과 연동됨
         // ══════════════════════════════════════════════════════════════════
-        if (showBoundaries && cityData) {
+        if (showBoundaries && cityData && cityAlpha > 0.01) {
             const contextStrokeWidth = theme === 'tactical' ? 2.0 / k : 1.5 / k;
-            const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b';
+            const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.6)' : '#64748b';
 
             cityData.features.forEach((feature: any) => {
                 // 현재 게임 구역과 코드 prefix가 일치하는지 확인
                 const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
 
-                // 선택된 구역(isActiveSector)은 내부 경계선이 Pass1/2에서 이미 그려지므로 건너뜀
-                // 외부 구역만 15% 투명도로 희미하게 표시
-                if (isActiveSector) return;
-
                 ctx.beginPath();
                 canvasPath(feature as any);
                 ctx.lineWidth = contextStrokeWidth;
                 ctx.strokeStyle = contextStrokeColor;
-                ctx.globalAlpha = 0.15;
+                ctx.globalAlpha = isActiveSector
+                    ? cityAlpha             // 활성 구역: LOD 알파 그대로
+                    : cityAlpha * 0.25;     // 외부 구역: LOD의 25%만 (더 희미하게)
                 ctx.stroke();
                 ctx.globalAlpha = 1.0; // 복원
             });
