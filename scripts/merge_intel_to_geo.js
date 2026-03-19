@@ -7,8 +7,22 @@ const __dirname = path.dirname(__filename);
 
 const INTEL_DIR = path.join(__dirname, 'data/intel');
 const RAW_MAP_PATH = path.join(__dirname, '../public/temp/gyeonggi_bupjeongdong.geojson');
-const SEOUL_INCHEON_PATH = path.join(__dirname, '../public/mapData/seoul_incheon_dong.geojson');
 const OUTPUT_MAP_PATH = path.join(__dirname, '../public/mapData/merged_map.geojson');
+
+/** 서브폴더까지 재귀적으로 JSON 파일 경로 목록을 반환 */
+async function collectJsonFiles(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectJsonFiles(fullPath));
+    } else if (entry.name.endsWith('.json')) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
 
 async function run() {
   console.log('🚀 [GeoJSON-Intel Build] 데이터 매핑 스크립트 시작');
@@ -16,14 +30,12 @@ async function run() {
   const intelDB = {};
   
   try {
-    const intelFiles = await fs.readdir(INTEL_DIR);
-    for (const file of intelFiles) {
-      if (file.endsWith('.json')) {
-        const filePath = path.join(INTEL_DIR, file);
-        const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
-        Object.assign(intelDB, data);
-        console.log(`✅ Loaded Intel Data: ${file} (${Object.keys(data).length} regions)`);
-      }
+    const intelFiles = await collectJsonFiles(INTEL_DIR);
+    for (const filePath of intelFiles) {
+      const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
+      Object.assign(intelDB, data);
+      const rel = path.relative(INTEL_DIR, filePath);
+      console.log(`✅ Loaded Intel Data: ${rel} (${Object.keys(data).length} regions)`);
     }
   } catch (err) {
     if (err.code === 'ENOENT') {
