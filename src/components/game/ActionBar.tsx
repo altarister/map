@@ -84,31 +84,29 @@ export const ActionBar = () => {
                     </button>
                 </div>
 
-                {/* 본문: 문제 텍스트 + 점수 + 버튼 */}
+                {/* 본문: 문제 텍스트 + 인텔 + 점수 + 버튼 */}
                 {currentQuestion ? (
                     <div className="flex flex-col gap-2">
-                        {/* 인텔 정보 (항상 표시, 데이터 있을 때만) */}
+                        {/* 문제 텍스트 — 항상 표시 */}
+                        <p className="text-base font-bold text-white leading-snug">
+                            {getQuestionText(currentQuestion)}
+                        </p>
+
+                        {/* 인텔 정보 — 데이터 있을 때만 표시 */}
                         {targetIntel && (
                             <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
-                                {/* 지역명 + 중요도 + 오더량 */}
+                                {/* 중요도 + 오더량 */}
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-base font-bold text-white leading-snug">
-                                            {getQuestionText(currentQuestion)}
-                                        </p>
+                                    <div className="flex gap-0.5 text-[10px]">
+                                        {[1,2,3,4,5].map(s => (
+                                            <span key={s} className={s <= targetIntel.importance ? 'text-yellow-400' : 'text-gray-700'}>★</span>
+                                        ))}
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <div className="flex gap-0.5 text-[10px]">
-                                            {[1,2,3,4,5].map(s => (
-                                                <span key={s} className={s <= targetIntel.importance ? 'text-yellow-400' : 'text-gray-700'}>★</span>
-                                            ))}
-                                        </div>
-                                        <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
-                                            targetIntel.orderVolume.includes('상') ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                            : targetIntel.orderVolume.includes('중') ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
-                                            : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                                        }`}>오더 {targetIntel.orderVolume}</div>
-                                    </div>
+                                    <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
+                                        targetIntel.orderVolume.includes('상') ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                        : targetIntel.orderVolume.includes('중') ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                                        : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                    }`}>오더 {targetIntel.orderVolume}</div>
                                 </div>
 
                                 {/* 주요 도로 */}
