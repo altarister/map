@@ -18,26 +18,44 @@
 
 ### 3. Layout System (레이아웃 시스템)
 *   **Role**: 앱 전체의 골격(Navigation)과 전역 설정(Configuration)을 담당합니다.
-*   **Ranking**: `Map/Game System` < `TopBar` < `Configuration Modal`
-*   **Z-Index Range**: `z-50` (최상단)
+*   **Ranking**: `Map/Game System` < `TopBar` / `BottomBar` < `Configuration Modal`
+*   **Z-Index Range**: `z-25` (BottomBar), `z-50` (TopBar, Modals)
 
 ---
 
 ## Detailed Component Inventory
 
-| System | Component | Type | Z-Index | Context / Role | Visibility Rule |
-| :--- | :--- | :--- | :---: | :--- | :--- |
-| **Layout** | **SettingsModal** | Modal | `z-50+` | 테마/레벨 설정 (TopBar 위) | 버튼 클릭 시 (Action) |
-| **Layout** | **TopBar** | Fixed | `z-50` | 로고, 시스템 버튼 (상단 고정) | 항상 (Global) |
-| **Game** | **ResultModal** | Modal | `z-50` | 게임 결과/통계 (전체 덮음) | `gameState === 'RESULT'` |
-| **Game** | **RegionSelectScreen** | Modal | `z-50` | 지역 선택 (TopBar 제외 전체 덮음) | `gameState === 'LEVEL_SELECT'` |
-| **Game** | **GameInfoPanel** | Modeless | `z-[35]` | 게임 로그/점수 (좌측 하단) | `hasStarted` (Map 위) |
-| **Game** | **ActionBar** | Modeless | `z-30` | 미션 지령 HUD (중앙 상단) | `hasStarted` (Map 위) |
-| **Map** | **IntelPopup** | Overlay | `z-50` | 전술 정보 (우클릭 팝업) | 우클릭 시 (Conditional) |
-| **Map** | **MapScale** | Footer | `z-[25]` | 하단 통합 컨트롤 (Zoom/Hover/Layer) | **Always w/ Map** |
-| **Map** | **Interactive** | Layer | `z-20` | 지역 클릭/호버 감지 | 항상 (Interactive) |
-| **Map** | **Road/Grid** | Layer | `z-10` | 도로망 및 그리드 표시 | 항상 (Visual) |
-| **Map** | **BaseTerrain** | Layer | `z-0` | 지형 배경 (Base) | 항상 (Background) |
+| System | Component | File | Type | Z-Index | Context / Role | Visibility Rule |
+| :--- | :--- | :--- | :--- | :---: | :--- | :--- |
+| **Layout** | **SettingsModal** | `settings/SettingsModal` | Modal | `z-50+` | 테마/레벨 설정 (TopBar 위) | 버튼 클릭 시 (Action) |
+| **Layout** | **TopBar** | `layout/TopBar` | Fixed | `z-50` | 로고, 게임 점수, 시스템 버튼 (상단 고정) | 항상 (Global) |
+| **Game** | **ResultModal** | `game/ResultModal` | Modal | `z-50` | 게임 결과/통계 (전체 덮음) | `gameState === 'RESULT'` |
+| **Game** | **GameModeSelectScreen** | `game/GameModeSelectScreen` | Screen | `z-50` | 게임 코스 선택 화면 | `gameState === 'GAME_MODE_SELECT'` |
+| **Game** | **GameOptionSelectScreen** | `game/GameOptionSelectScreen` | Screen | `z-50` | 세부 게임 옵션 선택 화면 | `gameState === 'SUBREGION_SELECT'` |
+| **Game** | **RegionModeSelectPopup** | `game/RegionModeSelectPopup` | Popup | `z-50` | 시/군 클릭 후 구 선택 팝업 | 시/군 클릭 시 (Conditional) |
+| **Game** | **ActionBar** | `game/ActionBar` | Modeless | `z-30` | 미션 지령 HUD (우측 패널) | `gameState === 'PLAYING'` |
+| **Map** | **BottomBar** | `layout/BottomBar` | Footer | `z-[25]` | 하단 상태 바 (Zoom/Scale/Layer 토글) | **Always w/ Map** |
+| **Settings** | **LayerPanel** | `settings/LayerPanel` | Panel | `z-[25]+` | 레이어 on/off 드롭다운 (BottomBar에서 열림) | LAYERS 버튼 클릭 시 |
+| **Map** | **Interactive** | `map/InteractionLayer` | Layer | `z-20` | 지역 클릭/호버 감지 | 항상 (Interactive) |
+| **Map** | **Road/Grid** | `map/RoadLayer` | Layer | `z-10` | 도로망 및 그리드 표시 | 항상 (Visual) |
+| **Map** | **BaseTerrain** | `map/BaseMapLayerCanvas` | Layer | `z-0` | 지형 배경 (Base) | 항상 (Background) |
+| **UI** | **AdSlot** | `ui/AdSlot` | Slot | `z-[35]` | 구글 애드센스 광고 자리 표시자 | ActionBar 내부 조건부 |
+
+---
+
+## Folder → Domain Mapping (파일명 검색 가이드)
+
+> **원칙**: 폴더는 도메인(무슨 기능), 파일명 접미사는 UI 타입(어떻게 보이는가)
+
+| 폴더 | 도메인 | 파일명 접미사 예시 |
+| :--- | :--- | :--- |
+| `game/` | 게임 플로우 전체 | `*Modal`, `*Screen`, `*Popup`, `*Bar` |
+| `settings/` | 앱 설정 | `*Modal`, `*Panel` |
+| `layout/` | 앱 크롬 (영구 구조) | `*Bar`, `*Screen` |
+| `map/` | 지도 렌더링 | `*Layer`, `*Canvas` |
+| `ui/` | 재사용 기본 요소 | `*Button`, `*Modal`, `*Slot` |
+
+**버그 발생 시 검색 예시**: `Cmd+P` → `ResultModal`, `LayerPanel`, `AdSlot` → 바로 이동
 
 ---
 
@@ -48,9 +66,9 @@
 *   **Game HUD (`z-30`)**: 지도 위에 떠서 정보를 보여주지만, 더 중요한 `GameLog`(`z-35`)보다는 아래에 깔릴 수 있습니다.
 
 ### Rule 2: Modals are Unconditionally Top (모달은 무조건 최상단)
-*   **System Modals (`z-50`)**: `RegionSelect`, `ResultModal`, `Configuration` 등 **Modal** 성격을 가진 컴포넌트는 모든 Modeless 요소(`Map`, `HUD`, `Log`)를 덮어버립니다.
+*   **System Modals (`z-50`)**: `GameModeSelectScreen`, `ResultModal`, `SettingsModal` 등 **Modal/Screen** 성격을 가진 컴포넌트는 모든 Modeless 요소를 덮어버립니다.
 *   이 규칙 덕분에 복잡한 조건부 렌더링 없이 자연스러운 **Occlusion(가림)** 효과를 얻습니다.
 
 ### Rule 3: Map System Integrity
-*   `Map Layer`, `Layer Manager`, `Scale Info`는 **하나의 세트**입니다.
-*   지도가 보이면 컨트롤도 보이고, 지도가 가려지면 컨트롤도 가려집니다 (by Higher Z-Index).
+*   `Map Layer`, `LayerPanel`, `Scale Info`는 **하나의 세트**입니다.
+*   지도가 보이면 `BottomBar`(+`LayerPanel`)도 보이고, 지도가 가려지면 함께 가려집니다.

@@ -1,8 +1,8 @@
 # 기술 참조 문서 (Technical Reference Document)
 
-**버전**: 4.1.0  
+**버전**: 4.2.0  
 **최종 업데이트**: 2026-03-19  
-**주요 변경사항**: 컴포넌트 폴더 구조 재편(map/game/overlays), ActionBar 인텔 카드 통합, TopBar 점수 표시 추가
+**주요 변경사항**: 컴포넌트 폴더 도메인 기반 재정리 (overlays/dialog 삭제 → game/settings/layout), MapScale→BottomBar 이동·리네임, LayerPanel/AdSlot 분리
 
 ---
 
@@ -50,10 +50,20 @@ src/
 │   └── systems/        # 부가 시스템 (인텔 데이터 파서 등)
 ├── components/
 │   ├── map/            # 순수 지도 렌더링 뷰 (Canvas/SVG 레이어 등)
-│   ├── game/           # 게임 플레이 HUD 패널 (ActionBar — layout/ 이관 예정)
-│   ├── overlays/       # 전체 화면을 덮는 팝업 및 로비 뷰 (Modal, Screen 등)
-│   ├── layout/         # 영구 레이아웃 구조 (TopBar)
-│   └── ui/             # Button, Modal 등 재사용 컴포넌트
+│   ├── game/           # 게임 플로우 전체 (HUD, 게임 화면, 게임 모달)
+│   │   ├── ActionBar.tsx             # 미션 지령 HUD 패널
+│   │   ├── GameModeSelectScreen.tsx  # 게임 모드 선택 화면
+│   │   ├── GameOptionSelectScreen.tsx# 게임 세부 설정 화면
+│   │   ├── RegionModeSelectPopup.tsx # 지역 선택 팝업
+│   │   └── ResultModal.tsx           # 게임 결과 모달
+│   ├── settings/       # 앱 설정 관련 컴포넌트
+│   │   ├── SettingsModal.tsx         # 테마/난이도 설정 모달
+│   │   └── LayerPanel.tsx            # 지도 레이어 토글 패널 (BottomBar에서 분리)
+│   ├── layout/         # 앱 영구 크롬 (Navigation Shell)
+│   │   ├── TopBar.tsx                # 상단 고정 바 (브랜드, 점수, 액션)
+│   │   ├── BottomBar.tsx             # 하단 고정 바 (줌/스케일/레이어 토글)
+│   │   └── LoadingScreen.tsx         # 초기 로딩 화면
+│   └── ui/             # Button, Modal, AdSlot 등 재사용 기본 컴포넌트
 ├── contexts/           # 전역 상태 관리
 │   ├── GameContext.tsx             # 게임 진행 상태, 점수
 │   ├── GeoDataContext.tsx          # 지도 GeoJSON 원본 메모리 적재
