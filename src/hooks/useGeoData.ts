@@ -26,7 +26,7 @@ const ACTIVE_REGION_PREFIXES = ['11', '23', '31', '41'];
  *
  * 향후 전국 확장 시 도서 지역이 추가되면 여기에 코드만 추가할 것
  */
-const EXCLUDED_ISLAND_CITIES = ['23440'];
+const EXCLUDED_ISLAND_CITIES = ['23320']; // 인천 옹진군 (통계청 코드)
 
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
