@@ -44,11 +44,10 @@
 ```
 src/
 ├── game/               # 🧠 게임 코어 엔진 및 비즈니스 로직
+│   ├── constants/      # 게임 난이도별 점수, 기본 지도 좌표 등 도메인 상수 모음
 │   ├── core/           # 핵심 타입 및 인터페이스 (전략 패턴 베이스)
 │   ├── stages/         # 각 레벨별 실제 구동되는 게임 로직 (Stage1, Stage2...)
 │   └── systems/        # 부가 시스템 (인텔 데이터 파서 등)
-├── constants/          # 게임 난이도별 점수, 기본 지도 좌표 등 전역 상수 모음
-│   └── gameConfig.ts
 ├── components/
 │   ├── game/           # Map, QuizPanel, ScoreBoard, Overlays 등
 │   ├── layout/         # GameLayout, TopBar
