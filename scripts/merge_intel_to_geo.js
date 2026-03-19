@@ -37,9 +37,9 @@ async function run() {
   try {
     await fs.access(rawTargetMapPath);
   } catch {
-    // 만약 temp/gyeonggi_bupjeongdong.geojson 이 없다면 다른 맵 참조 시도
-    rawTargetMapPath = path.join(__dirname, '../public/mapData/level1.geojson');
-    console.log(`⚠️ 기본 맵을 찾을 수 없어 대체 맵(${rawTargetMapPath})을 시도합니다.`);
+    // temp/gyeonggi_bupjeongdong.geojson 이 없으면 현재 merged_map을 소스로 사용
+    rawTargetMapPath = OUTPUT_MAP_PATH;
+    console.log(`⚠️ 원본 맵을 찾을 수 없어 기존 merged_map.geojson을 소스로 사용합니다.`);
   }
 
   try {

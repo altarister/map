@@ -9,7 +9,8 @@
     "prebuild": "node scripts/merge_intel_to_geo.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "merge:intel": "node scripts/merge_intel_to_geo.js"
   },
   "dependencies": {
     "@types/d3-quadtree": "^3.0.6",
