@@ -75,7 +75,17 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // Base line width adjusts to zoom level so it stays crisp but thin
         const baseStrokeWidth = 1 / k;
 
-        // 1. Draw Active Game Layer (features)
+        // ── TWO-PASS RENDERING ──────────────────────────────────────────
+        // Pass 1: 모든 구역 면색(fill)만 먼저 채우기
+        //   → 이후 Pass2 stroke가 이웃 구역 fill에 덮이지 않도록 방지
+        // Pass 2: 모든 구역 테두리(stroke)를 한 번에 그리기
+        //   → 모든 경계선이 동일한 두께/스타일로 균일하게 렌더링됨
+        // ────────────────────────────────────────────────────────────────
+
+        // --- Pass 1: FILL ONLY ---
+        // 각 구역의 색상 정보를 수집하며 fill만 수행
+        const featureStyles: { feature: any; strokeColor: string; isTargetHint: boolean }[] = [];
+
         features.forEach((feature: any) => {
             const code = feature.properties.code;
             const isAnswered = answeredRegions.has(code);
@@ -89,12 +99,9 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 fillColor = getFillColor(feature, false);
                 strokeColor = getStrokeColor(feature, false);
             }
-            if (isCorrectFeedback) {
-                // fillColor = themeColors.correctFill;
-                // strokeColor = themeColors.correctStroke;
-            }
+            if (isCorrectFeedback) { /* reserved */ }
             if (isTargetHint) {
-                fillColor = 'rgba(234, 179, 8, 0.4)'; // bright yellow
+                fillColor = 'rgba(234, 179, 8, 0.4)';
                 strokeColor = '#eab308';
             }
 
@@ -103,14 +110,21 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             ctx.fillStyle = fillColor;
             ctx.fill();
 
-            // Set dynamic line width based on zoom and hint
+            // stroke 정보는 Pass2를 위해 보관
+            featureStyles.push({ feature, strokeColor, isTargetHint });
+        });
+
+        // --- Pass 2: STROKE ONLY ---
+        // 모든 fill이 완료된 뒤 테두리선만 그리기 → 균일한 경계선 보장
+        featureStyles.forEach(({ feature, strokeColor, isTargetHint }) => {
+            ctx.beginPath();
+            canvasPath(feature as any);
             ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
             ctx.strokeStyle = strokeColor;
             ctx.stroke();
-
-            // Restore line width
-            ctx.lineWidth = baseStrokeWidth;
         });
+        // 선 굵기 복원
+        ctx.lineWidth = baseStrokeWidth;
 
         // 2. Draw Context Layer: Level 2 Borders
         /* PM 요청: 상세 코스 캔버스 외곽선(시 태두리) 가리기 테스트 */

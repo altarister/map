@@ -42,7 +42,7 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
       if (orderVolume === '중') return 'rgba(110, 231, 183, 0.45)';
       if (orderVolume === '중하') return 'rgba(167, 243, 208, 0.3)';
       if (orderVolume === '하') return 'rgba(209, 250, 229, 0.15)'; // 거의 투명한
-      return 'rgba(255, 255, 255, 0.15)'; // 기본 균일 호버 색상 (데이터 없을 때)
+      return 'rgba(255, 255, 255, 0.2)'; // 기본 균일 호버 색상 (데이터 없을 때)
     }
 
     // Hover가 아닐 때 (보통 불리어지지 않지만 방어 코드)
