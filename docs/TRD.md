@@ -52,9 +52,10 @@ src/
 │   ├── layout/         # GameLayout, TopBar
 │   └── ui/             # Button, Modal 등 재사용 컴포넌트
 ├── contexts/           # 전역 상태 관리
-│   ├── GameContext.tsx
-│   ├── GeoDataContext.tsx
-│   └── SettingsContext.tsx
+│   ├── GameContext.tsx             # 게임 진행 상태, 점수
+│   ├── GeoDataContext.tsx          # 지도 GeoJSON 원본 메모리 적재
+│   ├── MapContext.tsx              # 지도 렌더링 상태 (줌/팬 transform, 레이어 on/off)
+│   └── SettingsContext.tsx         # 유저 설정 및 환경 설정
 ├── hooks/              # 비즈니스 로직 및 D3 제어 (상세 역할은 2.2절 참조)
 │   ├── useGameLogic.ts             # 게임 점수/출제/상태 관리
 │   ├── useGeoData.ts               # GeoJSON 데이터 로드
