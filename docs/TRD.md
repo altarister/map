@@ -65,7 +65,30 @@ src/
     └── geo.ts
 ```
 
-### 2.2 디자인 패턴: 전략 패턴 (Strategy Pattern)
+
+
+### 2.2 Custom Hooks 아키텍처 (`src/hooks/`)
+
+프로젝트의 비즈니스 로직과 D3 렌더링 최적화는 11개의 훅 단위로 분리되어 있으며, 역할과 저장소(State) 위치에 따라 다음과 같이 3개 그룹으로 나뉩니다.
+
+**1. 전역 시스템 훅 (Context 연동)**
+- **`useGameLogic.ts`**: 게임 점수, 단계, 문제 출제 및 정답 검증 로직. 데이터는 `GameContext`에 저장.
+- **`useGeoData.ts`**: 대용량 GeoJSON 지도 데이터를 브라우저에 로드 및 인메모리 적재. 데이터는 `GeoDataContext`에 저장.
+
+**2. 스토리지 훅 (영구 저장소 연동)**
+- **`useLocalStorage.ts`**: 환경설정 및 최고 점수 등 휘발되지 않아야 할 데이터를 브라우저 `localStorage`에 영구 기록 및 불러오기.
+
+**3. 지도(Map) 마이크로 컨트롤 훅 (로컬 상태 & D3 제어 연동)**
+- **`useMapZoom.ts`**: D3 라이브러리를 통해 마우스 휠 줌/드래그 이벤트를 관장하고 `transform(x, y, k)` 상태 유지.
+- **`useMapAutoZoom.ts`**: 정답/오답 타겟 좌표로 지도를 부드럽게 자동 스크롤하는 애니메이션 로직.
+- **`useMapCrossfadeTransition.ts`**: 줌 인/아웃 시 LOD(레벨 오브 디테일)가 바뀔 때 화면 깜빡임을 방지하는 CSS 투명도 조절 로직.
+- **`useMapDimensions.ts`**: 브라우저 창 크기(Resize) 변화를 실시간 감지하여 캔버스 크기를 즉각 재계산.
+- **`useMapFeatures.ts`**: 렌더링 성능 최적화를 위해 방대한 GeoJSON 중 "현재 화면 Bounding Box" 내부에 있는 폴리곤만 필터링.
+- **`useMapGeometry.ts`**: D3.js 기반으로 지구상 좌표(Lon/Lat)를 브라우저 픽셀(X/Y)로 투영(Projection) 및 변환.
+- **`useMapScale.ts`**: 줌 스케일 레벨에 비례하여 렌더링되는 선의 굵기를 동적으로 적절히 보정.
+- **`useMapStyles.ts`**: 정답/오답/Hover 등 게임 이벤트 상태와 `themes.ts` 상수 색상값을 매핑해주는 붓 역할.
+
+### 2.3 디자인 패턴: 전략 패턴 (Strategy Pattern)
 
 게임의 각 단계를 독립적인 모듈로 관리하기 위해 **전략 패턴**을 도입했습니다. 이를 통해 새로운 레벨을 추가할 때 기존 코드를 수정하지 않고 확장할 수 있습니다.
 
@@ -97,7 +120,7 @@ interface StageStrategy {
 }
 ```
 
-### 2.3 UI 컴포넌트의 단일 진실 공급원 (SSOT) 적용
+### 2.4 UI 컴포넌트의 단일 진실 공급원 (SSOT) 적용
 
 - `Map.tsx`, `SettingsModal.tsx`, `GameModeSelectScreen.tsx` 등의 UI 컴포넌트는 현재 단계의 특정 숫자(예: `currentStage === 1`)에 의존하여 하드코딩된 UI를 그리지 않습니다.
 - 대신, `StageStrategy.config` 객체(타입: `LevelConfig`)를 통해 해당 단계의 배지, 이름, 설명, 맵 표시 옵션(`forceShowTownGeometry`)과 해금 조건(`unlockCondition`)을 동적으로 전달받아 렌더링합니다.
