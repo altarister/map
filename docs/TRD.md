@@ -49,7 +49,9 @@ src/
 │   ├── stages/         # 각 레벨별 실제 구동되는 게임 로직 (Stage1, Stage2...)
 │   └── systems/        # 부가 시스템 (인텔 데이터 파서 등)
 ├── components/
-│   ├── game/           # Map, QuizPanel, ScoreBoard, Overlays 등
+│   ├── map/            # 순수 지도 렌더링 뷰 (Canvas/SVG 레이어 등)
+│   ├── game/           # 게임 플레이 인앱 상태 패널 (Action Bar 등)
+│   ├── overlays/       # 전체 화면을 덮는 팝업 및 로비 뷰 (Modal, Screen 등)
 │   ├── layout/         # GameLayout, TopBar
 │   └── ui/             # Button, Modal 등 재사용 컴포넌트
 ├── contexts/           # 전역 상태 관리
