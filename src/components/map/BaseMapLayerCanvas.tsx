@@ -194,11 +194,15 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 // 현재 게임 구역과 코드 prefix가 일치하는지 확인
                 const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
 
+                // 선택된 구역(isActiveSector)은 내부 경계선이 Pass1/2에서 이미 그려지므로 건너뜀
+                // 외부 구역만 15% 투명도로 희미하게 표시
+                if (isActiveSector) return;
+
                 ctx.beginPath();
                 canvasPath(feature as any);
                 ctx.lineWidth = contextStrokeWidth;
                 ctx.strokeStyle = contextStrokeColor;
-                ctx.globalAlpha = isActiveSector ? 1 : 0.15; // 외부 구역은 반투명
+                ctx.globalAlpha = 0.15;
                 ctx.stroke();
                 ctx.globalAlpha = 1.0; // 복원
             });
