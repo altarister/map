@@ -11,22 +11,21 @@ export const TopBar = () => {
   return (
     <>
       <header className="h-12 fixed top-0 w-full z-50 flex items-center justify-between px-5
-        bg-[#06060a]/95 backdrop-blur-xl
-        border-b border-white/[0.06]
-        shadow-[0_1px_0_rgba(255,255,255,0.03),0_4px_24px_rgba(0,0,0,0.5)]"
+        glass-header border-b border-border
+        shadow-[0_4px_24px_rgba(0,0,0,0.4)]"
       >
         {/* LEFT: Brand */}
         <div className="flex items-center gap-3">
-          {/* Green status dot */}
+          {/* Primary status dot */}
           <div className="relative flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <div className="absolute w-3 h-3 rounded-full bg-emerald-500/20 animate-ping" />
+            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.8)]" />
+            <div className="absolute w-3 h-3 rounded-full bg-primary/20 animate-ping" />
           </div>
           <div className="flex items-baseline gap-2">
-            <h1 className="text-sm font-bold text-white tracking-tight leading-none">
+            <h1 className="text-sm font-bold text-foreground tracking-tight leading-none">
               1달 트레이너
             </h1>
-            <span className="text-[9px] font-mono text-white/20 tracking-widest">v1.3.0</span>
+            <span className="text-[9px] font-mono text-muted-foreground/40 tracking-widest">v1.3.0</span>
           </div>
         </div>
 
@@ -35,18 +34,18 @@ export const TopBar = () => {
           {gameState === 'PLAYING' && (
             <div className="flex items-center gap-4 font-mono">
               <div className="flex flex-col items-center">
-                <span className="text-[8px] text-white/30 uppercase tracking-widest leading-none mb-0.5">최고기록</span>
-                <span className="text-xs font-bold text-white/40">{String(topScore).padStart(4, '0')}</span>
+                <span className="text-[8px] text-muted-foreground uppercase tracking-widest leading-none mb-0.5">최고기록</span>
+                <span className="text-xs font-bold text-muted-foreground">{String(topScore).padStart(4, '0')}</span>
               </div>
-              <div className="w-px h-5 bg-white/10" />
+              <div className="w-px h-5 bg-border" />
               <div className="flex flex-col items-center">
-                <span className="text-[8px] text-emerald-500/60 uppercase tracking-widest leading-none mb-0.5">현재점수</span>
-                <span className="text-xs font-bold text-emerald-400">{String(score.correct * 100).padStart(4, '0')}</span>
+                <span className="text-[8px] text-primary/70 uppercase tracking-widest leading-none mb-0.5">현재점수</span>
+                <span className="text-xs font-bold text-primary">{String(score.correct * 100).padStart(4, '0')}</span>
               </div>
-              <div className="w-px h-5 bg-white/10" />
+              <div className="w-px h-5 bg-border" />
               <div className="flex flex-col items-center">
-                <span className="text-[8px] text-white/30 uppercase tracking-widest leading-none mb-0.5">레벨</span>
-                <span className="text-xs font-bold text-white/70">{currentStage ?? '-'}</span>
+                <span className="text-[8px] text-muted-foreground uppercase tracking-widest leading-none mb-0.5">레벨</span>
+                <span className="text-xs font-bold text-foreground">{currentStage ?? '-'}</span>
               </div>
             </div>
           )}
@@ -58,8 +57,8 @@ export const TopBar = () => {
             <button
               onClick={() => setGameState('REGION_SELECT')}
               className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-bold font-mono uppercase tracking-widest
-                bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded
-                hover:bg-emerald-500/25 hover:border-emerald-500/50 transition-all"
+                bg-primary/15 text-primary border border-primary/30 rounded
+                hover:bg-primary/25 hover:border-primary/50 transition-all"
             >
               <span>▶</span> 게임 시작
             </button>
@@ -73,8 +72,8 @@ export const TopBar = () => {
                 setGameState('GAME_MODE_SELECT');
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider
-                text-white/40 hover:text-white/70 border border-white/[0.07] rounded
-                bg-white/[0.03] hover:bg-white/[0.06] transition-all"
+                text-muted-foreground hover:text-foreground border border-border rounded
+                bg-muted/30 hover:bg-muted/60 transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -88,20 +87,20 @@ export const TopBar = () => {
             <button
               onClick={resetGame}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider
-                text-red-500/50 hover:text-red-400 border border-red-500/10 rounded
-                hover:border-red-500/30 hover:bg-red-500/5 transition-all"
+                text-destructive/60 hover:text-destructive border border-destructive/10 rounded
+                hover:border-destructive/30 hover:bg-destructive/5 transition-all"
             >
               ✕ 중단
             </button>
           )}
 
           {/* Divider */}
-          <div className="w-px h-5 bg-white/[0.07]" />
+          <div className="w-px h-5 bg-border" />
 
           {/* Settings */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 rounded text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
             title="설정"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
