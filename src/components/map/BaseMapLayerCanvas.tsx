@@ -30,7 +30,7 @@ export interface BaseMapLayerHandle {
 
 export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLayerCanvasProps>(({
     features,
-    // cityData, // Unused due to commenting out Level 2 Context Borders
+    cityData, // Unused due to commenting out Level 2 Context Borders
     projection,
     theme,
     themeColors,
@@ -113,7 +113,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         });
 
         // 2. Draw Context Layer: Level 2 Borders
-        /* PM 요청: 상세 코스 캔버스 외곽선(시 태두리) 가리기 테스트 
+        /* PM 요청: 상세 코스 캔버스 외곽선(시 태두리) 가리기 테스트 */
         if (showBoundaries && cityData) {
             const contextStrokeWidth = theme === 'tactical' ? 2.0 / k : 1.5 / k;
             const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.3)' : '#64748b';
@@ -131,7 +131,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 ctx.globalAlpha = 1.0;
             });
         }
-        */
+        
 
         ctx.restore();
     };
