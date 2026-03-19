@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { SettingsModal } from '../overlays/SettingsModal';
+import { SettingsModal } from '../settings/SettingsModal';
 
 export const TopBar = () => {
   const { gameState, setGameState, resetGame, score, currentStage, setSelectionDepth, setCurrentFocusCode } = useGame();

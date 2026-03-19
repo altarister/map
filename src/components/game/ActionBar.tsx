@@ -1,9 +1,8 @@
 import type { GameQuestion, UserInput } from '../../game/core/types';
 import { useGame } from '../../contexts/GameContext';
-
 import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMemo } from 'react';
-
+import { AdSlot } from '../ui/AdSlot';
 
 const getQuestionText = (question: GameQuestion): string => {
     switch (question.type) {
@@ -207,20 +206,7 @@ export const ActionBar = () => {
 
         {/* 우측 광고 슬롯 (Google AdSense 삽입 예정) */}
         <div className="absolute top-20 right-4 z-[35] w-64">
-            <div className="glass-panel flex flex-col items-center justify-center gap-2 p-4 min-h-[250px] border border-dashed border-white/10">
-                {/* 
-                    [광고 영역]
-                    Google AdSense 코드를 여기에 삽입하세요.
-                    예시:
-                    <ins className="adsbygoogle"
-                        style={{ display: 'block' }}
-                        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                        data-ad-slot="XXXXXXXXXX"
-                        data-ad-format="auto" />
-                */}
-                <span className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">AD</span>
-                <span className="text-[9px] text-gray-700 font-mono">300 × 250</span>
-            </div>
+            <AdSlot width={300} height={250} />
         </div>
         </>
     );

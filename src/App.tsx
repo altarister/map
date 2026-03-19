@@ -3,16 +3,16 @@ import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
 import { Map } from './components/map/Map';
-import { GameModeSelectScreen } from './components/overlays/GameModeSelectScreen';
+import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 
-import { ResultModal } from './components/overlays/ResultModal';
+import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 
 import { ActionBar } from './components/game/ActionBar';
 
 
 import { useState } from 'react';
-import { LoadingScreen } from './components/overlays/LoadingScreen';
+import { LoadingScreen } from './components/layout/LoadingScreen';
 
 function GameContent() {
   const { gameState, setGameState } = useGame();
