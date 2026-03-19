@@ -20,6 +20,8 @@ interface RoadLayerProps {
     visiblePrimary: boolean;
     visibleSecondary: boolean;
     visibleOther: boolean;
+    // Opacity (0~10 슬라이더 값, /10 변환해 사용)
+    roadOpacity?: number;
 }
 
 export interface RoadLayerHandle extends CanvasLayerHandle {
@@ -29,7 +31,8 @@ export interface RoadLayerHandle extends CanvasLayerHandle {
 
 export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
     features, projection, initialTransform, width, height, theme,
-    visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther
+    visibleMotorway, visibleTrunk, visiblePrimary, visibleSecondary, visibleOther,
+    roadOpacity = 5
 }, ref) => {
     // Wrapper Ref for CSS Transform
     const containerRef = useRef<HTMLDivElement>(null);
@@ -261,7 +264,7 @@ export const RoadLayer = memo(forwardRef<RoadLayerHandle, RoadLayerProps>(({
                 // Important: HW Acceleration hints
                 willChange: 'transform',
                 transition: 'none',
-                opacity: 0.5
+                opacity: roadOpacity / 10
             }}
         >
             {[

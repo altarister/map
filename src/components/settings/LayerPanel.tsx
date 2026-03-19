@@ -15,23 +15,54 @@ const LAYERS = [
 ] as const;
 
 export const LayerPanel = ({ isOpen }: LayerPanelProps) => {
-  const { layerVisibility, toggleLayer } = useMapContext();
+  const { layerVisibility, toggleLayer, roadOpacity, setRoadOpacity } = useMapContext();
 
   return (
     <div className={`
-      absolute bottom-full right-0 mb-2 w-44
+      absolute bottom-full right-0 mb-2 w-48
       glass-panel !rounded-lg shadow-2xl p-2
       origin-bottom-right transition-all duration-200
       ${isOpen
         ? 'opacity-100 scale-100 translate-y-0'
         : 'opacity-0 scale-95 translate-y-1 pointer-events-none'}
     `}>
+      {/* Header */}
       <div className="px-2 py-1.5 border-b border-border mb-1 flex items-center gap-2">
         <div className="w-1 h-1 rounded-full bg-primary/70" />
         <span className="text-[9px] font-bold font-mono text-muted-foreground tracking-widest uppercase">
           레이어 설정
         </span>
       </div>
+
+      {/* Road Opacity Slider */}
+      <div className="px-2 py-1.5 border-b border-border mb-1">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
+            도로 투명도
+          </span>
+          <span className="text-[10px] font-bold font-mono text-foreground/70 tabular-nums">
+            {roadOpacity}/10
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={1}
+          value={roadOpacity}
+          onChange={(e) => setRoadOpacity(Number(e.target.value))}
+          className="w-full h-1.5 appearance-none rounded-full cursor-pointer
+            bg-muted accent-primary"
+          style={{ accentColor: 'hsl(var(--primary))' }}
+        />
+        <div className="flex justify-between mt-0.5">
+          <span className="text-[7px] font-mono text-muted-foreground/40">0</span>
+          <span className="text-[7px] font-mono text-muted-foreground/40">5</span>
+          <span className="text-[7px] font-mono text-muted-foreground/40">10</span>
+        </div>
+      </div>
+
+      {/* Layer Toggle List */}
       <div className="flex flex-col gap-0.5">
         {LAYERS.map(({ id, label }) => (
           <div

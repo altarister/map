@@ -58,7 +58,7 @@ export const Map = () => {
 
   const { theme, showDebugInfo, viewOptions } = useSettings();
   const colors = MAP_THEME_COLORS[theme];
-  const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility } = useMapContext();
+  const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility, roadOpacity } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
   const [prototypeLayerVisible, setPrototypeLayerVisible] = useState(false);
 
@@ -328,6 +328,7 @@ export const Map = () => {
             visiblePrimary={layerVisibility.roadPrimary}
             visibleSecondary={layerVisibility.roadSecondary}
             visibleOther={layerVisibility.roadOther}
+            roadOpacity={roadOpacity}
           />
         )}
       </div>

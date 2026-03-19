@@ -28,6 +28,10 @@ interface MapContextType {
     };
     toggleLayer: (layerId: keyof MapContextType['layerVisibility']) => void;
     setLayerVisibility: (visibility: Partial<MapContextType['layerVisibility']>) => void;
+
+    // Road Opacity (0~10 scale, default 5 → renders as 0.0~1.0)
+    roadOpacity: number;
+    setRoadOpacity: (value: number) => void;
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -49,9 +53,12 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         roadMotorway: true, // 고속도로
         roadTrunk: true,    // 국도
         roadPrimary: true,  // 주요도로
-        roadSecondary: true,// 보조도로 (Default OFF)
-        roadOther: false     // 기타도로 (Default OFF)
+        roadSecondary: true,// 보조도로
+        roadOther: true     // 기타도로 (기본 ON)
     });
+
+    // Road Opacity: 0~10 슬라이더 값 (렌더링 시 /10 으로 변환)
+    const [roadOpacity, setRoadOpacity] = useState(5);
 
     const toggleLayer = useCallback((layerId: keyof typeof layerVisibility) => {
         setLayerVisibility(prev => ({
@@ -73,7 +80,9 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setHoveredRegion,
         layerVisibility,
         toggleLayer,
-        setLayerVisibility: setLayerVisibilityPartial
+        setLayerVisibility: setLayerVisibilityPartial,
+        roadOpacity,
+        setRoadOpacity,
     };
 
     return (
