@@ -71,7 +71,7 @@ export const ActionBar = () => {
             {/* 문제 패널 */}
             <div className="glass-panel p-4 h-fit">
                 {/* 헤더: 레이블 + 정답 버튼 */}
-                <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-1">
+                <div className="flex items-center justify-between mb-2 pb-1">
                     <h3 className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
                         현재 문제
                     </h3>
@@ -87,18 +87,15 @@ export const ActionBar = () => {
                 {/* 본문: 문제 텍스트 + 점수 + 버튼 */}
                 {currentQuestion ? (
                     <div className="flex flex-col gap-2">
-                        <p className="text-base font-bold text-white leading-snug">
-                            {getQuestionText(currentQuestion)}
-                        </p>
-
                         {/* 인텔 정보 (항상 표시, 데이터 있을 때만) */}
                         {targetIntel && (
                             <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
                                 {/* 지역명 + 중요도 + 오더량 */}
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-[11px] text-gray-400 font-mono">{targetIntel.parentName}</p>
-                                        <p className="text-xs font-bold text-white">{targetIntel.name}</p>
+                                        <p className="text-base font-bold text-white leading-snug">
+                                            {getQuestionText(currentQuestion)}
+                                        </p>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
                                         <div className="flex gap-0.5 text-[10px]">

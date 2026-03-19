@@ -1,8 +1,8 @@
 # 기술 참조 문서 (Technical Reference Document)
 
-**버전**: 4.0.0  
-**최종 업데이트**: 2026-02-25  
-**주요 변경사항**: Canvas 기반 맵 레이어 전환, 모듈화 아키텍처 정립
+**버전**: 4.1.0  
+**최종 업데이트**: 2026-03-19  
+**주요 변경사항**: 컴포넌트 폴더 구조 재편(map/game/overlays), ActionBar 인텔 카드 통합, TopBar 점수 표시 추가
 
 ---
 
@@ -50,9 +50,9 @@ src/
 │   └── systems/        # 부가 시스템 (인텔 데이터 파서 등)
 ├── components/
 │   ├── map/            # 순수 지도 렌더링 뷰 (Canvas/SVG 레이어 등)
-│   ├── game/           # 게임 플레이 인앱 상태 패널 (Action Bar 등)
+│   ├── game/           # 게임 플레이 HUD 패널 (ActionBar — layout/ 이관 예정)
 │   ├── overlays/       # 전체 화면을 덮는 팝업 및 로비 뷰 (Modal, Screen 등)
-│   ├── layout/         # GameLayout, TopBar
+│   ├── layout/         # 영구 레이아웃 구조 (TopBar)
 │   └── ui/             # Button, Modal 등 재사용 컴포넌트
 ├── contexts/           # 전역 상태 관리
 │   ├── GameContext.tsx             # 게임 진행 상태, 점수
@@ -135,7 +135,40 @@ interface StageStrategy {
 }
 ```
 
-### 2.4 UI 컴포넌트의 단일 진실 공급원 (SSOT) 적용
+### 2.4 UI 레이아웃 구조
+
+게임 화면은 역할에 따라 다음과 같이 구분됩니다.
+
+#### 상단 고정 헤더 (`TopBar.tsx`)
+- 앱 제목 및 버전
+- 게임 중 중앙에 **최고기록 / 현재점수 / 레벨** 표시 (`gameState === 'PLAYING'` 시에만)
+- 우측: 게임 시작/중단, 설정 버튼
+
+#### 좌측 HUD 패널 (`ActionBar.tsx`)
+- `gameState === 'PLAYING'` 시에만 렌더링됨
+- 단일 `glass-panel` 안에 문제 + 인텔 정보를 통합 표시
+
+```
+[현재 문제]
+  문제 지문 텍스트      ★★★★☆  오더 상   ← 인텔 데이터 있을 때만
+  ─────────────────────────────────────
+  주요도로: 국도1호선 ...                  ← roads[]
+  📍 주요 거점: 수원역, 롯데몰 ...         ← landmarks[]
+  💡 실전 인텔: 상세 팁 ...               ← fieldTips[]
+  ─────────────────────────────────────
+  푼 문제: 5 / 30   맞: 4  틀: 1
+  [████░░░░░░░░░░░░] progress bar
+  🔍 찾기          ⏭ 다음
+```
+
+- 인텔 정보(`targetIntel`)는 별도 섹션이 아닌 문제 지문과 **동일 블록 내 통합** 렌더링
+- 인텔 데이터가 없으면 해당 섹션이 자동으로 숨겨짐
+
+#### 우측 광고 슬롯
+- 항상 고정 노출되는 `300×250` Google AdSense 영역 (`min-h-[250px]`)
+- 현재는 플레이스홀더; `<ins class="adsbygoogle">` 코드 삽입으로 활성화
+
+### 2.5 UI 컴포넌트의 단일 진실 공급원 (SSOT) 적용
 
 - `Map.tsx`, `SettingsModal.tsx`, `GameModeSelectScreen.tsx` 등의 UI 컴포넌트는 현재 단계의 특정 숫자(예: `currentStage === 1`)에 의존하여 하드코딩된 UI를 그리지 않습니다.
 - 대신, `StageStrategy.config` 객체(타입: `LevelConfig`)를 통해 해당 단계의 배지, 이름, 설명, 맵 표시 옵션(`forceShowTownGeometry`)과 해금 조건(`unlockCondition`)을 동적으로 전달받아 렌더링합니다.
