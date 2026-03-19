@@ -14,6 +14,20 @@ const DATA_URL_ROADS = '/download/korea-roads-topo.json?v=3'; // TopoJSON Roads
 // 현재 서비스(활성화) 중인 광역 코드 (11:서울, 23:인천, 31:경기)
 const ACTIVE_REGION_PREFIXES = ['11', '23', '31', '41'];
 
+/**
+ * [정책] 트럭 진입 불가 도서 지역 제외 목록
+ *
+ * 기준: 다리·도로로 육지와 연결되지 않은 도서 행정구역은 제외
+ *       다리가 있으면 포함 (예: 강화군 → 강화대교·초지대교, 영종도 → 인천대교)
+ *
+ * ❌ 제외: 인천 옹진군(23440) — 서해 도서, 배 이외 접근 불가
+ * ✅ 포함: 인천 강화군(23430) — 강화대교·초지대교 (트럭 통행 가능)
+ * ✅ 포함: 인천 중구(23110)   — 인천대교·영종대교 (공항 방면, 트럭 통행 가능)
+ *
+ * 향후 전국 확장 시 도서 지역이 추가되면 여기에 코드만 추가할 것
+ */
+const EXCLUDED_ISLAND_CITIES = ['23440'];
+
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);
   const [level1Data, setLevel1Data] = useState<RegionCollection | null>(null);
@@ -75,7 +89,8 @@ export const useGeoData = () => {
         // ==========================================================
         const filteredLevel3 = level3.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
-          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix));
+          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix))
+            && !EXCLUDED_ISLAND_CITIES.some(exc => code.startsWith(exc));
         });
 
         const sigNameToLegalCode = new Map<string, string>();
@@ -109,7 +124,8 @@ export const useGeoData = () => {
         // ==========================================================
         const filteredCityRaw = level2Raw.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
-          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix));
+          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix))
+            && !EXCLUDED_ISLAND_CITIES.some(exc => code.startsWith(exc));
         });
 
         const parentMap = new Map<string, string>();
@@ -153,7 +169,8 @@ export const useGeoData = () => {
         // ==========================================================
         const filteredCityMerged = level2Merged.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
-          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix));
+          return ACTIVE_REGION_PREFIXES.some(prefix => code.startsWith(prefix))
+            && !EXCLUDED_ISLAND_CITIES.some(exc => code.startsWith(exc));
         });
 
         filteredCityMerged.forEach((f: RegionFeature) => {
