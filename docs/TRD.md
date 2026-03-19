@@ -55,11 +55,18 @@ src/
 │   ├── GameContext.tsx
 │   ├── GeoDataContext.tsx
 │   └── SettingsContext.tsx
-├── hooks/              # 비즈니스 로직 및 D3 제어
-│   ├── useGameLogic.ts
-│   ├── useGeoData.ts
-│   ├── useMapScale.ts
-│   └── useMapZoom.ts   # D3 줌 동작 + Canvas/SVG 레이어 제어
+├── hooks/              # 비즈니스 로직 및 D3 제어 (상세 역할은 2.2절 참조)
+│   ├── useGameLogic.ts             # 게임 점수/출제/상태 관리
+│   ├── useGeoData.ts               # GeoJSON 데이터 로드
+│   ├── useLocalStorage.ts          # 유저 설정/최고 점수 저장
+│   ├── useMapAutoZoom.ts           # 부드러운 자동 스크롤 애니메이션
+│   ├── useMapCrossfadeTransition.ts# 줌 레벨 스위칭 시 깜빡임 방지
+│   ├── useMapDimensions.ts         # 브라우저 리사이즈 반응
+│   ├── useMapFeatures.ts           # 화면 내 보이는 폴리곤 영역 최적화 필터링
+│   ├── useMapGeometry.ts           # 지구 좌표 ↔ 픽셀 좌표 수학적 투영/변환
+│   ├── useMapScale.ts              # 줌 비율에 따른 선 굵기 보정
+│   ├── useMapStyles.ts             # 상태에 따른 지역 색상 칠하기
+│   └── useMapZoom.ts               # D3 줌/팬 동작 및 Canvas transform 제어
 ├── services/           # 비즈니스 로직 서비스
 │   └── MasteryStorage.ts # 숙련도 기록 저장
 ├── styles/             # 공통 스타일
