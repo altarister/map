@@ -8,8 +8,7 @@ import { geoCentroid } from 'd3-geo';
 const DATA_URL_LEVEL1 = '/download/skorea-provinces-2018-geo.json'; // 광역 자치단체 (원본 17개)
 const DATA_URL_LEVEL2_RAW = '/download/skorea-municipalities-2018-geo.json'; // 시/군/구 원본 (쪼개진 구 포함, rawCityData용)
 const DATA_URL_LEVEL2_MERGED = '/mapData/korea-municipalities-merged.geojson'; // 시/군/구 통합본 (cityData용 - bake_nationwide_maps.js 로 생성)
-const DATA_URL_LEVEL3 = '/mapData/merged_map.geojson'; // 읍/면/법정동 (Terminal Nodes, Intel merged)
-const DATA_URL_LEVEL3_SI = '/mapData/seoul_incheon_dong.geojson'; // 서울/인천 읍면동 (추후 전국 merged_map 병합 시 삭제)
+const DATA_URL_LEVEL3 = '/mapData/merged_map.geojson'; // 읍/면/법정동 (Terminal Nodes, Intel merged, 서울·인천 포함)
 const DATA_URL_ROADS = '/download/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
 // 현재 서비스(활성화) 중인 광역 코드 (11:서울, 23:인천, 31:경기)
@@ -38,28 +37,22 @@ export const useGeoData = () => {
         const fetchLevel2Raw = fetch(DATA_URL_LEVEL2_RAW);         // 원인 4 해결 (원본 다시 로드)
         const fetchLevel2Merged = fetch(DATA_URL_LEVEL2_MERGED);   // 통합본 로드
         const fetchLevel3 = fetch(DATA_URL_LEVEL3);
-        const fetchLevel3SI = fetch(DATA_URL_LEVEL3_SI);
         const fetchRoads = fetch(DATA_URL_ROADS);
 
         const [
-          response1, response2Raw, response2Merged, response3, response3SI
-        ] = await Promise.all([fetchLevel1, fetchLevel2Raw, fetchLevel2Merged, fetchLevel3, fetchLevel3SI]);
+          response1, response2Raw, response2Merged, response3
+        ] = await Promise.all([fetchLevel1, fetchLevel2Raw, fetchLevel2Merged, fetchLevel3]);
         setProgress(40); 
 
         if (!response1.ok) throw new Error(`Failed to load Level 1: ${response1.statusText}`);
         if (!response2Raw.ok) throw new Error(`Failed to load Level 2 Raw: ${response2Raw.statusText}`);
         if (!response2Merged.ok) throw new Error(`Failed to load Level 2 Merged: ${response2Merged.statusText}`);
         if (!response3.ok) throw new Error(`Failed to load Level 3: ${response3.statusText}`);
-        if (!response3SI.ok) throw new Error(`Failed to load Level 3 SI: ${response3SI.statusText}`);
 
         const level1 = await response1.json();
         const level2Raw = await response2Raw.json();
         const level2Merged = await response2Merged.json();
         const level3 = await response3.json();
-        const level3SI = await response3SI.json();
-        
-        // Level 3 데이터 병합 (경기 + 서울/인천)
-        level3.features = [...level3.features, ...level3SI.features];
         setProgress(50); 
 
         // ==========================================================

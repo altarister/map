@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const INTEL_DIR = path.join(__dirname, 'data/intel');
 const RAW_MAP_PATH = path.join(__dirname, '../public/temp/gyeonggi_bupjeongdong.geojson');
+const SEOUL_INCHEON_PATH = path.join(__dirname, '../public/mapData/seoul_incheon_dong.geojson');
 const OUTPUT_MAP_PATH = path.join(__dirname, '../public/mapData/merged_map.geojson');
 
 async function run() {
@@ -43,8 +44,22 @@ async function run() {
   }
 
   try {
-    const geoJsonRaw = await fs.readFile(rawTargetMapPath, 'utf8');
+    let geoJsonRaw = await fs.readFile(rawTargetMapPath, 'utf8');
     const geoJson = JSON.parse(geoJsonRaw);
+
+    // 소스가 원본 경기도 파일일 경우, 서울·인천 데이터를 추가 병합
+    if (rawTargetMapPath !== OUTPUT_MAP_PATH) {
+      try {
+        const siRaw = await fs.readFile(SEOUL_INCHEON_PATH, 'utf8');
+        const siData = JSON.parse(siRaw);
+        const existingCodes = new Set(geoJson.features.map((f) => f.properties.code));
+        const toAdd = siData.features.filter((f) => !existingCodes.has(f.properties.code));
+        geoJson.features = [...geoJson.features, ...toAdd];
+        console.log(`🏙️  서울·인첰 데이터 ${toAdd.length}개 추가 병합됨`);
+      } catch {
+        console.log('⚠️ seoul_incheon_dong.geojson 미존 - 무시하고 진행');
+      }
+    }
 
     // [필터링] 알루님 지도 전략: "우리는 시내권(법정동)과 읍/면(상위 8자리)만 취급한다. 잡다한 시골 '리'(10자리)는 버린다!"
     // 이미 맵 원본에 8자리 둥근 읍/면 폴리곤이 들어있으므로, 10자리로 쪼개진 '리' 조각들만 쏙 빼주면 완벽히 해결.
