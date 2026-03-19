@@ -3,7 +3,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMemo } from 'react';
-import { RegionIntelCard } from './RegionIntelCard';
+import { RegionIntelCard } from '../overlays/RegionIntelCard';
 
 const getQuestionText = (question: GameQuestion): string => {
     switch (question.type) {

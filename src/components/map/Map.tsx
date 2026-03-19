@@ -20,7 +20,7 @@ import { useMapGeometry } from '../../hooks/useMapGeometry';
 import { useMapAutoZoom } from '../../hooks/useMapAutoZoom';
 import { useMapCrossfadeTransition } from '../../hooks/useMapCrossfadeTransition';
 import { log } from '../../lib/debug';
-import { IntelPopup } from './IntelPopup';
+import { IntelPopup } from '../overlays/IntelPopup';
 import { getAdjacentRegions, getPassingRoads } from '../../game/systems/IntelSystem';
 import { MAP_THEME_COLORS } from '../../styles/themes';
 
