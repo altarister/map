@@ -6,7 +6,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { MapScale } from './MapScale';
+import { BottomBar } from '../layout/BottomBar';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
@@ -465,7 +465,7 @@ export const Map = () => {
 
 
       {viewOptions.showScaleBar && gameState !== 'INITIAL' && (
-        <MapScale
+        <BottomBar
           width={scaleWidth}
           distance={scaleDistance}
           unit={scaleUnit}

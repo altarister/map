@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-interface MapScaleProps {
+interface BottomBarProps {
   width: number;
   distance: number;
   unit: string;
@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useMapContext } from '../../contexts/MapContext';
 import { Button } from '../ui/Button';
 
-interface MapScaleProps {
+interface BottomBarProps {
   width: number;
   distance: number;
   unit: string;
@@ -23,14 +23,14 @@ interface MapScaleProps {
   renderedCount?: number;
 }
 
-export const MapScale = ({
+export const BottomBar = ({
   width,
   distance,
   unit,
   zoom,
   hoveredRegion,
   renderedCount,
-}: MapScaleProps) => {
+}: BottomBarProps) => {
   const { layerVisibility, toggleLayer } = useMapContext();
 
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(true);
