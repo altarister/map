@@ -11,5 +11,3 @@ export interface RegionIntel {
   landmarks?: string[]; // 주요 랜드마크 (역, 구청, 터미널, 대형 마트 등)
 }
 
-// Key is regionCode
-export type RegionIntelDatabase = Record<string, RegionIntel>;

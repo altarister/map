@@ -18,9 +18,6 @@ export interface RegionProperties {
   // 3. 인텔 병합 속성 (via scripts/merge_intel_to_geo.js)
   intel?: RegionIntel; // 배달 핵심 팁
 
-  // Legacy (삭제 예정)
-  city?: string;
-  district?: string;
 }
 
 export type RegionFeature = Feature<Geometry, RegionProperties>;
