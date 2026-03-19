@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { LayerPanel } from '../settings/LayerPanel';
+import { LayerRoadPanel } from '../settings/LayerRoadPanel';
+import { LayerMapPanel } from '../settings/LayerMapPanel';
 
 interface BottomBarProps {
   width: number;
@@ -11,6 +12,8 @@ interface BottomBarProps {
   showDebug?: boolean;
 }
 
+type ActivePanel = 'road' | 'map' | null;
+
 export const BottomBar = ({
   width,
   distance,
@@ -19,7 +22,10 @@ export const BottomBar = ({
   hoveredRegion,
   renderedCount,
 }: BottomBarProps) => {
-  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(true);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+
+  const toggle = (panel: ActivePanel) =>
+    setActivePanel(prev => (prev === panel ? null : panel));
 
   return (
     <div className="absolute bottom-0 left-0 right-0 h-9 z-[25] flex items-center justify-between px-4 select-none
@@ -71,27 +77,56 @@ export const BottomBar = ({
         )}
       </div>
 
-      {/* RIGHT: Layer Control */}
-      <div className="relative flex items-center">
-        <LayerPanel isOpen={isLayerMenuOpen} />
+      {/* RIGHT: Layer Controls (상호 배타 두 버튼) */}
+      <div className="relative flex items-center gap-1">
 
-        <button
-          onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] font-mono font-bold uppercase tracking-widest transition-all border ${
-            isLayerMenuOpen
-              ? 'bg-primary/15 text-primary border-primary/30'
-              : 'text-muted-foreground border-border bg-muted/30 hover:text-foreground hover:bg-muted/60'
-          }`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className={`w-3 h-3 transition-transform duration-200 ${isLayerMenuOpen ? 'rotate-180' : ''}`}
+        {/* 지도 레이어 패널 */}
+        <div className="relative">
+          <LayerMapPanel isOpen={activePanel === 'map'} />
+          <button
+            onClick={() => toggle('map')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] font-mono font-bold uppercase tracking-widest transition-all border ${
+              activePanel === 'map'
+                ? 'bg-primary/15 text-primary border-primary/30'
+                : 'text-muted-foreground border-border bg-muted/30 hover:text-foreground hover:bg-muted/60'
+            }`}
+            title="지도 레이어"
           >
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
-          LAYERS
-        </button>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="w-3 h-3"
+            >
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+            </svg>
+            MAP
+          </button>
+        </div>
+
+        {/* 구분선 */}
+        <div className="w-px h-4 bg-border" />
+
+        {/* 도로 레이어 패널 */}
+        <div className="relative">
+          <LayerRoadPanel isOpen={activePanel === 'road'} />
+          <button
+            onClick={() => toggle('road')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] font-mono font-bold uppercase tracking-widest transition-all border ${
+              activePanel === 'road'
+                ? 'bg-primary/15 text-primary border-primary/30'
+                : 'text-muted-foreground border-border bg-muted/30 hover:text-foreground hover:bg-muted/60'
+            }`}
+            title="도로 레이어"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="w-3 h-3"
+            >
+              <path d="M10 3L8 21M16 3l-2 18M4 8h16M3 16h18" />
+            </svg>
+            ROAD
+          </button>
+        </div>
+
       </div>
     </div>
   );
