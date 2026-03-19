@@ -24,25 +24,7 @@ export const ActionBar = () => {
     const { filteredMapData: geoData } = useGeoContext();
     const [intelExpanded, setIntelExpanded] = useState(false);
 
-    if (gameState !== 'PLAYING') return null;
-
-    const handleAutoCorrect = () => {
-        if (!currentQuestion) return;
-
-        if (currentQuestion.type === 'LOCATE_SINGLE') {
-            const input: UserInput = { type: 'MAP_CLICK', regionCode: currentQuestion.target.code };
-            checkAnswer(input);
-        } else if (currentQuestion.type === 'LOCATE_PAIR') {
-            const needStart = !levelState?.startCode;
-            const input: UserInput = {
-                type: 'MAP_CLICK',
-                regionCode: needStart ? currentQuestion.start.code : currentQuestion.end.code,
-            };
-            checkAnswer(input);
-        }
-    };
-
-    // 타겟 지역의 인텔 정보 유추
+    // 타겟 지역의 인텔 정보 유추 (early return 전에 선언해야 Rules of Hooks 준수)
     const targetIntel = useMemo(() => {
         if (!currentQuestion || !geoData) return null;
 
@@ -61,6 +43,26 @@ export const ActionBar = () => {
 
     // 인텔 카드 노출 조건: 설정에서 켜져있거나, 힌트 ON, 오답 피드백 시
     const shouldShowIntel = viewOptions.showIntelCard || isHintActive || (lastFeedback && !lastFeedback.isCorrect);
+
+    if (gameState !== 'PLAYING') return null;
+
+    const handleAutoCorrect = () => {
+        if (!currentQuestion) return;
+
+        if (currentQuestion.type === 'LOCATE_SINGLE') {
+            const input: UserInput = { type: 'MAP_CLICK', regionCode: currentQuestion.target.code };
+            checkAnswer(input);
+        } else if (currentQuestion.type === 'LOCATE_PAIR') {
+            const needStart = !levelState?.startCode;
+            const input: UserInput = {
+                type: 'MAP_CLICK',
+                regionCode: needStart ? currentQuestion.start.code : currentQuestion.end.code,
+            };
+            checkAnswer(input);
+        }
+    };
+
+
 
     return (
         <>
