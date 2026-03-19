@@ -1,4 +1,4 @@
-import { SettingsProvider, useSettings } from './contexts/SettingsContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
@@ -7,7 +7,7 @@ import { GameModeSelectScreen } from './components/overlays/GameModeSelectScreen
 
 import { ResultModal } from './components/overlays/ResultModal';
 import { TopBar } from './components/layout/TopBar';
-import { GameInfoPanel } from './components/game/GameInfoPanel';
+
 import { ActionBar } from './components/game/ActionBar';
 
 
@@ -16,7 +16,6 @@ import { LoadingScreen } from './components/overlays/LoadingScreen';
 
 function GameContent() {
   const { gameState, setGameState } = useGame();
-  const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
 
   return (
@@ -59,8 +58,7 @@ function GameContent() {
           {/* RESULT: 결과 모달 */}
           <ResultModal />
 
-          {/* Info Panels (항상 표시) */}
-          {viewOptions.showGameLog && <GameInfoPanel />}
+
         </>
       )}
     </div>

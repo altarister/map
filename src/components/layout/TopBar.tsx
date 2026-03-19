@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 import { SettingsModal } from '../overlays/SettingsModal';
 
 export const TopBar = () => {
-  const { gameState, setGameState, resetGame } = useGame();
+  const { gameState, setGameState, resetGame, score, currentStage } = useGame();
+  const { topScore } = useSettings();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleRestart = () => {
@@ -28,8 +30,26 @@ export const TopBar = () => {
           </div>
         </div>
 
-        {/* Center: System Status (제거됨: GameInfoPanel로 이동) */}
-        <div className="flex flex-col items-center">
+        {/* Center: Score Display (PLAYING 상태에서만 표시) */}
+        <div className="flex flex-col items-center gap-0.5">
+          {gameState === 'PLAYING' && (
+            <div className="flex items-center gap-5 font-mono">
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest">최고기록</span>
+                <span className="text-sm font-bold text-muted-foreground">{String(topScore).padStart(4, '0')}</span>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-green-500/70 uppercase tracking-widest">현재점수</span>
+                <span className="text-sm font-bold text-green-400">{String(score.correct * 100).padStart(4, '0')}</span>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest">레벨</span>
+                <span className="text-sm font-bold text-foreground">{currentStage ?? '-'}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Actions */}
