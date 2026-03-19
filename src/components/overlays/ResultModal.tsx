@@ -3,12 +3,33 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
 export const ResultModal = () => {
-  const { gameState, score, resetGame } = useGame();
+  const {
+    gameState, score,
+    resetGame, replayGame, backToRegionSelect,
+    setSelectionDepth, setCurrentFocusCode
+  } = useGame();
 
   // 숙련도(정확도) 계산
   const totalAttempts = score.correct + score.incorrect;
   const accuracy = totalAttempts > 0 ? Math.floor((score.correct / totalAttempts) * 100) : 0;
   const isPerfect = accuracy === 100 && totalAttempts > 0;
+
+  const handleBackOneDepth = () => {
+    // selectionDepth/currentFocusCode 유지한 채 REGION_SELECT로 복귀
+    backToRegionSelect();
+  };
+
+  const handleReplay = () => {
+    // 동일한 지역·동일한 설정으로 즉시 재시작
+    replayGame();
+  };
+
+  const handleGoHome = () => {
+    // 처음(광역 선택)으로 완전 초기화
+    setSelectionDepth(1);
+    setCurrentFocusCode(null);
+    resetGame();
+  };
 
   return (
     <Modal
@@ -16,12 +37,17 @@ export const ResultModal = () => {
       onClose={() => { }} // 강제로 닫지 못하게 함
       title="게임 결과"
       footer={
-        <div className="flex gap-3 w-full">
-          <Button onClick={() => { resetGame(); }} variant="outline" className="flex-1" size="lg">
-            지역 선택으로 이동
-          </Button>
-          <Button onClick={resetGame} className="flex-1" size="lg">
-            다시 하기
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex gap-2 w-full">
+            <Button onClick={handleBackOneDepth} variant="outline" className="flex-1" size="lg">
+              ← 지역 선택
+            </Button>
+            <Button onClick={handleReplay} className="flex-1" size="lg">
+              🔄 다시 하기
+            </Button>
+          </div>
+          <Button onClick={handleGoHome} variant="outline" className="w-full text-muted-foreground text-xs" size="sm">
+            ⌂ 처음으로 돌아가기
           </Button>
         </div>
       }

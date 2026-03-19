@@ -21,6 +21,8 @@ interface GameContextType {
   checkAnswer: (input: UserInput) => void;
   skipQuestion: () => void;
   resetGame: () => void;
+  replayGame: () => void;           // 방금 진행한 게임 동일 옵션으로 재시작
+  backToRegionSelect: () => void;   // depth 유지하며 REGION_SELECT로 (한 뎁스 위)
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   levelState: any;
@@ -28,10 +30,10 @@ interface GameContextType {
   setHintActive: (active: boolean) => void;
   currentStage: number;
   isBasicMode: boolean;
-  highlightRegions: any[]; // Used for watermark Eup/Myeon rendering
-  selectionDepth: number; // 1: 광역, 2: 시/군/자치구, 3: 일반구, 4: 읍/면/법정동
+  highlightRegions: any[];
+  selectionDepth: number;
   setSelectionDepth: (depth: number) => void;
-  currentFocusCode: string | null; // 현재 포커스된 상위 지역 코드
+  currentFocusCode: string | null;
   setCurrentFocusCode: (code: string | null) => void;
 }
 
@@ -56,6 +58,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
   const [selectionDepth, setSelectionDepth] = React.useState<number>(1);
   const [currentFocusCode, setCurrentFocusCode] = React.useState<string | null>(null);
+  const [lastGameOptions, setLastGameOptions] = React.useState<{ chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean } | undefined>(undefined);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -121,9 +124,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Start Game with Chapter Code or Options
   const startGame = useCallback((options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => {
     if (gameState === 'PLAYING') return;
-
     if (!fullMapData) return;
 
+    setLastGameOptions(options); // 마지막 게임 옵션 저장 (다시 하기 용)
     setIsBasicMode(options?.isBasicMode ?? false);
     setHighlightRegions(options?.highlightRegions ?? []);
 
@@ -152,6 +155,17 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [gameState, fullMapData, currentStage, startGameLogic, setFilteredMapData, setSelectedChapter]);
 
+  // 방금 진행한 게임 동일 옵션으로 재시작
+  const replayGame = useCallback(() => {
+    resetGame();
+    startGame(lastGameOptions);
+  }, [resetGame, startGame, lastGameOptions]);
+
+  // depth 유지하며 REGION_SELECT로 복귀 (한 뎁스 위 선택)
+  const backToRegionSelect = useCallback(() => {
+    resetGame();
+  }, [resetGame]);
+
   // [4계층 연동] 나가기 시 depth 리셋 포함
   const resetGameWithDepth = useCallback(() => {
     resetGame();
@@ -171,6 +185,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkAnswer,
     skipQuestion,
     resetGame: resetGameWithDepth,
+    replayGame,
+    backToRegionSelect,
     lastFeedback,
     answeredRegions,
     levelState,
@@ -186,7 +202,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionDepth, currentFocusCode
+    skipQuestion, selectionDepth, currentFocusCode, replayGame, backToRegionSelect
   ]);
 
   return (
