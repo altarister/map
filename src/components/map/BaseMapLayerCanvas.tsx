@@ -202,17 +202,21 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             // const contextStrokeWidth = theme === 'tactical' ? 1.5 / k : 1.2 / k;
             const contextStrokeColor = theme === 'tactical' ? '#707070ff' : '#879cb9ff'; // 순수 hex, alpha는 globalAlpha로 제어
 
-            cityData.features.forEach((feature: any) => {
-                // 현재 게임 구역과 코드 prefix가 일치하는지 확인
-                // const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
+            // 현재 게임 지역의 광역 단위 prefix (앞 2자리)
+            // 예) '41820xxxxx' → '41' (경기도), '11710xxxxx' → '11' (서울), '23xxxx' → '23' (인천)
+            const provincePrefix = features[0]?.properties?.code?.substring(0, 2) ?? '';
 
+            // 같은 광역(도/특별시)에 속하는 시/군만 그림
+            // → 경기도 광주시 게임 중: 경기도 시/군만, 서울 송파구 게임 중: 서울 자치구만
+            const sameProvinceCities = provincePrefix
+                ? cityData.features.filter((f: any) => f.properties.code?.startsWith(provincePrefix))
+                : cityData.features;
+
+            sameProvinceCities.forEach((feature: any) => {
                 ctx.beginPath();
                 canvasPath(feature as any);
-                ctx.lineWidth = 1 //contextStrokeWidth;
+                ctx.lineWidth = 1; // contextStrokeWidth
                 ctx.strokeStyle = contextStrokeColor;
-                // ctx.globalAlpha = isActiveSector
-                //     ? cityAlpha             // 활성 구역: LOD 알파 그대로
-                //     : cityAlpha * 0.1;     // 외부 구역: LOD의 25%만 (더 희미하게)
                 ctx.stroke();
                 ctx.globalAlpha = 1.0; // 복원
             });
