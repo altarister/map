@@ -1,50 +1,107 @@
 import { useMemo } from 'react';
-import type { RegionCollection } from '../types/geo';
-import type { AnswerFeedback } from '../types/game';
+import type { RegionFeature } from '../types/geo';
 
 interface UseMapFeaturesProps {
-  mapData: RegionCollection | null;
-  hoveredRegion: string | null;
-  lastFeedback: AnswerFeedback | null;
-  answeredRegions: Set<string>;
+    gameState: string;
+    selectionLevel: 'PROVINCE' | 'CITY' | 'DISTRICT' | 'DONG';
+    currentFocusCode: string | null;
+    selectedChapter: string | null;
+    level1Data: any;
+    cityData: any;
+    rawCityData: any;
+    showTownGeometry: boolean;
+    baseFeatures: RegionFeature[];
+    filteredCityFeatures: RegionFeature[];
 }
 
 export const useMapFeatures = ({
-  mapData,
-  hoveredRegion,
-  lastFeedback,
-  answeredRegions,
+    gameState,
+    selectionLevel,
+    currentFocusCode,
+    selectedChapter,
+    level1Data,
+    cityData,
+    rawCityData,
+    showTownGeometry,
+    baseFeatures,
+    filteredCityFeatures
 }: UseMapFeaturesProps) => {
-  const sortedFeatures = useMemo(() => {
-    if (!mapData?.features) return [];
 
-    // 원본 배열 복사 후 정렬
-    return [...mapData.features].sort((a, b) => {
-      const codeA = a.properties?.code || '';
-      const codeB = b.properties?.code || '';
+    // [Pass 1] 렌더링할 메인 피처 (BaseMapLayerCanvas 및 InteractionLayer 전달용)
+    const featuresToRender = useMemo(() => {
+        if (gameState === 'REGION_SELECT') {
+            if (selectionLevel === 'PROVINCE') return level1Data?.features || [];
+            if (selectionLevel === 'CITY') {
+                if (!currentFocusCode) return cityData?.features || [];
+                const prefix = currentFocusCode.substring(0, 2);
+                return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
+            }
+            if (selectionLevel === 'DISTRICT') {
+                if (!currentFocusCode) return rawCityData?.features || [];
+                const prefix = currentFocusCode.substring(0, 4);
+                return rawCityData?.features.filter((f: any) => f.properties.code.startsWith(prefix) && f.properties.code.length === 5 && !f.properties.code.endsWith('0')) || [];
+            }
+        }
+        return showTownGeometry ? baseFeatures : filteredCityFeatures;
+    }, [gameState, selectionLevel, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, baseFeatures, filteredCityFeatures]);
 
-      const isHoveredA = hoveredRegion === codeA;
-      const isHoveredB = hoveredRegion === codeB;
+    // [Pass 2] 컨텍스트 경계선: 선택 레벨에 따라 희미하게 그릴 이웃 피처 배열
+    const contextBoundaryFeatures = useMemo(() => {
+        if (gameState === 'REGION_SELECT') {
+            if (selectionLevel === 'PROVINCE') {
+                return cityData?.features ?? [];
+            }
+            if (selectionLevel === 'CITY') {
+                return level1Data?.features.filter((f: any) =>
+                    f.properties.code !== currentFocusCode
+                ) ?? [];
+            }
+            if (selectionLevel === 'DISTRICT') {
+                const provincePrefix = currentFocusCode?.substring(0, 2) ?? '';
+                const cityPrefix = currentFocusCode?.substring(0, 4) ?? '';
+                return cityData?.features.filter((f: any) =>
+                    f.properties.code.startsWith(provincePrefix) &&
+                    !f.properties.code.startsWith(cityPrefix)
+                ) ?? [];
+            }
+        }
+        if (gameState === 'PLAYING') {
+            const provincePrefix = featuresToRender[0]?.properties?.code?.substring(0, 2) ?? '';
+            return provincePrefix
+                ? (cityData?.features.filter((f: any) => f.properties.code.startsWith(provincePrefix)) ?? [])
+                : [];
+        }
+        return [];
+    }, [gameState, selectionLevel, currentFocusCode, cityData, level1Data, featuresToRender]);
 
-      const isFeedbackA = lastFeedback && (lastFeedback.regionCode === codeA || lastFeedback.correctCode === codeA);
-      const isFeedbackB = lastFeedback && (lastFeedback.regionCode === codeB || lastFeedback.correctCode === codeB);
+    // [Pass 3] 선택한 지역의 단일 통합 굵은 외곽선 액자 프레임
+    const selectedBorderFeatures = useMemo(() => {
+        // 게임 플레이 중이 무조건 1순위 (이전 메뉴가 어떤 선택이든 상관없음)
+        if (gameState === 'PLAYING' && selectedChapter) {
+            const f = rawCityData?.features.find((f: any) => f.properties.code === selectedChapter);
+            const fallback = cityData?.features.find((f: any) => f.properties.code === selectedChapter);
+            return f ? [f] : fallback ? [fallback] : [];
+        }
 
-      const isAnsweredA = answeredRegions.has(codeA);
-      const isAnsweredB = answeredRegions.has(codeB);
+        if (selectionLevel === 'PROVINCE') return [];
 
-      // 우선순위: Hover > Feedback > Answered > Normal
-      if (isHoveredA && !isHoveredB) return 1; // 나중에 그려짐 (위로 올라옴)
-      if (!isHoveredA && isHoveredB) return -1;
-      
-      if (isFeedbackA && !isFeedbackB) return 1;
-      if (!isFeedbackA && isFeedbackB) return -1;
-      
-      if (isAnsweredA && !isAnsweredB) return 1;
-      if (!isAnsweredA && isAnsweredB) return -1;
+        if (selectionLevel === 'DISTRICT' && currentFocusCode) {
+            const f = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+            const fallback = rawCityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+            return f ? [f] : fallback ? [fallback] : [];
+        }
 
-      return 0;
-    });
-  }, [mapData, hoveredRegion, lastFeedback, answeredRegions]);
+        if (selectionLevel === 'CITY' && currentFocusCode) {
+            const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
+            return f ? [f] : [];
+        }
 
-  return { features: sortedFeatures };
+        return [];
+    }, [selectionLevel, currentFocusCode, gameState, selectedChapter, level1Data, cityData, rawCityData]);
+
+    return {
+        featuresToRender,
+        contextBoundaryFeatures,
+        selectedBorderFeatures
+    };
 };

@@ -2,7 +2,7 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
-import { Map } from './components/map/Map';
+import { Map } from './components/map';
 import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 
 import { ResultModal } from './components/game/ResultModal';

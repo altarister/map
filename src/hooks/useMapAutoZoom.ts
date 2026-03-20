@@ -10,6 +10,10 @@ interface UseMapAutoZoomProps {
   zoomTo: (t: { x: number; y: number; k: number }) => void;
   mapData: RegionCollection | null;
   pathGenerator: GeoPath;
+  selectionLevel?: 'PROVINCE' | 'CITY' | 'DISTRICT' | 'DONG';
+  currentFocusCode?: string | null;
+  level1Data?: any;
+  cityData?: any;
 }
 
 export function useMapAutoZoom({
@@ -20,6 +24,10 @@ export function useMapAutoZoom({
   zoomTo,
   mapData,
   pathGenerator,
+  selectionLevel,
+  currentFocusCode,
+  level1Data,
+  cityData
 }: UseMapAutoZoomProps) {
   // 클로저의 오래된 값을 방지하기 위해 Refs 사용
   const mapDataRef = useRef(mapData);
@@ -48,7 +56,39 @@ export function useMapAutoZoom({
     }
   }, [gameState, width, height, zoomTo]);
 
-  // 2. 게임 플레이 시, 그리고 3-Depth 상세지역 선택 시, 유저가 선택한 챕터(시/군) 바운딩 박스를 계산해 자동 줌인
+  // 2. REGION_SELECT 상태에서의 4단계 선택 동기화 줌 로직
+  useEffect(() => {
+    if (gameState !== 'REGION_SELECT' || !width || !height) return;
+
+    if (selectionLevel === 'PROVINCE' || !currentFocusCode) {
+      // PROVINCE 단계면 전체 줌인
+      // 애니메이션 중복 충돌을 방지하기 위해 현재 k !== 1 일때만 쏘는 방어코드 추가 가능
+      zoomTo({ x: 0, y: 0, k: 1 });
+      return;
+    }
+
+    let feature: any = null;
+    if (selectionLevel === 'CITY') {
+      feature = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
+    } else if (selectionLevel === 'DISTRICT') {
+      feature = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+    }
+
+    if (feature) {
+      const bounds = pathGeneratorRef.current?.bounds(feature);
+      if (bounds && bounds[0] && bounds[1]) {
+        const [[x0, y0], [x1, y1]] = bounds;
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const x = (x0 + x1) / 2;
+        const y = (y0 + y1) / 2;
+        const scale = Math.max(1, Math.min(12, 0.8 / Math.max(dx / width, dy / height)));
+        zoomTo({ x: width / 2 - scale * x, y: height / 2 - scale * y, k: scale });
+      }
+    }
+  }, [selectionLevel, currentFocusCode, gameState, width, height, zoomTo, level1Data, cityData]);
+
+  // 3. 게임 플레이 시, 그리고 3-Depth 상세지역 선택 시, 유저가 선택한 챕터(시/군) 바운딩 박스를 계산해 자동 줌인
   useEffect(() => {
     if (!width || !height || (gameState !== 'PLAYING' && gameState !== 'SUBREGION_SELECT') || !selectedChapter) return;
 

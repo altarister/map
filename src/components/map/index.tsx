@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import { getStageStrategy } from '../../game/stages/registry';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
@@ -19,6 +19,7 @@ import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapZoom } from '../../hooks/useMapZoom';
 import { useMapGeometry } from '../../hooks/useMapGeometry';
 import { useMapAutoZoom } from '../../hooks/useMapAutoZoom';
+import { useMapFeatures } from '../../hooks/useMapFeatures';
 import { useMapCrossfadeTransition } from '../../hooks/useMapCrossfadeTransition';
 import { log } from '../../lib/debug';
 
@@ -136,84 +137,22 @@ export const Map = () => {
   // [NEW UX: 4단계 선택 렌더링 스위칭]
   const showTownGeometry = gameState === 'PLAYING' && (forceShowTowns || isSingleRegion || zoomTransform.k >= 1.5);
 
-  const featuresToRender = useMemo(() => {
-    if (gameState === 'REGION_SELECT') {
-      if (selectionLevel === 'PROVINCE') return level1Data?.features || [];
-      if (selectionLevel === 'CITY') {
-        if (!currentFocusCode) return cityData?.features || [];
-        // Extract prefix (e.g. 41 for Gyeonggi)
-        const prefix = currentFocusCode.substring(0, 2);
-        return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
-      }
-      if (selectionLevel === 'DISTRICT') {
-        if (!currentFocusCode) return rawCityData?.features || [];
-        // Extract prefix (e.g. 4146 for Yongin)
-        const prefix = currentFocusCode.substring(0, 4);
-        return rawCityData?.features.filter((f: any) => f.properties.code.startsWith(prefix) && f.properties.code.length === 5 && !f.properties.code.endsWith('0')) || [];
-      }
-    }
-    return showTownGeometry ? features : filteredCityFeatures;
-  }, [gameState, selectionLevel, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, features, filteredCityFeatures]);
-
-  // Pass 3 컨텍스트 경계선: selectionLevel에 따라 희미하게 그릴 피처 배열
-  const contextBoundaryFeatures = useMemo(() => {
-    if (gameState === 'REGION_SELECT') {
-      if (selectionLevel === 'PROVINCE') {
-        // 전체 시/군/자치구 경계를 흐리게 → 내부 구조 미리 보여줌
-        return cityData?.features ?? [];
-      }
-      if (selectionLevel === 'CITY') {
-        // 선택한 광역(경기도) 제외, 나머지 광역(서울+인천) 단일 외곽
-        return level1Data?.features.filter((f: any) =>
-          f.properties.code !== currentFocusCode
-        ) ?? [];
-      }
-      if (selectionLevel === 'DISTRICT') {
-        // 같은 광역의 시/군, 현재 선택된 도시(고양시) 제외
-        const provincePrefix = currentFocusCode?.substring(0, 2) ?? '';
-        const cityPrefix = currentFocusCode?.substring(0, 4) ?? '';
-        return cityData?.features.filter((f: any) =>
-          f.properties.code.startsWith(provincePrefix) &&
-          !f.properties.code.startsWith(cityPrefix)
-        ) ?? [];
-      }
-    }
-    if (gameState === 'PLAYING') {
-      // 게임 중: 같은 광역의 시/군 경계 흐리게 (위치 파악용)
-      const provincePrefix = featuresToRender[0]?.properties?.code?.substring(0, 2) ?? '';
-      return provincePrefix
-        ? (cityData?.features.filter((f: any) => f.properties.code.startsWith(provincePrefix)) ?? [])
-        : [];
-    }
-    return [];
-  }, [gameState, selectionLevel, currentFocusCode, cityData, level1Data, featuresToRender]);
-
-  // [Canvas 1-2] 선택한 지역의 단일 통합 외곽선 (SelectMapLayerCanvas에 전달)
-  const selectedBorderFeatures = useMemo(() => {
-    if (gameState === 'PLAYING' && selectedChapter) {
-      // 게임 진입 단계 (현재 게임중인 단계의 부모 경계) -> ex) 11200 성동구 접속 시 성동구 외곽
-      const f = rawCityData?.features.find((f: any) => f.properties.code === selectedChapter);
-      const fallback = cityData?.features.find((f: any) => f.properties.code === selectedChapter);
-      return f ? [f] : fallback ? [fallback] : [];
-    }
-
-    if (selectionLevel === 'PROVINCE') return [];
-
-    if (selectionLevel === 'DISTRICT' && currentFocusCode) {
-      // 선택한 시/군/구 통합 단일 폴리곤 (예: 41280 고양시 전체 1개 덩어리)
-      const f = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
-      const fallback = rawCityData?.features.find((f: any) => f.properties.code === currentFocusCode);
-      return f ? [f] : fallback ? [fallback] : [];
-    }
-
-    if (selectionLevel === 'CITY' && currentFocusCode) {
-      // 선택한 광역 단일 폴리곤 (예: 41 경기도, 11 서울특별시)
-      const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
-      return f ? [f] : [];
-    }
-
-    return [];
-  }, [selectionLevel, currentFocusCode, gameState, selectedChapter, level1Data, cityData, rawCityData]);
+  const {
+    featuresToRender,
+    contextBoundaryFeatures,
+    selectedBorderFeatures
+  } = useMapFeatures({
+    gameState,
+    selectionLevel,
+    currentFocusCode,
+    selectedChapter,
+    level1Data,
+    cityData,
+    rawCityData,
+    showTownGeometry,
+    baseFeatures: features,
+    filteredCityFeatures,
+  });
 
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
@@ -227,37 +166,13 @@ export const Map = () => {
     zoomTo,
     mapData,
     pathGenerator,
+    selectionLevel,
+    currentFocusCode,
+    level1Data,
+    cityData,
   });
 
-  // [NEW UX: 4단계 선택 동기화 줌 로직]
-  useEffect(() => {
-    if (gameState !== 'REGION_SELECT' || !width || !height) return;
 
-    if (selectionLevel === 'PROVINCE' || !currentFocusCode) {
-      zoomTo({ x: 0, y: 0, k: 1 });
-      return;
-    }
-
-    let feature: any = null;
-    if (selectionLevel === 'CITY') {
-      feature = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
-    } else if (selectionLevel === 'DISTRICT') {
-      feature = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
-    }
-
-    if (feature) {
-      const bounds = pathGenerator.bounds(feature);
-      if (bounds && bounds[0] && bounds[1]) {
-        const [[x0, y0], [x1, y1]] = bounds;
-        const dx = x1 - x0;
-        const dy = y1 - y0;
-        const x = (x0 + x1) / 2;
-        const y = (y0 + y1) / 2;
-        const scale = Math.max(1, Math.min(12, 0.8 / Math.max(dx / width, dy / height)));
-        zoomTo({ x: width / 2 - scale * x, y: height / 2 - scale * y, k: scale });
-      }
-    }
-  }, [selectionLevel, currentFocusCode, gameState, width, height, zoomTo, pathGenerator, level1Data, cityData]);
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
   const handleRegionClick = useCallback((code: string) => {
