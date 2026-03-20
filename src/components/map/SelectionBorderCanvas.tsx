@@ -92,20 +92,18 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
     useImperativeHandle(ref, () => ({
         draw: (t) => {
             if (containerRef.current) {
-                containerRef.current.style.transform = '';
-                containerRef.current.style.transformOrigin = '';
+                containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
             }
             drawCanvas(t.x, t.y, t.k);
         },
         setCssTransform: (current, start) => {
             if (!containerRef.current) return;
-            const dx = current.x - start.x;
-            const dy = current.y - start.y;
-            const ds = current.k / start.k;
-            const ox = width / 2;
-            const oy = height / 2;
-            containerRef.current.style.transformOrigin = `${ox}px ${oy}px`;
-            containerRef.current.style.transform = `translate(${dx}px, ${dy}px) scale(${ds})`;
+            // BaseMapLayerCanvas와 동일한 공식 — transformOrigin 0 0 기준
+            const S = current.k / start.k;
+            const Dx = current.x - start.x * S;  // 스케일 보정 포함
+            const Dy = current.y - start.y * S;
+            containerRef.current.style.transform = `translate(${Dx}px, ${Dy}px) scale(${S})`;
+            containerRef.current.style.transformOrigin = `0 0`;
         },
     }), [features, projection, themeColors, width, height]);
 
