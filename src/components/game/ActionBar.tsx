@@ -205,7 +205,7 @@ export const ActionBar = () => {
         </div>
 
         {/* 우측 광고 슬롯 (Google AdSense 삽입 예정) */}
-        <div className="absolute top-20 right-4 z-[35] w-64">
+        <div className="absolute top-20 right-4 z-[35]">
             <AdSlot width={300} height={250} />
         </div>
         </>
