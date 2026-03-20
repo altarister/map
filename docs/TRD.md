@@ -196,6 +196,12 @@ interface StageStrategy {
 - **`levelState`**: 레벨 내부의 임시 상태 (예: 경로 찾기 중 '상차지 선택 완료' 상태)
 - **`score`**: 점수 및 소요 시간
 - **`answeredRegions`**: 정답을 맞춘 지역 목록 (지도 시각화용)
+- **`selectionLevel`**: 지역 선택 화면의 현재 계층 단계 (`SelectionLevel` 타입, `src/types/region.ts` 참조)
+  - `'PROVINCE'` → 광역 자치단체 선택 화면 (서울/인천/경기)
+  - `'CITY'` → 시/군/자치구 선택 화면
+  - `'DISTRICT'` → 대도시 일반구 선택 화면 (고양/수원/용인 등 대도시만 진입)
+  - `'DONG'` → 읍/면/법정동 게임 시작 (이 단계는 `gameState === 'PLAYING'`으로 전환됨)
+- **`currentFocusCode`**: 현재 선택된 상위 지역의 코드 (PROVINCE→경기도 코드, CITY→시군 코드 등)
 
 ### 3.2 게임 라이프사이클 (Game Lifecycle)
 
