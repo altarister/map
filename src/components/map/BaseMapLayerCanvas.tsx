@@ -205,21 +205,25 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             // 현재 게임 지역의 광역 단위 prefix (앞 2자리)
             // 예) '41820xxxxx' → '41' (경기도), '11710xxxxx' → '11' (서울), '23xxxx' → '23' (인천)
             const provincePrefix = features[0]?.properties?.code?.substring(0, 2) ?? '';
+            const featureCodeLen = features[0]?.properties?.code?.length ?? 0;
 
-            // 같은 광역(도/특별시)에 속하는 시/군만 그림
-            // → 경기도 광주시 게임 중: 경기도 시/군만, 서울 송파구 게임 중: 서울 자치구만
-            const sameProvinceCities = provincePrefix
-                ? cityData.features.filter((f: any) => f.properties.code?.startsWith(provincePrefix))
-                : cityData.features;
+            // depth=1(도 선택 화면)에서는 코드가 2자리 → Pass 3 건너뜀
+            // (도 선택 화면에서 시/군 경계선은 의미 없음)
+            if (featureCodeLen > 2 && provincePrefix) {
+                // 같은 광역(도/특별시)에 속하는 시/군만 그림
+                const sameProvinceCities = cityData.features.filter((f: any) =>
+                    f.properties.code?.startsWith(provincePrefix)
+                );
 
-            sameProvinceCities.forEach((feature: any) => {
-                ctx.beginPath();
-                canvasPath(feature as any);
-                ctx.lineWidth = 1; // contextStrokeWidth
-                ctx.strokeStyle = contextStrokeColor;
-                ctx.stroke();
-                ctx.globalAlpha = 1.0; // 복원
-            });
+                sameProvinceCities.forEach((feature: any) => {
+                    ctx.beginPath();
+                    canvasPath(feature as any);
+                    ctx.lineWidth = 1; // contextStrokeWidth
+                    ctx.strokeStyle = contextStrokeColor;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0; // 복원
+                });
+            }
         }
 
         ctx.restore(); // save()와 쌍을 맞춰 transform 상태 복원
