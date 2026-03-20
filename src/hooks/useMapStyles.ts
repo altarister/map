@@ -78,7 +78,7 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
 
     // 4. 기본 테두리 색상
     // BASIC 모드에서는 내부 '리' 구획선들이 자연스럽게 합쳐져 보이도록 테두리를 아주 연하게 눈속임 처리
-    return isBasicMode ? 'rgba(148, 163, 184, 0.15)' : '#94a3b8'; // Slate-400 (기존 Slate-300보다 진하게)
+    return isBasicMode ? 'rgba(148, 163, 184, 0.15)' : '#94a3b8'; // Slate-400
   }, [lastFeedback, answeredRegions]);
 
   return { getFillColor, getStrokeColor };

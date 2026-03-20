@@ -184,7 +184,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             ctx.beginPath();
             canvasPath(feature as any);
             ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
-            ctx.strokeStyle = strokeColor;
+            ctx.strokeStyle = strokeColor;              // 순수 hex 색상, 투명도는 globalAlpha로만
             ctx.globalAlpha = isTargetHint ? 1.0 : dongAlpha; // 힌트는 항상 선명
             ctx.stroke();
         });
@@ -199,7 +199,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // ══════════════════════════════════════════════════════════════════
         if (showBoundaries && cityData && cityAlpha > 0.01) {
             const contextStrokeWidth = theme === 'tactical' ? 2.0 / k : 1.5 / k;
-            const contextStrokeColor = theme === 'tactical' ? 'rgba(255,255,255,0.6)' : '#64748b';
+            const contextStrokeColor = theme === 'tactical' ? '#ffffff' : '#64748b'; // 순수 hex, alpha는 globalAlpha로 제어
 
             cityData.features.forEach((feature: any) => {
                 // 현재 게임 구역과 코드 prefix가 일치하는지 확인
@@ -211,7 +211,7 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
                 ctx.strokeStyle = contextStrokeColor;
                 ctx.globalAlpha = isActiveSector
                     ? cityAlpha             // 활성 구역: LOD 알파 그대로
-                    : cityAlpha * 0.25;     // 외부 구역: LOD의 25%만 (더 희미하게)
+                    : cityAlpha * 0.1;     // 외부 구역: LOD의 25%만 (더 희미하게)
                 ctx.stroke();
                 ctx.globalAlpha = 1.0; // 복원
             });
