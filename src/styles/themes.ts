@@ -49,10 +49,15 @@ export const ROAD_THEME_COLORS = {
         other:     { color: '#f5991a', width: 0.2, minK: 2.5 },
     },
     kids: {
-        motorway:  { color: '#2563eb', width: 0.4, minK: 0 },    // blue-600: 고속도로 (굵고 진함)
-        trunk:     { color: '#3b82f6', width: 0.3, minK: 1.0 },  // blue-500: 국도
-        primary:   { color: '#60a5fa', width: 0.2, minK: 1.5 },  // blue-400: 주요도로
-        secondary: { color: '#93c5fd', width: 0.2, minK: 2.0 },  // blue-300: 보조도로
-        other:     { color: '#bfdbfe', width: 0.15, minK: 2.0 }, // blue-200: 기타
+        motorway:  { color: '#f6893b', width: 0.3, minK: 0 },
+        trunk:     { color: '#f5991a', width: 0.3, minK: 1.2 },
+        primary:   { color: '#d5cd5d', width: 0.2, minK: 1.8 },
+        secondary: { color: '#9ca3af', width: 0.2, minK: 2.5 },
+        other:     { color: '#f5991a', width: 0.2, minK: 2.5 },
+        // motorway:  { color: '#2563eb', width: 0.4, minK: 0 },    // blue-600: 고속도로 (굵고 진함)
+        // trunk:     { color: '#3b82f6', width: 0.3, minK: 1.0 },  // blue-500: 국도
+        // primary:   { color: '#60a5fa', width: 0.2, minK: 1.5 },  // blue-400: 주요도로
+        // secondary: { color: '#93c5fd', width: 0.2, minK: 2.0 },  // blue-300: 보조도로
+        // other:     { color: '#bfdbfe', width: 0.15, minK: 2.0 }, // blue-200: 기타
     },
 } as const;

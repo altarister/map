@@ -10,6 +10,7 @@ import { BottomBar } from '../layout/BottomBar';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
+import { SelectionBorderCanvas } from './SelectionBorderCanvas';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
@@ -73,6 +74,7 @@ export const Map = () => {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
   const baseMapLayerRef = useRef<BaseMapLayerHandle | null>(null);
+  const selectionBorderRef = useRef<BaseMapLayerHandle | null>(null);
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -89,11 +91,13 @@ export const Map = () => {
 
   const handleTransformTick = useCallback((t: { x: number; y: number; k: number }, lastDrawn: { x: number; y: number; k: number }) => {
     baseMapLayerRef.current?.setCssTransform(t, lastDrawn);
+    selectionBorderRef.current?.setCssTransform(t, lastDrawn);
     roadLayerRef.current?.setCssTransform(t, lastDrawn);
   }, []);
 
   const handleTransformEnd = useCallback((t: { x: number; y: number; k: number }) => {
     baseMapLayerRef.current?.draw(t);
+    selectionBorderRef.current?.draw(t);
     roadLayerRef.current?.draw(t);
   }, []);
 
@@ -183,6 +187,36 @@ export const Map = () => {
     }
     return [];
   }, [gameState, selectionLevel, currentFocusCode, cityData, level1Data, featuresToRender]);
+
+  // 선택한 지역 외곽선 (SelectionBorderCanvas에 전달)
+  const selectedBorderFeatures = useMemo(() => {
+    // PROVINCE: 아직 아무것도 선택 안 함
+    if (selectionLevel === 'PROVINCE') return [];
+
+    if (selectionLevel === 'CITY' && currentFocusCode) {
+      // 선택한 광역 단일 폴리곤 (예: 경기도)
+      const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
+      return f ? [f] : [];
+    }
+
+    if (selectionLevel === 'DISTRICT' && currentFocusCode) {
+      // 선택한 시 외곽 (예: 고양시 → cityData에서 4128 prefix)
+      const prefix = currentFocusCode.substring(0, 4);
+      return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) ?? [];
+    }
+
+    if (gameState === 'PLAYING' && selectedChapter) {
+      // 게임 진입 지역 외곽 (selectedChapter = 5자리 코드 문자열)
+      const prefix = selectedChapter.substring(0, 4);
+      const cityFeatures = cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) ?? [];
+      if (cityFeatures.length > 0) return cityFeatures;
+      // fallback: level1 광역 폴리곤
+      const prov = level1Data?.features.find((f: any) => f.properties.code === selectedChapter.substring(0, 2));
+      return prov ? [prov] : [];
+    }
+
+    return [];
+  }, [selectionLevel, currentFocusCode, gameState, level1Data, cityData, selectedChapter]);
 
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
@@ -345,6 +379,18 @@ export const Map = () => {
           currentQuestionTargetCode={currentQuestion?.type === 'LOCATE_SINGLE' ? currentQuestion.target.code : undefined}
         />
 
+        {/* Layer 1-2: Selection Border (Canvas) - 현재 진입한 지역 외곽선 전용 */}
+        <SelectionBorderCanvas
+          ref={selectionBorderRef}
+          features={selectedBorderFeatures}
+          projection={projection}
+          theme={theme}
+          themeColors={colors}
+          initialTransform={zoomTransform}
+          width={width}
+          height={height}
+        />
+
         {/* Layer 2: Roads (Canvas) - 그 위에 얹어지는 도로망 도화지 */}
         {roadData && (
           <RoadLayer
@@ -417,7 +463,7 @@ export const Map = () => {
                 <path
                   d={pathGenerator(feature) || ''}
                   fill={getFillColor(feature, true)}
-                  // fillOpacity={0.8}
+                  fillOpacity={0.5}
                   // stroke={getStrokeColor(hoveredRegion, true)}
                   // strokeWidth={1.5 / zoomTransform.k}
                   // className="transition-all duration-200"
