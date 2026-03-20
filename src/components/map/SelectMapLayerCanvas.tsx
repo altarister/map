@@ -71,7 +71,7 @@ export const SelectMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, SelectMa
 
         // Frame 속성: fill 없이 선만, 불투명도 100%, Base보다 2배 두꺼움
         ctx.strokeStyle = themeColors.stroke;
-        ctx.lineWidth = 2.5 / k; 
+        ctx.lineWidth = 1.5 //2.5 / k; 
         ctx.globalAlpha = 1.0; 
 
         features.forEach((feature: any) => {
