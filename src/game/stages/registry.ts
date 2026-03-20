@@ -1,5 +1,5 @@
 import { Stage1Strategy } from './Stage1_Location';
-import { Stage2Strategy } from './Stage2_Route';
+import { Stage2Strategy } from './Stage2_Route/index';
 import { Stage3Strategy } from './Stage3_Distance';
 import type { StageStrategy } from '../core/types';
 

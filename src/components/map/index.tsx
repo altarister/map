@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { getStageStrategy } from '../../game/stages/registry';
 import { useMapScale } from '../../hooks/useMapScale';
 import { useGame } from '../../contexts/GameContext';
@@ -14,6 +14,7 @@ import { SelectMapLayerCanvas } from './SelectMapLayerCanvas';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
+import { RouteAnimationLayer } from './RouteAnimationLayer';
 import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapZoom } from '../../hooks/useMapZoom';
@@ -62,7 +63,6 @@ export const Map = () => {
   const colors = MAP_THEME_COLORS[theme];
   const { setTransform, hoveredRegion, setHoveredRegion, layerVisibility, roadOpacity } = useMapContext();
   const { scaleWidth, scaleDistance, scaleUnit, handleMove } = useMapScale();
-  const [prototypeLayerVisible, setPrototypeLayerVisible] = useState(false);
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
   const containerNodeRef = useRef<HTMLDivElement | null>(null);
@@ -157,6 +157,14 @@ export const Map = () => {
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
 
+  // [NEW] Stage 2 Auto-Zoom Focus Region 연산
+  const focusRegionCodes = useMemo(() => {
+    if (gameState === 'PLAYING' && currentStage === 2 && currentQuestion?.type === 'CALL_FILTER') {
+      return currentQuestion.calls.flatMap((c: any) => [c.startRegion.code, c.targetRegion.code]);
+    }
+    return undefined;
+  }, [gameState, currentStage, currentQuestion]);
+
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
   useMapAutoZoom({
     gameState,
@@ -170,6 +178,7 @@ export const Map = () => {
     currentFocusCode,
     level1Data,
     cityData,
+    focusRegionCodes,
   });
 
 
@@ -342,6 +351,9 @@ export const Map = () => {
             answeredRegions={answeredRegions}
             onRegionClick={handleRegionClick}
           />
+
+          {/* 2단계 배차 노선 궤적 베지어 곡선 레이어 */}
+          <RouteAnimationLayer projection={projection} />
 
           {/* Hierarchical Boundaries (EMD) Overlay: Rendered underneath hovers but above base map */}
           {highlightRegions && highlightRegions.length > 0 && (

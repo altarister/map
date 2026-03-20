@@ -5,7 +5,7 @@
 // PLAYING: 게임 진행 중
 // PAUSED: 일시정지
 // RESULT: 결과 화면
-export type GameState = 'INITIAL' | 'GAME_MODE_SELECT' | 'REGION_SELECT' | 'SUBREGION_SELECT' | 'PLAYING' | 'PAUSED' | 'RESULT';
+export type GameState = 'INITIAL' | 'GAME_MODE_SELECT' | 'REGION_SELECT' | 'SUBREGION_SELECT' | 'SET_DESTINATION' | 'CALL_DISPATCH' | 'PLAYING' | 'PAUSED' | 'RESULT';
 
 export interface QuizQuestion {
   regionCode: string;

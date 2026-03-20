@@ -8,7 +8,9 @@ import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 
-import { ActionBar } from './components/game/ActionBar';
+import { Stage1ActionBar } from './components/game/Stage1ActionBar';
+import { Stage2DispatchBoard } from './components/game/Stage2DispatchBoard';
+import { Stage2SetupModal } from './components/game/Stage2SetupModal';
 import { AdSlot } from './components/ui/AdSlot';
 
 
@@ -16,7 +18,7 @@ import { useState } from 'react';
 import { LoadingScreen } from './components/layout/LoadingScreen';
 
 function GameContent() {
-  const { gameState, setGameState } = useGame();
+  const { gameState, setGameState, currentStage } = useGame();
   const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -41,8 +43,11 @@ function GameContent() {
         <>
 
 
-          {/* ActionBar (PLAYING 상태에서 Accordion 애니메이션) */}
-          <ActionBar />
+          {/* 1단계 전용 ActionBar */}
+          {currentStage === 1 && <Stage1ActionBar />}
+
+          {/* 2단계 전용 Call Dispatch Board */}
+          {currentStage === 2 && <Stage2DispatchBoard />}
 
           {/* 우측 전역 광고 슬롯 (Google AdSense 삽입 예정) */}
           {viewOptions.showAd && (
@@ -60,6 +65,9 @@ function GameContent() {
 
           {/* ADDED: Game Mode Selection Screen */}
           {gameState === 'GAME_MODE_SELECT' && <GameModeSelectScreen />}
+
+          {/* 2단계 전용: 희망 노선 설정 팝업 */}
+          {gameState === 'SET_DESTINATION' && <Stage2SetupModal />}
 
           {/* REGION_SELECT: 레벨/지역 선택 모달 */}
           {/* Now handled directly by Map.tsx and RegionModeSelectPopup */}

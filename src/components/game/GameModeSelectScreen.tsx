@@ -61,7 +61,11 @@ export const GameModeSelectScreen = () => {
                                     key={`stage-${id}`}
                                     onClick={() => {
                                         setCurrentStage(id as any);
-                                        setGameState('REGION_SELECT');
+                                        if (id === 2) {
+                                            setGameState('SET_DESTINATION');
+                                        } else {
+                                            setGameState('REGION_SELECT');
+                                        }
                                     }}
                                     className={`
                                         group relative flex flex-col items-start p-6 rounded-xl border-l-4 transition-all duration-300

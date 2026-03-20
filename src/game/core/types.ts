@@ -4,7 +4,7 @@ import type { RegionFeature } from '../../types/geo';
 import type { Difficulty, AnswerFeedback } from '../../types/game';
 
 // 1. 문제 (Question) 타입 정의 (확장형 유니언 타입)
-export type QuestionType = 'LOCATE_SINGLE' | 'LOCATE_PAIR' | 'ESTIMATE_DIST' | 'ESTIMATE_TIME' | 'PROFIT_ANALYSIS';
+export type QuestionType = 'LOCATE_SINGLE' | 'LOCATE_PAIR' | 'ESTIMATE_DIST' | 'ESTIMATE_TIME' | 'PROFIT_ANALYSIS' | 'CALL_FILTER';
 
 export interface BaseQuestion {
   id: string;
@@ -49,8 +49,31 @@ export interface EstimateDistanceQuestion extends BaseQuestion {
   actualDistance: number; // 실제 거리 (km)
 }
 
+// 2단계: 콜 필터링 (배차 잡기)
+export interface CallItem {
+  id: string; // 고유 ID (UI 렌더링 키값 등)
+  startRegion: {
+    code: string;
+    name: string;
+    centroid: [number, number];
+  };
+  targetRegion: {
+    code: string;
+    name: string;
+    centroid: [number, number];
+  };
+  distanceKm: number;
+  fare: number;
+  isMatchingRoute: boolean; // 유저 목표와 일치하는가?
+}
+
+export interface CallFilterQuestion extends BaseQuestion {
+  type: 'CALL_FILTER';
+  calls: CallItem[];
+}
+
 // 모든 문제 타입을 포함하는 유니언
-export type GameQuestion = LocateSingleQuestion | LocatePairQuestion | EstimateDistanceQuestion;
+export type GameQuestion = LocateSingleQuestion | LocatePairQuestion | EstimateDistanceQuestion | CallFilterQuestion;
 
 // 2. 사용자 입력 (User Input) 타입 정의
 export type InputType = 'MAP_CLICK' | 'OPTION_SELECT';
@@ -70,6 +93,8 @@ export type ValidationResult =
 export interface StageContext {
   mapData: RegionFeature[];
   difficulty: Difficulty;
+  targetRegion?: RegionFeature;
+  targetDestCode?: string;
 }
 
 export interface StageUnlockCondition {

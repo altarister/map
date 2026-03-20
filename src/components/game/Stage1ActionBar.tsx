@@ -17,7 +17,7 @@ const getQuestionText = (question: GameQuestion): string => {
     }
 };
 
-export const ActionBar = () => {
+export const Stage1ActionBar = () => {
     const { gameState, currentQuestion, lastFeedback, isHintActive, setHintActive, checkAnswer, levelState, skipQuestion, score, totalQuestions } = useGame();
 
     const { filteredMapData: geoData } = useGeoContext();

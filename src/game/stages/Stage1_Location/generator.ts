@@ -10,14 +10,10 @@ import type { LocateSingleQuestion, StageContext } from '../../core/types';
  * - GDD Section 6.1 예시 "안산시 단원구"와 일치
  */
 export const generateStage1Question = (context: StageContext): LocateSingleQuestion => {
-  const { mapData } = context;
+  const { targetRegion } = context;
 
-  // GDD v2.0 Update: Level 3 (읍/면/동) 문제 출제
-  // Level 3 코드: 8자리~10자리 (예: "4113511000" - 안산시 단원구 초지동)
-
-  // 이미 필터링된 데이터(mapData)에서 랜덤 선택
-  if (mapData.length === 0) {
-    console.warn('[Stage1] No Level 3 regions found.');
+  if (!targetRegion) {
+    console.warn('[Stage1] No targetRegion found.');
     return {
       id: crypto.randomUUID(),
       type: 'LOCATE_SINGLE',
@@ -28,19 +24,7 @@ export const generateStage1Question = (context: StageContext): LocateSingleQuest
     };
   }
 
-  // Deduplicate by code so probabilities are equal across Eup/Myeon (Basic mode)
-  const uniqueFeatures = [];
-  const seenCodes = new Set<string>();
-  for (const f of mapData) {
-    if (!seenCodes.has(f.properties.code)) {
-      uniqueFeatures.push(f);
-      seenCodes.add(f.properties.code);
-    }
-  }
-
-  const randomIndex = Math.floor(Math.random() * uniqueFeatures.length);
-  const targetFeature = uniqueFeatures[randomIndex];
-  const props = targetFeature.properties;
+  const props = targetRegion.properties;
 
   // 문제 텍스트 생성: "[시/군] [읍/면/동/리]"
   const cityName = props.SIG_KOR_NM || '';

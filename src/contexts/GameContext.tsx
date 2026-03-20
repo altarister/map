@@ -36,6 +36,8 @@ interface GameContextType {
   setSelectionLevel: (level: SelectionLevel) => void;
   currentFocusCode: string | null;
   setCurrentFocusCode: (code: string | null) => void;
+  targetDestination: { code: string; name: string } | null;
+  setTargetDestination: (dest: { code: string; name: string } | null) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -59,6 +61,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
   const [selectionLevel, setSelectionLevel] = React.useState<SelectionLevel>('PROVINCE');
   const [currentFocusCode, setCurrentFocusCode] = React.useState<string | null>(null);
+  const [targetDestination, setTargetDestination] = React.useState<{ code: string; name: string } | null>(null);
   const [lastGameOptions, setLastGameOptions] = React.useState<{ chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean } | undefined>(undefined);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
@@ -107,7 +110,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
     currentStage,
-    handleGameEnd
+    handleGameEnd,
+    targetDestination
   );
 
   // Reset Map Data when entering Level Select or Mode Select
@@ -172,6 +176,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetGame();
     setSelectionLevel('PROVINCE');
     setCurrentFocusCode(null);
+    setTargetDestination(null);
   }, [resetGame]);
 
   const value = useMemo(() => ({
@@ -199,11 +204,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     selectionLevel,
     setSelectionLevel,
     currentFocusCode,
-    setCurrentFocusCode
+    setCurrentFocusCode,
+    targetDestination,
+    setTargetDestination
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect
+    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination
   ]);
 
   return (

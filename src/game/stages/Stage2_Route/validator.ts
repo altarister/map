@@ -1,72 +1,37 @@
-import type { LocatePairQuestion, UserInput, ValidationResult } from '../../core/types';
+import type { UserInput, ValidationResult, CallFilterQuestion } from '../../core/types';
 
-interface Stage2State {
-  step: 'FIND_START' | 'FIND_END';
-}
+export const validateStage2Answer = (question: CallFilterQuestion, input: UserInput): ValidationResult => {
+  // 2단계에서는 유저가 선택한 콜 카드의 옵션 값이 input으로 들어옴
+  // Option Select로 넘어온 value를 콜 ID로 취급  
+  if (input.type === 'OPTION_SELECT') {
+    const selectedCallId = input.value as string;
+    const selectedCall = question.calls.find(c => c.id === selectedCallId);
 
-export const validateStage2Answer = (
-  question: LocatePairQuestion, 
-  input: UserInput, 
-  state: Stage2State | null
-): ValidationResult => {
-  const currentState: Stage2State = state || { step: 'FIND_START' };
-
-  if (input.type !== 'MAP_CLICK') {
-    return { 
-      status: 'WRONG', 
-      feedback: { isCorrect: false, regionCode: '', correctCode: currentState.step === 'FIND_START' ? question.start.code : question.end.code } 
-    };
-  }
-
-  const { start, end } = question;
-
-  if (currentState.step === 'FIND_START') {
-    const isCorrect = input.regionCode === start.code;
-    if (isCorrect) {
-      return {
-        status: 'CONTINUE',
-        feedback: {
-          isCorrect: true,
-          regionCode: input.regionCode,
-          correctCode: start.code,
-          regionName: start.name
-        },
-        nextStepInstruction: 'FIND_END' // 다음 단계 지시 (내부 상태 업데이트용 아님, 단순 정보)
-      };
-    } else {
-      return {
-        status: 'WRONG',
-        feedback: {
-          isCorrect: false,
-          regionCode: input.regionCode,
-          correctCode: start.code,
-          regionName: start.name // 오답 피드백에 정답 이름 포함
-        }
-      };
+    if (!selectedCall) {
+      return { status: 'CONTINUE' };
     }
-  } else {
-    // FIND_END
-    const isCorrect = input.regionCode === end.code;
-    if (isCorrect) {
+
+    if (selectedCall.isMatchingRoute) {
       return {
         status: 'CORRECT',
         feedback: {
-          isCorrect: true,
-          regionCode: input.regionCode,
-          correctCode: end.code,
-          regionName: end.name
+          regionCode: selectedCall.targetRegion.code,
+          correctCode: selectedCall.targetRegion.code, // 정답 지역
+          isCorrect: true
         }
       };
     } else {
       return {
         status: 'WRONG',
         feedback: {
-          isCorrect: false,
-          regionCode: input.regionCode,
-          correctCode: end.code,
-          regionName: end.name
+          regionCode: selectedCall.targetRegion.code,
+          correctCode: '', // 굳이 정답 콜을 하나만 지칭하진 않음
+          isCorrect: false
         }
       };
     }
   }
+
+  // 맵 클릭 등 잘못된 입력은 무시
+  return { status: 'CONTINUE' };
 };

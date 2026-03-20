@@ -28,7 +28,8 @@ export const useGameLogic = (
   regions: RegionFeature[],
   difficulty: Difficulty,
   currentStage: number, // 현재 게임 단계
-  onGameEnd: (score: GameScore) => void
+  onGameEnd: (score: GameScore) => void,
+  targetDestination?: {code: string, name: string} | null // 추가된 2단계용 목적지 프로퍼티
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('REGION_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
@@ -79,13 +80,12 @@ export const useGameLogic = (
       return;
     }
 
-    // 큐의 첫 번째 요소를 출제 대상으로 확정
-    const mapDataToUse = [currentQueue[0]];
-
     const strategy = getStageStrategy(currentStage);
     const question = strategy.generateQuestion({
-      mapData: mapDataToUse,
-      difficulty
+      mapData: regions, // 2단계를 위해 전체 regions를 제공
+      targetRegion: currentQueue[0], // 1단계를 위해 타겟 리전을 직접 제공
+      difficulty,
+      targetDestCode: targetDestination?.code
     });
 
     setCurrentQuestion(question);

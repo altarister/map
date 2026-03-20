@@ -14,6 +14,7 @@ interface UseMapAutoZoomProps {
   currentFocusCode?: string | null;
   level1Data?: any;
   cityData?: any;
+  focusRegionCodes?: string[]; // 2단계 등 여러 지역 코드를 한 번에 타겟팅할 때 사용
 }
 
 export function useMapAutoZoom({
@@ -27,7 +28,8 @@ export function useMapAutoZoom({
   selectionLevel,
   currentFocusCode,
   level1Data,
-  cityData
+  cityData,
+  focusRegionCodes
 }: UseMapAutoZoomProps) {
   // 클로저의 오래된 값을 방지하기 위해 Refs 사용
   const mapDataRef = useRef(mapData);
@@ -122,4 +124,44 @@ export function useMapAutoZoom({
 
     zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
   }, [gameState, selectedChapter, width, height, zoomTo]);
+
+  // 4. 여러 지역 동시 포커싱 (2단계 배차 모드 등)
+  useEffect(() => {
+    if (!width || !height || !focusRegionCodes || focusRegionCodes.length === 0) return;
+
+    const md = mapDataRef.current;
+    const pg = pathGeneratorRef.current;
+    if (!md?.features?.length) return;
+
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    
+    // 타겟 지역 필터링
+    const targetFeatures = md.features.filter(f => focusRegionCodes.includes(f.properties.code));
+    if (targetFeatures.length === 0) return;
+
+    for (const feature of targetFeatures) {
+      const bounds = pg.bounds(feature);
+      if (bounds && bounds[0] && bounds[1]) {
+         const [[fx0, fy0], [fx1, fy1]] = bounds;
+         if (fx0 < x0) x0 = fx0;
+         if (fy0 < y0) y0 = fy0;
+         if (fx1 > x1) x1 = fx1;
+         if (fy1 > y1) y1 = fy1;
+      }
+    }
+
+    if (!isFinite(x0) || !isFinite(y0)) return;
+
+    // 패딩을 더 넓게 주어 경로 선이 잘리지 않도록 함
+    const padding = 100;
+    const bw = x1 - x0, bh = y1 - y0;
+    if (bw === 0 || bh === 0) return;
+
+    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
+    const cx = (x0 + x1) / 2;
+    const cy = (y0 + y1) / 2;
+
+    zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
+
+  }, [focusRegionCodes, width, height, zoomTo]);
 }
