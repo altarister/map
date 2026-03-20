@@ -1,17 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 /**
- * SelectionBorderCanvas — 선택한 지역의 외곽선 전용 캔버스 (Canvas 1-2)
+ * SelectMapLayerCanvas — 선택된 진입 지역의 "단일 통합 외곽선" 전용 액자 캔버스 (Canvas 1-2)
  *
  * 역할:
- *   - 현재 "진입한" 지역(경기도, 고양시, 광주시 등)의 테두리만 굵고 선명하게 그린다.
- *   - fill 없이 stroke만 → alpha 복잡도 없이 깔끔한 경계 표시
- *   - BaseMapLayerCanvas(1-1) 위, RoadLayer(2) 아래에 위치
- *
- * selectionLevel별 그리는 대상:
- *   - PROVINCE  → 없음 (아직 아무것도 선택 안 한 상태)
- *   - CITY      → 선택한 광역 외곽 (예: 경기도 단일 폴리곤)
- *   - DISTRICT  → 선택한 시 외곽 (예: 고양시 관련 폴리곤)
- *   - PLAYING   → 게임 진입한 지역 외곽
+ *   - BaseMapLayerCanvas(1-1) 위에 그려져, 내부 조각들의 공유 경계선이 만드는
+ *     가장자리의 불규칙하고 겹친 선들을 완벽하게 덮어버림.
+ *   - 굵고 불투명한 단일 선(Stroke)을 통해 "이 안쪽 공간이 현재 스테이지"라는
+ *     시각적 Frame 효과 제공.
  */
 
 import { memo, useLayoutEffect, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -20,18 +15,17 @@ import type { GeoProjection } from 'd3-geo';
 import type { RegionFeature } from '../../types/geo';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
 
-interface SelectionBorderCanvasProps {
-    features: RegionFeature[];          // 선택된 지역 폴리곤 (stroke만 그림)
+interface SelectMapLayerCanvasProps {
+    features: RegionFeature[];          // 1개의 단일 "통합" 폴리곤만 들어옴 (stroke만 렌더링)
     projection: GeoProjection;
     theme: string;
-    themeColors: any;                   // 테마 색상 팔레트
+    themeColors: any;
     initialTransform: { x: number; y: number; k: number };
     width: number;
     height: number;
 }
 
-// BaseMapLayerHandle을 그대로 재사용 (draw + setCssTransform 인터페이스 동일)
-export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, SelectionBorderCanvasProps>((
+export const SelectMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, SelectMapLayerCanvasProps>((
     {
         features,
         projection,
@@ -44,10 +38,9 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
 ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    // 실제 현재 transform을 추적 (useLayoutEffect에서 최신 위치로 재그릴 때 사용)
     const currentTransformRef = useRef(initialTransform);
 
-    // BaseMapLayerCanvas와 동일한 2× 캔버스 전략 (CSS transform 여유분)
+    // CSS transform 여유공간 확보를 위한 2배율 캔버스
     const CANVAS_SCALE = 2.0;
 
     const drawCanvas = (x: number, y: number, k: number) => {
@@ -76,10 +69,10 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
 
         const canvasPath = geoPath(projection).context(ctx);
 
-        // stroke only — fill 없이 선명한 테두리만
+        // Frame 속성: fill 없이 선만, 불투명도 100%, Base보다 2배 두꺼움
         ctx.strokeStyle = themeColors.stroke;
-        ctx.lineWidth = 2 / k;   // base(1/k)보다 두껍게
-        ctx.globalAlpha = 1.0;   // 완전 불투명
+        ctx.lineWidth = 2.5 / k; 
+        ctx.globalAlpha = 1.0; 
 
         features.forEach((feature: any) => {
             ctx.beginPath();
@@ -90,10 +83,9 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
         ctx.restore();
     };
 
-    // ── Imperative handle (D3 zoom에서 직접 호출) ────────────────────────────
     useImperativeHandle(ref, () => ({
         draw: (t) => {
-            currentTransformRef.current = t; // 실제 transform 저장
+            currentTransformRef.current = t;
             if (containerRef.current) {
                 containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
             }
@@ -101,18 +93,15 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
         },
         setCssTransform: (current, start) => {
             if (!containerRef.current) return;
-            // BaseMapLayerCanvas와 동일한 공식 — transformOrigin 0 0 기준
+            // BaseMapLayerCanvas와 완벽히 동일한 수학 공식 적용하여 어긋남(잔상) 방지
             const S = current.k / start.k;
-            const Dx = current.x - start.x * S;  // 스케일 보정 포함
+            const Dx = current.x - start.x * S;
             const Dy = current.y - start.y * S;
             containerRef.current.style.transform = `translate(${Dx}px, ${Dy}px) scale(${S})`;
             containerRef.current.style.transformOrigin = `0 0`;
         },
     }), [features, projection, themeColors, width, height]);
 
-    // ── Layout effect: canvas 크기 설정 + 재그리기 ────────────────────────────
-    // features 변경(selectionLevel 클릭) 시에도 CSS transform을 반드시 리셋하고
-    // currentTransformRef의 최신 위치로 재그림 → 잔상(이중 오프셋) 방지
     useLayoutEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !width || !height) return;
@@ -123,7 +112,6 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
         canvas.style.width = `${width * CANVAS_SCALE}px`;
         canvas.style.height = `${height * CANVAS_SCALE}px`;
 
-        // CSS transform 잔여분 제거 후 현재 실제 위치로 재그림
         if (containerRef.current) {
             containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
         }
@@ -146,4 +134,4 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
     );
 }));
 
-SelectionBorderCanvas.displayName = 'SelectionBorderCanvas';
+SelectMapLayerCanvas.displayName = 'SelectMapLayerCanvas';

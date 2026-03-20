@@ -10,7 +10,7 @@ import { BottomBar } from '../layout/BottomBar';
 import { RegionLabel } from './RegionLabel';
 import { BaseMapLayerCanvas } from './BaseMapLayerCanvas';
 import type { BaseMapLayerHandle } from './BaseMapLayerCanvas';
-import { SelectionBorderCanvas } from './SelectionBorderCanvas';
+import { SelectMapLayerCanvas } from './SelectMapLayerCanvas';
 import { InteractionLayer } from './InteractionLayer';
 import { RoadLayer } from './RoadLayer';
 import type { RoadLayerHandle } from './RoadLayer';
@@ -74,7 +74,7 @@ export const Map = () => {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const roadLayerRef = useRef<RoadLayerHandle | null>(null);
   const baseMapLayerRef = useRef<BaseMapLayerHandle | null>(null);
-  const selectionBorderRef = useRef<BaseMapLayerHandle | null>(null);
+  const selectMapLayerRef = useRef<BaseMapLayerHandle | null>(null);
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -91,13 +91,13 @@ export const Map = () => {
 
   const handleTransformTick = useCallback((t: { x: number; y: number; k: number }, lastDrawn: { x: number; y: number; k: number }) => {
     baseMapLayerRef.current?.setCssTransform(t, lastDrawn);
-    selectionBorderRef.current?.setCssTransform(t, lastDrawn);
+    selectMapLayerRef.current?.setCssTransform(t, lastDrawn);
     roadLayerRef.current?.setCssTransform(t, lastDrawn);
   }, []);
 
   const handleTransformEnd = useCallback((t: { x: number; y: number; k: number }) => {
     baseMapLayerRef.current?.draw(t);
-    selectionBorderRef.current?.draw(t);
+    selectMapLayerRef.current?.draw(t);
     roadLayerRef.current?.draw(t);
   }, []);
 
@@ -188,35 +188,34 @@ export const Map = () => {
     return [];
   }, [gameState, selectionLevel, currentFocusCode, cityData, level1Data, featuresToRender]);
 
-  // 선택한 지역 외곽선 (SelectionBorderCanvas에 전달)
+  // [Canvas 1-2] 선택한 지역의 단일 통합 외곽선 (SelectMapLayerCanvas에 전달)
   const selectedBorderFeatures = useMemo(() => {
-    // PROVINCE: 아직 아무것도 선택 안 함
     if (selectionLevel === 'PROVINCE') return [];
 
     if (selectionLevel === 'CITY' && currentFocusCode) {
-      // 선택한 광역 단일 폴리곤 (예: 경기도)
+      // 선택한 광역 단일 폴리곤 (예: 41 경기도)
       const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
       return f ? [f] : [];
     }
 
     if (selectionLevel === 'DISTRICT' && currentFocusCode) {
-      // 선택한 시 외곽 (예: 고양시 → cityData에서 4128 prefix)
-      const prefix = currentFocusCode.substring(0, 4);
-      return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) ?? [];
+      // 선택한 시/군/구 통합 단일 폴리곤 (예: 41280 고양시 전체 1개 덩어리)
+      // Array Filter가 아니라 Find로 단 1개만 추출하여 내부 겹침 선을 방지
+      const f = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+      // 통합본(cityData)에 부모가 없는 일부 예외지역 방어용 fallback
+      const fallback = rawCityData?.features.find((f: any) => f.properties.code === currentFocusCode);
+      return f ? [f] : fallback ? [fallback] : [];
     }
 
     if (gameState === 'PLAYING' && selectedChapter) {
-      // 게임 진입 지역 외곽 (selectedChapter = 5자리 코드 문자열)
-      const prefix = selectedChapter.substring(0, 4);
-      const cityFeatures = cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) ?? [];
-      if (cityFeatures.length > 0) return cityFeatures;
-      // fallback: level1 광역 폴리곤
-      const prov = level1Data?.features.find((f: any) => f.properties.code === selectedChapter.substring(0, 2));
-      return prov ? [prov] : [];
+      // 게임 진입 단계 (현재 게임중인 단계의 부모 경계) -> ex) 41281 덕양구 접속 시 덕양구 외곽
+      const f = rawCityData?.features.find((f: any) => f.properties.code === selectedChapter);
+      const fallback = cityData?.features.find((f: any) => f.properties.code === selectedChapter);
+      return f ? [f] : fallback ? [fallback] : [];
     }
 
     return [];
-  }, [selectionLevel, currentFocusCode, gameState, level1Data, cityData, selectedChapter]);
+  }, [selectionLevel, currentFocusCode, gameState, selectedChapter, level1Data, cityData, rawCityData]);
 
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
@@ -379,9 +378,9 @@ export const Map = () => {
           currentQuestionTargetCode={currentQuestion?.type === 'LOCATE_SINGLE' ? currentQuestion.target.code : undefined}
         />
 
-        {/* Layer 1-2: Selection Border (Canvas) - 현재 진입한 지역 외곽선 전용 */}
-        <SelectionBorderCanvas
-          ref={selectionBorderRef}
+        {/* Layer 1-2: SelectMapLayer (Canvas) - 현재 진입한 지역 전체를 감싸는 굵은 단일 외곽선 액자 */}
+        <SelectMapLayerCanvas
+          ref={selectMapLayerRef}
           features={selectedBorderFeatures}
           projection={projection}
           theme={theme}
