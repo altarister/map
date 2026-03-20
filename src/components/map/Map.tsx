@@ -190,28 +190,26 @@ export const Map = () => {
 
   // [Canvas 1-2] 선택한 지역의 단일 통합 외곽선 (SelectMapLayerCanvas에 전달)
   const selectedBorderFeatures = useMemo(() => {
-    if (selectionLevel === 'PROVINCE') return [];
-
-    if (selectionLevel === 'CITY' && currentFocusCode) {
-      // 선택한 광역 단일 폴리곤 (예: 41 경기도)
-      const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
-      return f ? [f] : [];
+    if (gameState === 'PLAYING' && selectedChapter) {
+      // 게임 진입 단계 (현재 게임중인 단계의 부모 경계) -> ex) 11200 성동구 접속 시 성동구 외곽
+      const f = rawCityData?.features.find((f: any) => f.properties.code === selectedChapter);
+      const fallback = cityData?.features.find((f: any) => f.properties.code === selectedChapter);
+      return f ? [f] : fallback ? [fallback] : [];
     }
+
+    if (selectionLevel === 'PROVINCE') return [];
 
     if (selectionLevel === 'DISTRICT' && currentFocusCode) {
       // 선택한 시/군/구 통합 단일 폴리곤 (예: 41280 고양시 전체 1개 덩어리)
-      // Array Filter가 아니라 Find로 단 1개만 추출하여 내부 겹침 선을 방지
       const f = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
-      // 통합본(cityData)에 부모가 없는 일부 예외지역 방어용 fallback
       const fallback = rawCityData?.features.find((f: any) => f.properties.code === currentFocusCode);
       return f ? [f] : fallback ? [fallback] : [];
     }
 
-    if (gameState === 'PLAYING' && selectedChapter) {
-      // 게임 진입 단계 (현재 게임중인 단계의 부모 경계) -> ex) 41281 덕양구 접속 시 덕양구 외곽
-      const f = rawCityData?.features.find((f: any) => f.properties.code === selectedChapter);
-      const fallback = cityData?.features.find((f: any) => f.properties.code === selectedChapter);
-      return f ? [f] : fallback ? [fallback] : [];
+    if (selectionLevel === 'CITY' && currentFocusCode) {
+      // 선택한 광역 단일 폴리곤 (예: 41 경기도, 11 서울특별시)
+      const f = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
+      return f ? [f] : [];
     }
 
     return [];
