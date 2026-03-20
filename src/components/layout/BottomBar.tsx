@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LayerRoadPanel } from '../settings/LayerRoadPanel';
 import { LayerMapPanel } from '../settings/LayerMapPanel';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface BottomBarProps {
   width: number;
@@ -23,6 +24,7 @@ export const BottomBar = ({
   renderedCount,
 }: BottomBarProps) => {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const { viewOptions, setViewOptions } = useSettings();
 
   const toggle = (panel: ActivePanel) =>
     setActivePanel(prev => (prev === panel ? null : panel));
@@ -77,8 +79,32 @@ export const BottomBar = ({
         )}
       </div>
 
-      {/* RIGHT: Layer Controls (상호 배타 두 버튼) */}
+      {/* RIGHT: Layer Controls (상호 배타 두 버튼 + 광고 토글) */}
       <div className="relative flex items-center gap-1">
+
+        {/* 광고 토글 버튼 */}
+        <button
+          onClick={() => setViewOptions({ ...viewOptions, showAd: !viewOptions.showAd })}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] font-mono font-bold uppercase tracking-widest transition-all border ${
+            viewOptions.showAd
+              ? 'bg-primary/15 text-primary border-primary/30'
+              : 'text-muted-foreground border-border bg-muted/30 hover:text-foreground hover:bg-muted/60'
+          }`}
+          title={viewOptions.showAd ? "우측 광고 숨기기" : "우측 광고 표시"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="w-3 h-3"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+          AD
+        </button>
+
+        {/* 구분선 */}
+        <div className="w-px h-4 bg-border mx-0.5" />
 
         {/* 지도 레이어 패널 */}
         <div className="relative">

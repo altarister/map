@@ -1,4 +1,4 @@
-import { SettingsProvider } from './contexts/SettingsContext';
+import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
@@ -17,6 +17,7 @@ import { LoadingScreen } from './components/layout/LoadingScreen';
 
 function GameContent() {
   const { gameState, setGameState } = useGame();
+  const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
 
   return (
@@ -44,9 +45,11 @@ function GameContent() {
           <ActionBar />
 
           {/* 우측 전역 광고 슬롯 (Google AdSense 삽입 예정) */}
-          <div className="absolute top-20 right-4 z-[35]">
-              <AdSlot width={300} height={250} />
-          </div>
+          {viewOptions.showAd && (
+            <div className="absolute top-20 right-4 z-[35]">
+                <AdSlot width={300} height={250} />
+            </div>
+          )}
 
 
 
