@@ -4,7 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { SettingsModal } from '../settings/SettingsModal';
 
 export const TopBar = () => {
-  const { gameState, setGameState, resetGame, score, currentStage, setSelectionDepth, setCurrentFocusCode } = useGame();
+  const { gameState, setGameState, resetGame, score, currentStage, setSelectionLevel, setCurrentFocusCode } = useGame();
   const { topScore } = useSettings();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -67,7 +67,7 @@ export const TopBar = () => {
           {gameState === 'REGION_SELECT' && (
             <button
               onClick={() => {
-                setSelectionDepth(1);
+                setSelectionLevel('PROVINCE');
                 setCurrentFocusCode(null);
                 setGameState('GAME_MODE_SELECT');
               }}

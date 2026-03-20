@@ -38,8 +38,8 @@ export const Map = () => {
     startGame,
     isHintActive,
     currentQuestion,
-    selectionDepth,
-    setSelectionDepth,
+    selectionLevel,
+    setSelectionLevel,
     currentFocusCode,
     setCurrentFocusCode
   } = useGame();
@@ -133,14 +133,14 @@ export const Map = () => {
 
   const featuresToRender = useMemo(() => {
     if (gameState === 'REGION_SELECT') {
-      if (selectionDepth === 1) return level1Data?.features || [];
-      if (selectionDepth === 2) {
+      if (selectionLevel === 'PROVINCE') return level1Data?.features || [];
+      if (selectionLevel === 'CITY') {
         if (!currentFocusCode) return cityData?.features || [];
         // Extract prefix (e.g. 41 for Gyeonggi)
         const prefix = currentFocusCode.substring(0, 2);
         return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
       }
-      if (selectionDepth === 3) {
+      if (selectionLevel === 'DISTRICT') {
         if (!currentFocusCode) return rawCityData?.features || [];
         // Extract prefix (e.g. 4146 for Yongin)
         const prefix = currentFocusCode.substring(0, 4);
@@ -148,7 +148,7 @@ export const Map = () => {
       }
     }
     return showTownGeometry ? features : filteredCityFeatures;
-  }, [gameState, selectionDepth, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, features, filteredCityFeatures]);
+  }, [gameState, selectionLevel, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, features, filteredCityFeatures]);
 
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
@@ -168,16 +168,15 @@ export const Map = () => {
   useEffect(() => {
     if (gameState !== 'REGION_SELECT' || !width || !height) return;
 
-    if (selectionDepth === 1 || !currentFocusCode) {
+    if (selectionLevel === 'PROVINCE' || !currentFocusCode) {
       zoomTo({ x: 0, y: 0, k: 1 });
       return;
     }
 
-    // currentFocusCode에 해당하는 상위 폴리곤 피처 도출
     let feature: any = null;
-    if (selectionDepth === 2) {
+    if (selectionLevel === 'CITY') {
       feature = level1Data?.features.find((f: any) => f.properties.code === currentFocusCode);
-    } else if (selectionDepth === 3) {
+    } else if (selectionLevel === 'DISTRICT') {
       feature = cityData?.features.find((f: any) => f.properties.code === currentFocusCode);
     }
 
@@ -193,7 +192,7 @@ export const Map = () => {
         zoomTo({ x: width / 2 - scale * x, y: height / 2 - scale * y, k: scale });
       }
     }
-  }, [selectionDepth, currentFocusCode, gameState, width, height, zoomTo, pathGenerator, level1Data, cityData]);
+  }, [selectionLevel, currentFocusCode, gameState, width, height, zoomTo, pathGenerator, level1Data, cityData]);
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
   const handleRegionContextMenu = useCallback((_event: React.MouseEvent, _region: any) => {
@@ -205,14 +204,13 @@ export const Map = () => {
       const feature = featuresToRender.find((f: any) => f.properties.code === code);
       if (!feature) return;
 
-      if (selectionDepth === 1) {
-        // 광역 클릭 -> 시군구(2단계) 진입
+      if (selectionLevel === 'PROVINCE') {
         setCurrentFocusCode(code);
-        setSelectionDepth(2);
+        setSelectionLevel('CITY');
         return;
       }
 
-      if (selectionDepth === 2) {
+      if (selectionLevel === 'CITY') {
         const groupCode = code;
         
         // 거대 도시 예외 처리 판단 (3단계 일반구 포함 여부)
@@ -224,7 +222,7 @@ export const Map = () => {
 
         if (hasSubDistricts && groupCode.endsWith('0')) {
             setCurrentFocusCode(groupCode);
-            setSelectionDepth(3);
+            setSelectionLevel('DISTRICT');
             return;
         }
 
@@ -244,7 +242,7 @@ export const Map = () => {
         return;
       }
 
-      if (selectionDepth === 3) {
+      if (selectionLevel === 'DISTRICT') {
         // 일반구 클릭 -> 바로 PLAYING (4단계)
         const targetDongs = fullMapData?.features.filter((f: any) =>
           f.properties.code.startsWith(code) &&
@@ -269,7 +267,7 @@ export const Map = () => {
       return;
     }
     checkAnswer({ type: 'MAP_CLICK', regionCode: code });
-  }, [gameState, forceShowTowns, showTownGeometry, checkAnswer, filteredCityFeatures, featuresToRender, selectionDepth, setCurrentFocusCode, setSelectionDepth, rawCityData, fullMapData, startGame]);
+  }, [gameState, forceShowTowns, showTownGeometry, checkAnswer, filteredCityFeatures, featuresToRender, selectionLevel, setCurrentFocusCode, setSelectionLevel, rawCityData, fullMapData, startGame]);
 
   // ── Early Returns ───────────────────────────────────────────────────────────
   if (loading) return <div className="flex justify-center items-center h-full text-gray-400 font-mono">Loading map...</div>;
@@ -481,21 +479,21 @@ export const Map = () => {
       )}
 
       {/* [4계층 연동] 뒤로가기 버튼: depth ≥ 2일 때 표시 */}
-      {gameState === 'REGION_SELECT' && selectionDepth > 1 && (
+      {gameState === 'REGION_SELECT' && selectionLevel !== 'PROVINCE' && (
         <button
           className="absolute top-20 left-4 z-50 bg-slate-900/90 border border-slate-600 hover:border-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-mono transition-all duration-200 hover:bg-slate-800"
           onClick={() => {
-            if (selectionDepth === 2) {
-              setSelectionDepth(1);
+            if (selectionLevel === 'CITY') {
+              setSelectionLevel('PROVINCE');
               setCurrentFocusCode(null);
-            } else if (selectionDepth === 3) {
+            } else if (selectionLevel === 'DISTRICT') {
               const parentPrefix = currentFocusCode?.substring(0, 2) || null;
-              setSelectionDepth(2);
+              setSelectionLevel('CITY');
               setCurrentFocusCode(parentPrefix);
             }
           }}
         >
-          ← 뒤로 ({selectionDepth === 2 ? '광역 선택' : '시/군 선택'})
+          ← 뒤로 ({selectionLevel === 'CITY' ? '광역 선택' : '시/군 선택'})
         </button>
       )}
 

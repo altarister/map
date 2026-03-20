@@ -1,26 +1,26 @@
 import { useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
+import { SELECTION_LEVEL_LABEL } from '../../types/region';
 
 export const GameOptionSelectScreen = () => {
     const { 
         startGame, 
         setGameState, 
-        selectionDepth, 
-        setSelectionDepth, 
+        selectionLevel, 
+        setSelectionLevel, 
         currentFocusCode, 
         setCurrentFocusCode 
     } = useGame();
     const { level1Data, cityData, rawCityData, fullMapData } = useGeoContext();
 
     const availableOptions = useMemo(() => {
-        if (selectionDepth === 1) {
-            // 1단계: 광역 자치단체
+        if (selectionLevel === 'PROVINCE') {
             if (!level1Data) return [];
             return level1Data.features.map((f: any) => ({ name: f.properties.name, code: f.properties.code }));
         }
         
-        if (selectionDepth === 2) {
+        if (selectionLevel === 'CITY') {
             // 2단계: 시/군/자치구
             if (!cityData) return [];
             const prefix = currentFocusCode ? currentFocusCode.substring(0, 2) : '';
@@ -40,7 +40,7 @@ export const GameOptionSelectScreen = () => {
             return Array.from(cityMap.values()).sort((a, b) => a.name.localeCompare(b.name));
         }
 
-        if (selectionDepth === 3) {
+        if (selectionLevel === 'DISTRICT') {
             // 3단계: 일반구
             if (!rawCityData) return [];
             const prefix = currentFocusCode ? currentFocusCode.substring(0, 4) : '';
@@ -53,18 +53,18 @@ export const GameOptionSelectScreen = () => {
         }
 
         return [];
-    }, [selectionDepth, currentFocusCode, level1Data, cityData, rawCityData]);
+    }, [selectionLevel, currentFocusCode, level1Data, cityData, rawCityData]);
 
     const handleSelect = (item: { code: string; name: string }) => {
         if (!fullMapData) return;
 
-        if (selectionDepth === 1) {
+        if (selectionLevel === 'PROVINCE') {
             setCurrentFocusCode(item.code);
-            setSelectionDepth(2);
+            setSelectionLevel('CITY');
             return;
         }
 
-        if (selectionDepth === 2) {
+        if (selectionLevel === 'CITY') {
             const hasSubDistricts = rawCityData?.features.some((f: any) => 
                 f.properties.code.startsWith(item.code.substring(0, 4)) && 
                 f.properties.code.length === 5 && 
@@ -73,7 +73,7 @@ export const GameOptionSelectScreen = () => {
 
             if (hasSubDistricts && item.code.endsWith('0')) {
                 setCurrentFocusCode(item.code);
-                setSelectionDepth(3);
+                setSelectionLevel('DISTRICT');
                 return;
             }
 
@@ -83,7 +83,7 @@ export const GameOptionSelectScreen = () => {
             return;
         }
 
-        if (selectionDepth === 3) {
+        if (selectionLevel === 'DISTRICT') {
             const targetDongs = fullMapData.features.filter((f: any) => f.properties.code.startsWith(item.code) && (f.properties as any)._isEmdGroup);
             startGame({ chapterCode: item.code, overrideRegions: targetDongs, isBasicMode: false });
             return;
@@ -91,11 +91,11 @@ export const GameOptionSelectScreen = () => {
     };
 
     const handleBack = () => {
-        if (selectionDepth === 3) {
-            setSelectionDepth(2);
+        if (selectionLevel === 'DISTRICT') {
+            setSelectionLevel('CITY');
             setCurrentFocusCode(currentFocusCode ? currentFocusCode.substring(0, 2) : null);
-        } else if (selectionDepth === 2) {
-            setSelectionDepth(1);
+        } else if (selectionLevel === 'CITY') {
+            setSelectionLevel('PROVINCE');
             setCurrentFocusCode(null);
         } else {
             setGameState('GAME_MODE_SELECT');
@@ -114,7 +114,7 @@ export const GameOptionSelectScreen = () => {
                     작전 지역 선택
                 </h1>
                 <p className="text-slate-400 font-mono text-xs">
-                    {selectionDepth === 1 ? '1단계: 광역 자치단체' : selectionDepth === 2 ? '2단계: 시/군/자치구' : '3단계: 일반구'}
+                    {SELECTION_LEVEL_LABEL[selectionLevel]}
                 </p>
             </div>
             <button

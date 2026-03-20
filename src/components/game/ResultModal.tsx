@@ -6,7 +6,7 @@ export const ResultModal = () => {
   const {
     gameState, score,
     resetGame, replayGame, backToRegionSelect,
-    setSelectionDepth, setCurrentFocusCode
+    setSelectionLevel, setCurrentFocusCode
   } = useGame();
 
   // 숙련도(정확도) 계산
@@ -26,7 +26,7 @@ export const ResultModal = () => {
 
   const handleGoHome = () => {
     // 처음(광역 선택)으로 완전 초기화
-    setSelectionDepth(1);
+    setSelectionLevel('PROVINCE');
     setCurrentFocusCode(null);
     resetGame();
   };

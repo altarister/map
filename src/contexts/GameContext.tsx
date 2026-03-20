@@ -8,6 +8,7 @@ import { useSettings } from './SettingsContext';
 
 import type { GameState, GameScore, AnswerFeedback } from '../types/game';
 import type { GameQuestion, UserInput } from '../game/core/types';
+import type { SelectionLevel } from '../types/region';
 
 interface GameContextType {
   gameState: GameState;
@@ -31,8 +32,8 @@ interface GameContextType {
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[];
-  selectionDepth: number;
-  setSelectionDepth: (depth: number) => void;
+  selectionLevel: SelectionLevel;
+  setSelectionLevel: (level: SelectionLevel) => void;
   currentFocusCode: string | null;
   setCurrentFocusCode: (code: string | null) => void;
 }
@@ -56,7 +57,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { layerVisibility } = useMapContext();
   const [isBasicMode, setIsBasicMode] = React.useState<boolean>(false);
   const [highlightRegions, setHighlightRegions] = React.useState<any[]>([]);
-  const [selectionDepth, setSelectionDepth] = React.useState<number>(1);
+  const [selectionLevel, setSelectionLevel] = React.useState<SelectionLevel>('PROVINCE');
   const [currentFocusCode, setCurrentFocusCode] = React.useState<string | null>(null);
   const [lastGameOptions, setLastGameOptions] = React.useState<{ chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean } | undefined>(undefined);
 
@@ -169,7 +170,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // [4계층 연동] 나가기 시 depth 리셋 포함
   const resetGameWithDepth = useCallback(() => {
     resetGame();
-    setSelectionDepth(1);
+    setSelectionLevel('PROVINCE');
     setCurrentFocusCode(null);
   }, [resetGame]);
 
@@ -195,14 +196,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentStage,
     isBasicMode,
     highlightRegions,
-    selectionDepth,
-    setSelectionDepth,
+    selectionLevel,
+    setSelectionLevel,
     currentFocusCode,
     setCurrentFocusCode
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionDepth, currentFocusCode, replayGame, backToRegionSelect
+    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect
   ]);
 
   return (
