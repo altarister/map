@@ -23,7 +23,7 @@ import type { AnswerFeedback } from '../../types/game';
 
 interface BaseMapLayerCanvasProps {
     features: RegionFeature[];          // 현재 선택된 지역의 동/읍/면 폴리곤 목록
-    cityData: { features: RegionFeature[] } | null; // 시/군 단위 상위 경계 폴리곤 (showBoundaries 용)
+    contextBoundaryFeatures: RegionFeature[]; // 현재 depth에 맞춰 Map.tsx가 계산한 컨텍스트 경계선
     projection: GeoProjection;          // D3 지리좌표 → 픽셀 변환기
     theme: string;                      // 현재 테마 이름 ('tactical' 등)
     themeColors: any;                   // 테마별 기본 fill/stroke 색상 팔레트
@@ -50,7 +50,7 @@ export interface BaseMapLayerHandle {
 export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLayerCanvasProps>((
     {
         features,
-        cityData,
+        contextBoundaryFeatures,
         projection,
         theme,
         themeColors,
@@ -125,13 +125,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // 줌 배율에 반비례하여 선 굵기를 유지 → 어떤 줌 단계에서도 시각적 두께가 일정
         const baseStrokeWidth = 1 / k;
 
-        // ── LOD (Level of Detail): 줌 레벨에 따라 경계선 종류 전환 ──────────
-        // 낮은 줌(k < 2.5): 시/군 외곽선이 선명하게, 동 경계선은 희미하게
-        // 높은 줌(k >= 2.5): 동 경계선이 선명하게, 시/군 외곽선은 사라짐
-        // → 두 종류의 선이 동시에 진하게 보이지 않아 깔끔한 단일 레이어 느낌
-        const LOD_THRESHOLD = 2.5;
-        const dongAlpha = 1 //Math.min(1.0, Math.max(0.1, (k - 1.0) / (LOD_THRESHOLD - 1.0)));
-        const cityAlpha = 1 //Math.min(1.0, Math.max(0.0, 1.0 - (k - 1.0) / (LOD_THRESHOLD - 1.0)));
+        // ── LOD (Level of Detail): 줌 레벨 기록용 (현재 alpha는 1로 고정)
+        const dongAlpha = 1;
         // ─────────────────────────────────────────────────────────────────────
 
         // ══════════════════════════════════════════════════════════════════
@@ -193,37 +188,25 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         ctx.lineWidth = baseStrokeWidth; // 이후 드로잉을 위해 복원
 
         // ══════════════════════════════════════════════════════════════════
-        // Pass 3: 시/군 단위 상위 경계선 (showBoundaries ON일 때만)
-        //   - cityData: 시/군 단위 폴리곤 (동/읍/면보다 큰 단위)
-        //   - LOD에 따라 cityAlpha 적용 → 낮은 줌에선 선명, 높은 줌에선 fade
-        //   - LayerMapPanel의 "지역 경계" 토글과 연동됨
+        // Pass 3: 컨텍스트 경계선 (selectionLevel에 따라 Map.tsx가 계산해서 전달)
+        //   - PROVINCE → 전체 시/군/자치구 경계 흐리게
+        //   - CITY     → 선택 광역 제외 나머지 광역 단일 외곽 흐리게
+        //   - DISTRICT → 선택 도시 제외 동일 광역 시/군 경계 흐리게
+        //   - showBoundaries OFF이면 건너뜀
         // ══════════════════════════════════════════════════════════════════
-        if (showBoundaries && cityData && cityAlpha > 0.01) {
-            // const contextStrokeWidth = theme === 'tactical' ? 1.5 / k : 1.2 / k;
-            const contextStrokeColor = theme === 'tactical' ? '#707070ff' : '#879cb9ff'; // 순수 hex, alpha는 globalAlpha로 제어
+        if (showBoundaries && contextBoundaryFeatures.length > 0) {
+            const contextStrokeColor = theme === 'tactical' ? '#707070' : '#879cb9';
+            const contextAlpha = 0.35; // 항상 희미하게
 
-            // 현재 게임 지역의 광역 단위 prefix (앞 2자리)
-            // 예) '41820xxxxx' → '41' (경기도), '11710xxxxx' → '11' (서울), '23xxxx' → '23' (인천)
-            const provincePrefix = features[0]?.properties?.code?.substring(0, 2) ?? '';
-            const featureCodeLen = features[0]?.properties?.code?.length ?? 0;
-
-            // depth=1(도 선택 화면)에서는 코드가 2자리 → Pass 3 건너뜀
-            // (도 선택 화면에서 시/군 경계선은 의미 없음)
-            if (featureCodeLen > 2 && provincePrefix) {
-                // 같은 광역(도/특별시)에 속하는 시/군만 그림
-                const sameProvinceCities = cityData.features.filter((f: any) =>
-                    f.properties.code?.startsWith(provincePrefix)
-                );
-
-                sameProvinceCities.forEach((feature: any) => {
-                    ctx.beginPath();
-                    canvasPath(feature as any);
-                    ctx.lineWidth = 1; // contextStrokeWidth
-                    ctx.strokeStyle = contextStrokeColor;
-                    ctx.stroke();
-                    ctx.globalAlpha = 1.0; // 복원
-                });
-            }
+            ctx.globalAlpha = contextAlpha;
+            contextBoundaryFeatures.forEach((feature: any) => {
+                ctx.beginPath();
+                canvasPath(feature as any);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = contextStrokeColor;
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0; // 복원
         }
 
         ctx.restore(); // save()와 쌍을 맞춰 transform 상태 복원

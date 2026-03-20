@@ -150,6 +150,39 @@ export const Map = () => {
     return showTownGeometry ? features : filteredCityFeatures;
   }, [gameState, selectionLevel, currentFocusCode, level1Data, cityData, rawCityData, showTownGeometry, features, filteredCityFeatures]);
 
+  // Pass 3 컨텍스트 경계선: selectionLevel에 따라 희미하게 그릴 피처 배열
+  const contextBoundaryFeatures = useMemo(() => {
+    if (gameState === 'REGION_SELECT') {
+      if (selectionLevel === 'PROVINCE') {
+        // 전체 시/군/자치구 경계를 흐리게 → 내부 구조 미리 보여줌
+        return cityData?.features ?? [];
+      }
+      if (selectionLevel === 'CITY') {
+        // 선택한 광역(경기도) 제외, 나머지 광역(서울+인천) 단일 외곽
+        return level1Data?.features.filter((f: any) =>
+          f.properties.code !== currentFocusCode
+        ) ?? [];
+      }
+      if (selectionLevel === 'DISTRICT') {
+        // 같은 광역의 시/군, 현재 선택된 도시(고양시) 제외
+        const provincePrefix = currentFocusCode?.substring(0, 2) ?? '';
+        const cityPrefix = currentFocusCode?.substring(0, 4) ?? '';
+        return cityData?.features.filter((f: any) =>
+          f.properties.code.startsWith(provincePrefix) &&
+          !f.properties.code.startsWith(cityPrefix)
+        ) ?? [];
+      }
+    }
+    if (gameState === 'PLAYING') {
+      // 게임 중: 같은 광역의 시/군 경계 흐리게 (위치 파악용)
+      const provincePrefix = featuresToRender[0]?.properties?.code?.substring(0, 2) ?? '';
+      return provincePrefix
+        ? (cityData?.features.filter((f: any) => f.properties.code.startsWith(provincePrefix)) ?? [])
+        : [];
+    }
+    return [];
+  }, [gameState, selectionLevel, currentFocusCode, cityData, level1Data, featuresToRender]);
+
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
 
@@ -295,7 +328,7 @@ export const Map = () => {
         <BaseMapLayerCanvas
           ref={baseMapLayerRef}
           features={featuresToRender}
-          cityData={cityData}
+          contextBoundaryFeatures={contextBoundaryFeatures}
           projection={projection}
           theme={theme}
           themeColors={colors}
