@@ -121,17 +121,32 @@ export const SelectMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, SelectMa
 
     return (
         <div
+            id="layer-1-2-select-canvas-wrapper"
             ref={containerRef}
+            className="absolute top-0 left-0 w-full h-full pointer-events-none layer-1-select-map"
             style={{
-                position: 'absolute',
-                left: -(width * (CANVAS_SCALE - 1)) / 2,
-                top: -(height * (CANVAS_SCALE - 1)) / 2,
-                pointerEvents: 'none',
+                width: `${width}px`,
+                height: `${height}px`,
+                overflow: 'visible',
+                willChange: 'transform',
+                transition: 'none',
+                zIndex: 1
             }}
         >
-            <canvas ref={canvasRef} />
+            <canvas
+                id="layer-1-2-select-canvas"
+                ref={canvasRef}
+                className="absolute"
+                style={{
+                    // CANVAS_SCALE=2 초과분의 절반만큼 음수 offset → 화면 중앙 정렬
+                    left: `-${(width * (CANVAS_SCALE - 1)) / 2}px`,
+                    top: `-${(height * (CANVAS_SCALE - 1)) / 2}px`,
+                    transition: 'none'
+                }}
+            />
         </div>
     );
 }));
+
 
 SelectMapLayerCanvas.displayName = 'SelectMapLayerCanvas';
