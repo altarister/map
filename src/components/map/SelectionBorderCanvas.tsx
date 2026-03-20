@@ -44,6 +44,8 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
 ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    // 실제 현재 transform을 추적 (useLayoutEffect에서 최신 위치로 재그릴 때 사용)
+    const currentTransformRef = useRef(initialTransform);
 
     // BaseMapLayerCanvas와 동일한 2× 캔버스 전략 (CSS transform 여유분)
     const CANVAS_SCALE = 2.0;
@@ -91,6 +93,7 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
     // ── Imperative handle (D3 zoom에서 직접 호출) ────────────────────────────
     useImperativeHandle(ref, () => ({
         draw: (t) => {
+            currentTransformRef.current = t; // 실제 transform 저장
             if (containerRef.current) {
                 containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
             }
@@ -107,7 +110,9 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
         },
     }), [features, projection, themeColors, width, height]);
 
-    // ── Layout effect: canvas 크기 설정 + 초기 그리기 ────────────────────────
+    // ── Layout effect: canvas 크기 설정 + 재그리기 ────────────────────────────
+    // features 변경(selectionLevel 클릭) 시에도 CSS transform을 반드시 리셋하고
+    // currentTransformRef의 최신 위치로 재그림 → 잔상(이중 오프셋) 방지
     useLayoutEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !width || !height) return;
@@ -118,7 +123,12 @@ export const SelectionBorderCanvas = memo(forwardRef<BaseMapLayerHandle, Selecti
         canvas.style.width = `${width * CANVAS_SCALE}px`;
         canvas.style.height = `${height * CANVAS_SCALE}px`;
 
-        drawCanvas(initialTransform.x, initialTransform.y, initialTransform.k);
+        // CSS transform 잔여분 제거 후 현재 실제 위치로 재그림
+        if (containerRef.current) {
+            containerRef.current.style.transform = `translate(0px, 0px) scale(1)`;
+        }
+        const t = currentTransformRef.current;
+        drawCanvas(t.x, t.y, t.k);
     }, [width, height, features, themeColors, projection]);
 
     return (
