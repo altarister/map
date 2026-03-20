@@ -130,8 +130,8 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         // 높은 줌(k >= 2.5): 동 경계선이 선명하게, 시/군 외곽선은 사라짐
         // → 두 종류의 선이 동시에 진하게 보이지 않아 깔끔한 단일 레이어 느낌
         const LOD_THRESHOLD = 2.5;
-        const dongAlpha = Math.min(1.0, Math.max(0.1, (k - 1.0) / (LOD_THRESHOLD - 1.0)));
-        const cityAlpha = Math.min(1.0, Math.max(0.0, 1.0 - (k - 1.0) / (LOD_THRESHOLD - 1.0)));
+        const dongAlpha = 1 //Math.min(1.0, Math.max(0.1, (k - 1.0) / (LOD_THRESHOLD - 1.0)));
+        const cityAlpha = 1 //Math.min(1.0, Math.max(0.0, 1.0 - (k - 1.0) / (LOD_THRESHOLD - 1.0)));
         // ─────────────────────────────────────────────────────────────────────
 
         // ══════════════════════════════════════════════════════════════════
@@ -156,13 +156,13 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
             if (isAnswered) {
                 // 정답 처리된 구역: orderVolume(주문량)에 따라 에메랄드 계열 색상
                 fillColor = getFillColor(feature, false);
-                strokeColor = getStrokeColor(feature, false);
+                // strokeColor = getStrokeColor(feature, false);
             }
             if (isCorrectFeedback) { /* 정답 피드백 연출 자리 (현재 미사용) */ }
             if (isTargetHint) {
                 // 힌트 활성화 시: 출제 구역을 반투명 노란색으로 표시
                 fillColor = 'rgba(234, 179, 8, 0.4)';
-                strokeColor = '#eab308';
+                // strokeColor = '#eab308';
             }
 
             ctx.beginPath();
@@ -181,11 +181,12 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         //   → 이웃 구역의 fill이 경계선을 덮어씌우는 렌더 버그 방지
         // ══════════════════════════════════════════════════════════════════
         featureStyles.forEach(({ feature, strokeColor, isTargetHint }) => {
+            console.log('isTargetHint', isTargetHint)
             ctx.beginPath();
             canvasPath(feature as any);
-            ctx.lineWidth = isTargetHint ? 3.0 / k : baseStrokeWidth;
+            ctx.lineWidth = 0.3 //isTargetHint ? 3.0 / k : baseStrokeWidth;
             ctx.strokeStyle = strokeColor;              // 순수 hex 색상, 투명도는 globalAlpha로만
-            ctx.globalAlpha = isTargetHint ? 1.0 : dongAlpha; // 힌트는 항상 선명
+            // ctx.globalAlpha = isTargetHint ? 1.0 : dongAlpha; // 힌트는 항상 선명
             ctx.stroke();
         });
         ctx.globalAlpha = 1.0;
@@ -198,20 +199,20 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         //   - LayerMapPanel의 "지역 경계" 토글과 연동됨
         // ══════════════════════════════════════════════════════════════════
         if (showBoundaries && cityData && cityAlpha > 0.01) {
-            const contextStrokeWidth = theme === 'tactical' ? 2.0 / k : 1.5 / k;
-            const contextStrokeColor = theme === 'tactical' ? '#ffffff' : '#64748b'; // 순수 hex, alpha는 globalAlpha로 제어
+            // const contextStrokeWidth = theme === 'tactical' ? 1.5 / k : 1.2 / k;
+            const contextStrokeColor = theme === 'tactical' ? '#707070ff' : '#879cb9ff'; // 순수 hex, alpha는 globalAlpha로 제어
 
             cityData.features.forEach((feature: any) => {
                 // 현재 게임 구역과 코드 prefix가 일치하는지 확인
-                const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
+                // const isActiveSector = features.some((f: any) => f.properties.code.startsWith(feature.properties.code));
 
                 ctx.beginPath();
                 canvasPath(feature as any);
-                ctx.lineWidth = contextStrokeWidth;
+                ctx.lineWidth = 1 //contextStrokeWidth;
                 ctx.strokeStyle = contextStrokeColor;
-                ctx.globalAlpha = isActiveSector
-                    ? cityAlpha             // 활성 구역: LOD 알파 그대로
-                    : cityAlpha * 0.1;     // 외부 구역: LOD의 25%만 (더 희미하게)
+                // ctx.globalAlpha = isActiveSector
+                //     ? cityAlpha             // 활성 구역: LOD 알파 그대로
+                //     : cityAlpha * 0.1;     // 외부 구역: LOD의 25%만 (더 희미하게)
                 ctx.stroke();
                 ctx.globalAlpha = 1.0; // 복원
             });
