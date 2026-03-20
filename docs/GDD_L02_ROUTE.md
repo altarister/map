@@ -43,7 +43,21 @@
 3. **현실 고증 (Realism 200%):**
    - 0.1초 만에 동네 이름만 보고 콜을 스크리닝해야 하는 현업 화물/배달 종사자들의 실제 업무 감각(현지화 지식)을 가장 완벽하게 훈련할 수 있는 시스템입니다.
 
-## 4. 추가/확장 검토 사항 (Future Elements)
+## 4. 구현 아키텍처 및 UI 시안 (Implementation Architecture)
+타야(Stitch AI)가 생성한 다크모드 기반의 우측 패널 UI 시안을 바탕으로 다음과 같이 아키텍처를 설계합니다.
+
+### 타야(Stitch) UI 시안: 실전 배차 콜보드
+![Call Dispatch UI](https://lh3.googleusercontent.com/aida/ADBb0ugWD93dQI0g7EX6X-UqEpWQ-6_gtuBVhEa04lLIWV747XJ2njJ7U5rNpT2BU7gdPEfCbzBg92pbTBz_lI3notZWmsXCqn5tK7srCif0Drg_oOFKW3mst8hEtpPLfX71DChyqEYKcbq-n1SQr5lH4LmnHFq_mwnp1d-DEsgE1ua2XUe6Y4S8ZmtRZrwBl6bjq4FisUyZY2ysTeCDuBa0PW1-4DFrw_GHfh94TJnfKHyCcAGZqG_bKKyoij4)
+
+### 구조도 (Separation of Concerns)
+1. **독립된 오버레이 컨테이너 (`Stage2DispatchBoard.tsx`):**
+   - 기존 컴포넌트를 `Stage1ActionBar`로 분리하고, 2단계 전용으로 화면 우측에 350px 폭의 스크롤 패널 신설.
+2. **콜 카드 컴포넌트 (`CallCard.tsx`):**
+   - 상/하차지 텍스트, 거리/운임 정보 및 [수락], [넘기기] 버튼 레이아웃 분리.
+3. **핵심 게임 로직 격리 (`Stage2_Route/`):**
+   - 거리 계산, 콜 생성, 정답 검증 로직은 UI 밖의 Strategy 패턴 내부(`generator.ts`, `validator.ts`)에 구현하여 UI를 가볍게 유지.
+
+## 5. 추가/확장 검토 사항 (Future Elements)
 - **타임어택(Timer) 요소:** 오더 카드가 생성된 후 일정 시간이 지나면 다른 기사가 채갔다는 설정으로 카드가 사라지는 쫄깃한 시간 압박 요소.
 - **복합 노선(경유지):** 숙달도가 오르면 상차지 1곳에서 하차지 2곳(경유)을 효율적으로 잇는 콜을 배차하여 공간 지각력을 더 고도화.
 - **오답 페널티:** 잘못된 방향의 콜을 수락했을 때 발생하는 유류비(운임) 차감 또는 엉뚱한 곳으로 강제 이동되는 페널티.
