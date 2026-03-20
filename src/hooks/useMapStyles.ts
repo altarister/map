@@ -7,9 +7,10 @@ interface UseMapStylesProps {
   lastFeedback: AnswerFeedback | null;
   answeredRegions: Set<string>;
   isBasicMode?: boolean;
+  defaultHoverFill?: string; // 테마별 기본 호버 색상 (없을 경우 반투명 흰색 fallback)
 }
 
-export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = false }: UseMapStylesProps) => {
+export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = false, defaultHoverFill }: UseMapStylesProps) => {
   const getFillColor = useCallback((feature: any, isHovered: boolean = false) => {
     const code = typeof feature === 'string' ? feature : feature?.properties?.code;
     const orderVolume = typeof feature === 'object' ? feature?.properties?.intel?.orderVolume : undefined;
@@ -42,7 +43,7 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
       if (orderVolume === '중') return 'rgba(110, 231, 183, 0.45)';
       if (orderVolume === '중하') return 'rgba(167, 243, 208, 0.3)';
       if (orderVolume === '하') return 'rgba(209, 250, 229, 0.15)'; // 거의 투명한
-      return 'rgba(255, 255, 255, 0.2)'; // 기본 균일 호버 색상 (데이터 없을 때)
+      return defaultHoverFill ?? 'rgba(255, 255, 255, 0.2)'; // 테마 hoverDefaultFill 또는 fallback
     }
 
     // Hover가 아닐 때 (보통 불리어지지 않지만 방어 코드)

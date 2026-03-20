@@ -122,6 +122,7 @@ export const Map = () => {
     lastFeedback,
     answeredRegions,
     isBasicMode,
+    defaultHoverFill: colors.hoverDefaultFill, // 테마별 호버 색상 (kids: #fde68a, tactical: #333333)
   });
 
   const isSingleRegion = filteredCityFeatures.length === 1;

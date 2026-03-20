@@ -21,17 +21,17 @@ export const MAP_THEME_COLORS = {
         hoverDefaultFill: '#333333',
     },
     kids: {
-        fill: '#ffffff',
-        stroke: '#94a3b8',
-        answeredFill: 'rgba(59, 130, 246, 0.4)',
-        answeredStroke: '#94a3b8',
-        correctFill: 'rgba(59, 130, 246, 0.6)',
-        correctStroke: '#94a3b8',
-        wrongFill: 'rgba(239, 68, 68, 0.6)',
-        wrongStroke: '#94a3b8',
-        hoverFill: 'rgba(250, 204, 21, 0.4)',
-        hoverStroke: '#f59e0b',
-        hoverDefaultFill: '#fef3c7',
+        fill: '#f8fafc',                         // slate-50 (순흰색보다 살짝 따뜻)
+        stroke: '#475569',                        // slate-600 (↑ 기존 #94a3b8 = slate-400 보다 훨씬 진함)
+        answeredFill: 'rgba(59, 130, 246, 0.5)', // blue (↑ 0.4→0.5)
+        answeredStroke: '#2563eb',               // blue-600 (↑ 기존 slate-400)
+        correctFill: 'rgba(59, 130, 246, 0.65)',  // blue (↑ 0.6→0.65)
+        correctStroke: '#1d4ed8',                // blue-700
+        wrongFill: 'rgba(239, 68, 68, 0.65)',    // red (↑ 0.6→0.65)
+        wrongStroke: '#b91c1c',                  // red-700
+        hoverFill: 'rgba(250, 204, 21, 0.65)',   // amber (↑ 0.4→0.65, 흰 배경에 선명하게)
+        hoverStroke: '#d97706',                  // amber-600 (↑ 기존 #f59e0b 보다 진함)
+        hoverDefaultFill: '#fde68a',             // amber-200 (↑ 기존 #fef3c7 = amber-50 거의 흰색)
     },
 } as const;
 
