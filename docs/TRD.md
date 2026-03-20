@@ -90,20 +90,21 @@ src/
     └── geo.ts
 ```
 
-
-
 ### 2.2 Custom Hooks 아키텍처 (`src/hooks/`)
 
 프로젝트의 비즈니스 로직과 D3 렌더링 최적화는 11개의 훅 단위로 분리되어 있으며, 역할과 저장소(State) 위치에 따라 다음과 같이 3개 그룹으로 나뉩니다.
 
 **1. 전역 시스템 훅 (Context 연동)**
+
 - **`useGameLogic.ts`**: 게임 점수, 단계, 문제 출제 및 정답 검증 로직. 데이터는 `GameContext`에 저장.
 - **`useGeoData.ts`**: 대용량 GeoJSON 지도 데이터를 브라우저에 로드 및 인메모리 적재. 데이터는 `GeoDataContext`에 저장.
 
 **2. 스토리지 훅 (영구 저장소 연동)**
+
 - **`useLocalStorage.ts`**: 환경설정 및 최고 점수 등 휘발되지 않아야 할 데이터를 브라우저 `localStorage`에 영구 기록 및 불러오기.
 
 **3. 지도(Map) 마이크로 컨트롤 훅 (로컬 상태 & D3 제어 연동)**
+
 - **`useMapZoom.ts`**: D3 라이브러리를 통해 마우스 휠 줌/드래그 이벤트를 관장하고 `transform(x, y, k)` 상태 유지.
 - **`useMapAutoZoom.ts`**: 정답/오답 타겟 좌표로 지도를 부드럽게 자동 스크롤하는 애니메이션 로직.
 - **`useMapCrossfadeTransition.ts`**: 줌 인/아웃 시 LOD(레벨 오브 디테일)가 바뀔 때 화면 깜빡임을 방지하는 CSS 투명도 조절 로직.
@@ -150,11 +151,13 @@ interface StageStrategy {
 게임 화면은 역할에 따라 다음과 같이 구분됩니다.
 
 #### 상단 고정 헤더 (`TopBar.tsx`)
+
 - 앱 제목 및 버전
 - 게임 중 중앙에 **최고기록 / 현재점수 / 레벨** 표시 (`gameState === 'PLAYING'` 시에만)
 - 우측: 게임 시작/중단, 설정 버튼
 
 #### 좌측 HUD 패널 (`ActionBar.tsx`)
+
 - `gameState === 'PLAYING'` 시에만 렌더링됨
 - 단일 `glass-panel` 안에 문제 + 인텔 정보를 통합 표시
 
@@ -175,6 +178,7 @@ interface StageStrategy {
 - 인텔 데이터가 없으면 해당 섹션이 자동으로 숨겨짐
 
 #### 우측 광고 슬롯
+
 - 항상 고정 노출되는 `300×250` Google AdSense 영역 (`min-h-[250px]`)
 - 현재는 플레이스홀더; `<ins class="adsbygoogle">` 코드 삽입으로 활성화
 
@@ -438,8 +442,8 @@ interface RawRegionProperties {
 
 - **코드 구조:**
   - `41` (시도 - 경기도)
-  - `610` (시군구 - 광주시) 
-  - `250` (읍면동 - 초월읍) 
+  - `610` (시군구 - 광주시)
+  - `250` (읍면동 - 초월읍)
   - `25` (리 - 산이리)
 - **그룹핑 기준:** `feature.properties.code.substring(0, 8)` 이 같은 것들은 하나의 `EupMyeon` 그룹으로 관리합니다.
 

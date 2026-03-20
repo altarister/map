@@ -195,8 +195,9 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         //   - showBoundaries OFF이면 건너뜀
         // ══════════════════════════════════════════════════════════════════
         if (showBoundaries && contextBoundaryFeatures.length > 0) {
-            const contextStrokeColor = theme === 'tactical' ? '#707070' : '#879cb9';
-            const contextAlpha = 0.35; // 항상 희미하게
+            // 테마의 stroke 색상을 그대로 사용 (tactical=#444444, kids=#94a3b8)
+            const contextStrokeColor = themeColors.stroke;
+            const contextAlpha = 0.4; // 희미하게 (컨텍스트 역할)
 
             ctx.globalAlpha = contextAlpha;
             contextBoundaryFeatures.forEach((feature: any) => {
