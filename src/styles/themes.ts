@@ -22,7 +22,7 @@ export const MAP_THEME_COLORS = {
     },
     kids: {
         fill: '#f8fafc',                         // slate-50 (순흰색보다 살짝 따뜻)
-        stroke: '#475569',                        // slate-600 (↑ 기존 #94a3b8 = slate-400 보다 훨씬 진함)
+        stroke: '#7a91b3ff',                        // slate-600 (↑ 기존 #94a3b8 = slate-400 보다 훨씬 진함)
         answeredFill: 'rgba(59, 130, 246, 0.5)', // blue (↑ 0.4→0.5)
         answeredStroke: '#2563eb',               // blue-600 (↑ 기존 slate-400)
         correctFill: 'rgba(59, 130, 246, 0.65)',  // blue (↑ 0.6→0.65)

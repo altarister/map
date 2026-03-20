@@ -2,7 +2,7 @@ import type { GameQuestion, UserInput } from '../../game/core/types';
 import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
 import { useMemo } from 'react';
-import { AdSlot } from '../ui/AdSlot';
+
 
 const getQuestionText = (question: GameQuestion): string => {
     switch (question.type) {
@@ -202,11 +202,6 @@ export const ActionBar = () => {
                 )}
             </div>
 
-        </div>
-
-        {/* 우측 광고 슬롯 (Google AdSense 삽입 예정) */}
-        <div className="absolute top-20 right-4 z-[35]">
-            <AdSlot width={300} height={250} />
         </div>
         </>
     );

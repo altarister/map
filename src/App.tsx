@@ -9,6 +9,7 @@ import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 
 import { ActionBar } from './components/game/ActionBar';
+import { AdSlot } from './components/ui/AdSlot';
 
 
 import { useState } from 'react';
@@ -41,6 +42,11 @@ function GameContent() {
 
           {/* ActionBar (PLAYING 상태에서 Accordion 애니메이션) */}
           <ActionBar />
+
+          {/* 우측 전역 광고 슬롯 (Google AdSense 삽입 예정) */}
+          <div className="absolute top-20 right-4 z-[35]">
+              <AdSlot width={300} height={250} />
+          </div>
 
 
 
