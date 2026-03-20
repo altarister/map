@@ -260,10 +260,6 @@ export const Map = () => {
   }, [selectionLevel, currentFocusCode, gameState, width, height, zoomTo, pathGenerator, level1Data, cityData]);
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
-  const handleRegionContextMenu = useCallback((_event: React.MouseEvent, _region: any) => {
-    // 우클릭 인텔 팝업은 ActionBar의 인텔 카드로 대체됨
-  }, []);
-
   const handleRegionClick = useCallback((code: string) => {
     if (gameState === 'REGION_SELECT') {
       const feature = featuresToRender.find((f: any) => f.properties.code === code);
@@ -420,10 +416,7 @@ export const Map = () => {
         style={{ zIndex: 20 }}
       >
         {/* InteractionLayer: gRef 내부 (SVG transform 적용됨) */}
-        <g id="layer-3-interaction-group" ref={gRef} 
-        // style={{ willChange: 'transform' }} 
-        // transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}
-        >
+        <g id="layer-3-interaction-group" ref={gRef}>
           {/* Layer 3: Interaction Layer (투명한 폴리곤들로 사용자 클릭/호버 판정) */}
           <InteractionLayer
             features={featuresToRender}
@@ -432,7 +425,6 @@ export const Map = () => {
             showTownGeometry={showTownGeometry}
             onRegionHover={setHoveredRegion}
             answeredRegions={answeredRegions}
-            onRegionContextMenu={handleRegionContextMenu}
             onRegionClick={handleRegionClick}
           />
 
@@ -441,12 +433,12 @@ export const Map = () => {
             <g style={{ pointerEvents: 'none' }}>
               {highlightRegions.map((region: any) => (
                 <path
-                  // key={`highlight-${region.properties.code}`}
+                  key={`highlight-${region.properties.code}`}
                   d={pathGenerator(region) || ''}
-                  // fill="none"
-                  // stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
-                  // strokeWidth={2.8 / zoomTransform.k}
-                  // strokeOpacity={0.9}
+                  fill="none"
+                  stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
+                  strokeWidth={2.8 / zoomTransform.k}
+                  strokeOpacity={0.9}
                 />
               ))}
             </g>

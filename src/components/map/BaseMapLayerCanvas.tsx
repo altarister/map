@@ -175,13 +175,11 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         //   - 힌트 구역: 3px 두꺼운 노란 테두리로 강조 (항상 100% 불투명)
         //   → 이웃 구역의 fill이 경계선을 덮어씌우는 렌더 버그 방지
         // ══════════════════════════════════════════════════════════════════
-        featureStyles.forEach(({ feature, strokeColor, isTargetHint }) => {
-            console.log('isTargetHint', isTargetHint)
+        featureStyles.forEach(({ feature, strokeColor }) => {
             ctx.beginPath();
             canvasPath(feature as any);
-            ctx.lineWidth = 0.3 //isTargetHint ? 3.0 / k : baseStrokeWidth;
-            ctx.strokeStyle = strokeColor;              // 순수 hex 색상, 투명도는 globalAlpha로만
-            // ctx.globalAlpha = isTargetHint ? 1.0 : dongAlpha; // 힌트는 항상 선명
+            ctx.lineWidth = 0.3;
+            ctx.strokeStyle = strokeColor;
             ctx.stroke();
         });
         ctx.globalAlpha = 1.0;

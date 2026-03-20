@@ -85,7 +85,7 @@ export const useGeoData = () => {
         });
 
         // ==========================================================
-        // [원인 1, 2 해결] Level 3 (읍/면/법정동) 기반으로 법정동 매핑 엔진(Map) 재구축
+        // Level 3 (읍/면/법정동) 기반으로 법정동 매핑 엔진(Map) 구축
         // ==========================================================
         const filteredLevel3 = level3.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
@@ -120,7 +120,7 @@ export const useGeoData = () => {
         });
 
         // ==========================================================
-        // [원인 3 파트 1 해결] Level 2 RAW (원본 시/군/구) 처리 및 법정동 Code 오버라이트, 부모 이름 수집
+        // Level 2 RAW (원본 시/군/구) 처리 및 법정동 Code 정규화, 부모 이름 수집
         // ==========================================================
         const filteredCityRaw = level2Raw.features.filter((f: RegionFeature) => {
           const code = f.properties.code || '';
@@ -132,7 +132,7 @@ export const useGeoData = () => {
         const parentGroups = new Map<string, { name: string, geometries: any[], children: RegionFeature[] }>();
 
         filteredCityRaw.forEach((f: RegionFeature) => {
-          // 이름 정규화 및 법정동 코드 오버라이트 (원인 1)
+          // 이름 정규화 및 법정동 코드 오버라이트
           const name = f.properties.name ? f.properties.name.replace(/\s+/g, '') : undefined;
           if (name && sigNameToLegalCode.has(name)) {
             f.properties.code = sigNameToLegalCode.get(name)!;
@@ -144,7 +144,7 @@ export const useGeoData = () => {
             }
           }
 
-          // 부모 맵(parentMap) 수집 (원인 3)
+          // 부모 맵(parentMap) 수집
           if (f.properties.code && f.properties.name) {
             parentMap.set(f.properties.code, f.properties.name);
             
