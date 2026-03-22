@@ -29,14 +29,14 @@ export const useGameLogic = (
   difficulty: Difficulty,
   currentStage: number, // 현재 게임 단계
   onGameEnd: (score: GameScore) => void,
-  targetDestination?: {code: string, name: string} | null // 추가된 2단계용 목적지 프로퍼티
+  targetDestination?: { code: string, name: string } | null // 추가된 2단계용 목적지 프로퍼티
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('REGION_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [lastFeedback, setLastFeedback] = useState<AnswerFeedback | null>(null);
   const [answeredRegions, setAnsweredRegions] = useState<Set<string>>(new Set());
-  
+
   // ✅ 1DAL Trainer Spaced Repetition Queue 도입
   const [questionQueue, setQuestionQueue] = useState<RegionFeature[]>([]);
   const [totalQuestions, setTotalQuestions] = useState<number>(0); // 전체 문제 수 상태 추가
@@ -74,7 +74,7 @@ export const useGameLogic = (
   }, [onGameEnd]);
 
   // 다음 문제 출제
-  const setNextQuestion = useCallback((currentQueue: RegionFeature[]) => {
+  const setNextQuestion = useCallback((currentQueue: RegionFeature[], mapDataOverride?: RegionFeature[]) => {
     if (currentQueue.length === 0) {
       endGame();
       return;
@@ -82,21 +82,20 @@ export const useGameLogic = (
 
     const strategy = getStageStrategy(currentStage);
     const question = strategy.generateQuestion({
-      mapData: regions, // 2단계를 위해 전체 regions를 제공
-      targetRegion: currentQueue[0], // 1단계를 위해 타겟 리전을 직접 제공
+      mapData: mapDataOverride || regions, // Stage2: 실제 fullMapData를 직접 사용
+      targetRegion: currentQueue[0],
       difficulty,
       targetDestCode: targetDestination?.code
     });
 
     setCurrentQuestion(question);
-    setLevelState(null); // 문제 바뀌면 레벨 상태 초기화
-    setHintActive(false); // ✅ 새 문제가 출제되면 힌트 비활성화
+    setLevelState(null);
+    setHintActive(false);
 
-    // Unlock processing for next question
     setTimeout(() => {
       isProcessingRef.current = false;
-    }, 100); // Slight delay to ensure UI updates
-  }, [currentStage, difficulty, endGame]);
+    }, 100);
+  }, [currentStage, difficulty, endGame, targetDestination]);
 
   // 게임 시작
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
@@ -123,15 +122,15 @@ export const useGameLogic = (
         seen.add(f.properties.code);
       }
     }
-    
+
     // 배열 랜덤 셔플
     const shuffledQueue = uniqueFeatures.sort(() => Math.random() - 0.5);
     setTotalQuestions(shuffledQueue.length);
     setQuestionQueue(shuffledQueue);
 
-    // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달
-    setNextQuestion(shuffledQueue);
-  }, [regions, setNextQuestion]);
+    // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달 (mapData도 함께 전달)
+    setNextQuestion(shuffledQueue, targetRegions);
+  }, [regions, setNextQuestion, targetDestination]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
   useEffect(() => {
@@ -208,7 +207,7 @@ export const useGameLogic = (
             return newSet;
           });
         }
-        
+
         // 곧바로 다음 문제로 (큐의 다음 타자)
         setNextQuestion(nextQueue);
 
@@ -224,7 +223,7 @@ export const useGameLogic = (
           incorrect: prev.incorrect + 1,
           missedRegions: [...prev.missedRegions, missedName]
         }));
-        
+
         // [Spaced Repetition] 큐에서 팝(Pop) 후 3칸 뒤(또는 맨 뒤)로 재삽입(Splice)
         const nextQueue = [...questionQueue];
         if (nextQueue.length > 1) { // 2개 이상일 때만 뒤로 미루기 무빙 가능
@@ -234,7 +233,7 @@ export const useGameLogic = (
             nextQueue.splice(insertIndex, 0, wrongItem);
           }
           setQuestionQueue(nextQueue);
-          
+
           // 오답 직후에도 곧바로 다음 문제 출제 (큐가 변동되었으므로)
           // 기존 코드처럼 머무르지 않고, 벌칙 대상(오답 문제)을 큐 뒤로 버리고 다음 걸로 넘어감
           setNextQuestion(nextQueue);
@@ -263,8 +262,8 @@ export const useGameLogic = (
     const now = Date.now();
     const missedName =
       currentQuestion.type === 'LOCATE_SINGLE' ? currentQuestion.target.name :
-      currentQuestion.type === 'LOCATE_PAIR' ? `${currentQuestion.start.name} → ${currentQuestion.end.name}` :
-      '알 수 없는 지역';
+        currentQuestion.type === 'LOCATE_PAIR' ? `${currentQuestion.start.name} → ${currentQuestion.end.name}` :
+          '알 수 없는 지역';
 
     setLastFeedback({ isCorrect: false, regionCode: '', correctCode: '', regionName: '스킵', timestamp: now });
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);

@@ -18,7 +18,7 @@ interface GameContextType {
   score: GameScore;
   startTime: number | null;
   endTime: number | null;
-  startGame: (options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => void;
+  startGame: (options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean, targetDestCode?: string }) => void;
   checkAnswer: (input: UserInput) => void;
   skipQuestion: () => void;
   resetGame: () => void;
@@ -127,13 +127,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [gameState, fullMapData, filteredMapData, setFilteredMapData, setSelectedChapter]);
 
   // Start Game with Chapter Code or Options
-  const startGame = useCallback((options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean }) => {
+  const startGame = useCallback((options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean, targetDestCode?: string }) => {
     if (gameState === 'PLAYING') return;
     if (!fullMapData) return;
 
-    setLastGameOptions(options); // 마지막 게임 옵션 저장 (다시 하기 용)
+    setLastGameOptions(options);
     setIsBasicMode(options?.isBasicMode ?? false);
     setHighlightRegions(options?.highlightRegions ?? []);
+
+    // 2단계: targetDestCode를 즉시 반영 (async setState race condition 방지)
+    if (options?.targetDestCode) {
+      setTargetDestination({ code: options.targetDestCode, name: '' });
+    }
 
     const chapterCode = options?.chapterCode;
     const overrideRegions = options?.overrideRegions;

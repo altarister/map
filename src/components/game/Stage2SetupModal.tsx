@@ -1,30 +1,19 @@
 import { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
-import { useGeoContext } from '../../contexts/GeoDataContext';
 
 export const Stage2SetupModal = () => {
-  const { setTargetDestination, startGame } = useGame();
-  const { filteredMapData } = useGeoContext();
+  const { startGame } = useGame();
   const [selectedDestCode, setSelectedDestCode] = useState<string>('41610'); // 초기 선택: 경기 광주
 
   const handleStart = () => {
-    // 1. 목표 시군구 선택
-    const destFeature = filteredMapData?.features.find(f => f.properties.code === selectedDestCode);
-    if (!destFeature) return;
-
-    setTargetDestination({
-      code: destFeature.properties.code,
-      name: destFeature.properties.name
-    });
-
-    // 2. Play 모드로 진입 및 콜 생성 트리거
-    startGame();
+    // selectedDestCode를 바로 전달 (filteredMapData lookup 불필요)
+    startGame({ targetDestCode: selectedDestCode });
   };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="bg-[#081425] w-full max-w-sm rounded-[16px] overflow-hidden border border-[#2a3548] shadow-2xl animate-fade-in-up">
-        
+
         {/* Header */}
         <div className="p-6 bg-[#111c2d] border-b border-[#2a3548] flex flex-col items-center">
           <div className="w-12 h-12 rounded-full bg-[#00e676]/20 flex items-center justify-center mb-3">
@@ -32,7 +21,7 @@ export const Stage2SetupModal = () => {
           </div>
           <h2 className="text-xl font-bold text-white mb-1">희망 노선 설정</h2>
           <p className="text-sm text-[#bacbb9] text-center px-4 leading-relaxed">
-            오늘 퇴근 방향을 설정하세요.<br/>내 노선과 일치하는 화물 콜만 배차받습니다.
+            오늘 퇴근 방향을 설정하세요.<br />내 노선과 일치하는 화물 콜만 배차받습니다.
           </p>
         </div>
 

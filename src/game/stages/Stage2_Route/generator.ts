@@ -48,7 +48,7 @@ export const generateCallBatch = (
 
   // 4. 정답 콜 1~2개 무조건 포함 (비율 조정 가능)
   const answerCount = matchGroup.length > 0 ? (Math.random() > 0.5 ? 2 : 1) : 0;
-  
+
   if (matchGroup.length > 0) {
     const selectedMatches = shuffle([...matchGroup]).slice(0, answerCount);
     selectedMatches.forEach((f: RegionFeature) => {
@@ -66,10 +66,19 @@ export const generateCallBatch = (
   }
 
   // 6. 생성된 콜 리스트 순서 셔플
+  const finalCalls = shuffle(calls);
+  console.log('[Stage2 Generator] mapData size:', mapData.length);
+  console.log('[Stage2 Generator] startFeature:', startFeature?.properties.code, startFeature?.properties.name);
+  console.log('[Stage2 Generator] startCentroid:', startCentroid);
+  console.log('[Stage2 Generator] nearbyFeatures count:', nearbyFeatures.length);
+  console.log('[Stage2 Generator] matchGroup count:', matchGroup.length);
+  console.log('[Stage2 Generator] targetDestCode:', targetDestCode);
+  console.log('[Stage2 Generator] final calls:', finalCalls.length);
+
   return {
     id: `call_batch_${Date.now()}`,
     type: 'CALL_FILTER',
-    calls: shuffle(calls)
+    calls: finalCalls
   };
 };
 
@@ -85,7 +94,7 @@ function createCallItem(startFeature: RegionFeature, destFeature: RegionFeature,
   const startCentroid = getCentroid(startFeature);
   const destCentroid = getCentroid(destFeature);
   const dist = calculateDistanceKm(startCentroid, destCentroid);
-  
+
   // 운임비 가설 계산 (기본 1만원 + km당 1500원 + 약간의 랜덤 변동)
   const baseFare = 10000 + (dist * 1500);
   const randomVariance = (Math.random() * 0.2 - 0.1); // -10% ~ +10%
