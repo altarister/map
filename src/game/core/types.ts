@@ -57,6 +57,7 @@ export interface CallItem {
     name: string;
     centroid: [number, number];
   };
+  pickupDistanceKm?: number;
   targetRegion: {
     code: string;
     name: string;
@@ -65,6 +66,7 @@ export interface CallItem {
   distanceKm: number;
   fare: number;
   isMatchingRoute: boolean; // 유저 목표와 일치하는가?
+  violation?: 'BAD_FARE' | 'FAR_PICKUP' | 'WRONG_DEST';
 }
 
 export interface CallFilterQuestion extends BaseQuestion {
@@ -95,6 +97,9 @@ export interface StageContext {
   difficulty: Difficulty;
   targetRegion?: RegionFeature;
   targetDestCode?: string;
+  currentLocCode?: string;
+  maxPickupDistanceKm?: number;
+  minFare?: number;
 }
 
 export interface StageUnlockCondition {

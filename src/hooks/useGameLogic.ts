@@ -29,7 +29,10 @@ export const useGameLogic = (
   difficulty: Difficulty,
   currentStage: number, // 현재 게임 단계
   onGameEnd: (score: GameScore) => void,
-  targetDestination?: { code: string, name: string } | null // 추가된 2단계용 목적지 프로퍼티
+  targetDestination?: { code: string, name: string } | null, // 추가된 2단계용 목적지 프로퍼티
+  currentLocation?: { code: string, name: string } | null,
+  maxPickupDistanceKm?: number,
+  minFare?: number
 ): UseGameLogicReturn => {
   const [gameState, setGameState] = useState<GameState>('REGION_SELECT');
   const [score, setScore] = useState<GameScore>({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
@@ -85,7 +88,10 @@ export const useGameLogic = (
       mapData: mapDataOverride || regions, // Stage2: 실제 fullMapData를 직접 사용
       targetRegion: currentQueue[0],
       difficulty,
-      targetDestCode: targetDestination?.code
+      targetDestCode: targetDestination?.code,
+      currentLocCode: currentLocation?.code,
+      maxPickupDistanceKm,
+      minFare
     });
 
     setCurrentQuestion(question);
@@ -95,7 +101,7 @@ export const useGameLogic = (
     setTimeout(() => {
       isProcessingRef.current = false;
     }, 100);
-  }, [currentStage, difficulty, endGame, targetDestination]);
+  }, [currentStage, difficulty, endGame, targetDestination, currentLocation, maxPickupDistanceKm, minFare]);
 
   // 게임 시작
   const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
@@ -130,13 +136,12 @@ export const useGameLogic = (
 
     // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달 (mapData도 함께 전달)
     setNextQuestion(shuffledQueue, targetRegions);
-  }, [regions, setNextQuestion, targetDestination]);
+  }, [regions, setNextQuestion, targetDestination, currentLocation, maxPickupDistanceKm, minFare]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
   useEffect(() => {
     // 1. Initialization Phase
 
-    setGameState('INITIAL');
     setCurrentQuestion(null);
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setTotalQuestions(0);

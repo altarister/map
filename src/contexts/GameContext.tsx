@@ -18,7 +18,18 @@ interface GameContextType {
   score: GameScore;
   startTime: number | null;
   endTime: number | null;
-  startGame: (options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean, targetDestCode?: string }) => void;
+  startGame: (options?: { 
+    chapterCode?: string; 
+    overrideRegions?: any[]; 
+    highlightRegions?: any[]; 
+    isBasicMode?: boolean; 
+    targetDestCode?: string; 
+    targetDestName?: string;
+    currentLocCode?: string;
+    currentLocName?: string;
+    maxPickupDistanceKm?: number;
+    minFare?: number;
+  }) => void;
   checkAnswer: (input: UserInput) => void;
   skipQuestion: () => void;
   resetGame: () => void;
@@ -38,6 +49,12 @@ interface GameContextType {
   setCurrentFocusCode: (code: string | null) => void;
   targetDestination: { code: string; name: string } | null;
   setTargetDestination: (dest: { code: string; name: string } | null) => void;
+  currentLocation: { code: string; name: string } | null;
+  setCurrentLocation: (loc: { code: string; name: string } | null) => void;
+  maxPickupDistanceKm: number;
+  setMaxPickupDistanceKm: (dist: number) => void;
+  minFare: number;
+  setMinFare: (fare: number) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -62,7 +79,10 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [selectionLevel, setSelectionLevel] = React.useState<SelectionLevel>('PROVINCE');
   const [currentFocusCode, setCurrentFocusCode] = React.useState<string | null>(null);
   const [targetDestination, setTargetDestination] = React.useState<{ code: string; name: string } | null>(null);
-  const [lastGameOptions, setLastGameOptions] = React.useState<{ chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean } | undefined>(undefined);
+  const [currentLocation, setCurrentLocation] = React.useState<{ code: string; name: string } | null>(null);
+  const [maxPickupDistanceKm, setMaxPickupDistanceKm] = React.useState<number>(10);
+  const [minFare, setMinFare] = React.useState<number>(30000);
+  const [lastGameOptions, setLastGameOptions] = React.useState<any>(undefined);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -111,7 +131,10 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     difficulty,
     currentStage,
     handleGameEnd,
-    targetDestination
+    targetDestination,
+    currentLocation,
+    maxPickupDistanceKm,
+    minFare
   );
 
   // Reset Map Data when entering Level Select or Mode Select
@@ -127,7 +150,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [gameState, fullMapData, filteredMapData, setFilteredMapData, setSelectedChapter]);
 
   // Start Game with Chapter Code or Options
-  const startGame = useCallback((options?: { chapterCode?: string, overrideRegions?: any[], highlightRegions?: any[], isBasicMode?: boolean, targetDestCode?: string }) => {
+  const startGame = useCallback((options?: { 
+    chapterCode?: string; 
+    overrideRegions?: any[]; 
+    highlightRegions?: any[]; 
+    isBasicMode?: boolean; 
+    targetDestCode?: string; 
+    targetDestName?: string;
+    currentLocCode?: string;
+    currentLocName?: string;
+    maxPickupDistanceKm?: number;
+    minFare?: number;
+  }) => {
     if (gameState === 'PLAYING') return;
     if (!fullMapData) return;
 
@@ -135,9 +169,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsBasicMode(options?.isBasicMode ?? false);
     setHighlightRegions(options?.highlightRegions ?? []);
 
-    // 2단계: targetDestCode를 즉시 반영 (async setState race condition 방지)
+    // 2단계: 필터 세팅 즉시 반영 (async setState race condition 방지)
     if (options?.targetDestCode) {
-      setTargetDestination({ code: options.targetDestCode, name: '' });
+      setTargetDestination({ code: options.targetDestCode, name: options.targetDestName || '' });
+    }
+    if (options?.currentLocCode) {
+      setCurrentLocation({ code: options.currentLocCode, name: options.currentLocName || '' });
+    }
+    if (options?.maxPickupDistanceKm !== undefined) {
+      setMaxPickupDistanceKm(options.maxPickupDistanceKm);
+    }
+    if (options?.minFare !== undefined) {
+      setMinFare(options.minFare);
     }
 
     const chapterCode = options?.chapterCode;
@@ -182,6 +225,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSelectionLevel('PROVINCE');
     setCurrentFocusCode(null);
     setTargetDestination(null);
+    setCurrentLocation(null);
   }, [resetGame]);
 
   const value = useMemo(() => ({
@@ -211,11 +255,17 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentFocusCode,
     setCurrentFocusCode,
     targetDestination,
-    setTargetDestination
+    setTargetDestination,
+    currentLocation,
+    setCurrentLocation,
+    maxPickupDistanceKm,
+    setMaxPickupDistanceKm,
+    minFare,
+    setMinFare
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination
+    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation, maxPickupDistanceKm, minFare
   ]);
 
   return (

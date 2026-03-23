@@ -27,4 +27,5 @@ export interface AnswerFeedback {
   correctCode: string;       // 정답 지역 코드
   isCorrect: boolean;        // 정답 여부
   timestamp?: number;        // 발생 시각 (자동 해제용)
+  message?: string;          // 예외 상황(함정 콜)에 대한 상세 피드백 메시지
 }

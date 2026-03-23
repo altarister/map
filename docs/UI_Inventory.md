@@ -33,7 +33,9 @@
 | **Game** | **GameModeSelectScreen** | `game/GameModeSelectScreen` | Screen | `z-50` | 게임 코스 선택 화면 | `gameState === 'GAME_MODE_SELECT'` |
 | **Game** | **GameOptionSelectScreen** | `game/GameOptionSelectScreen` | Screen | `z-50` | 세부 게임 옵션 선택 화면 | `gameState === 'SUBREGION_SELECT'` |
 | **Game** | **RegionModeSelectPopup** | `game/RegionModeSelectPopup` | Popup | `z-50` | 시/군 클릭 후 구 선택 팝업 | 시/군 클릭 시 (Conditional) |
-| **Game** | **ActionBar** | `game/ActionBar` | Modeless | `z-30` | 미션 지령 HUD (우측 패널) | `gameState === 'PLAYING'` |
+| **Game** | **Stage1ActionBar** | `game/Stage1ActionBar` | Modeless | `z-30` | 1단계 미션 지령 HUD (우측 패널) | `gameState === 'PLAYING'` & Stage 1 |
+| **Game** | **Stage2DispatchBoard** | `game/Stage2DispatchBoard` | Modeless | `z-[35]` | 2단계 고밀도 인성콜 표 배차판 | `gameState === 'PLAYING'` & Stage 2 |
+| **Game** | **Stage2SetupModal** | `game/Stage2SetupModal` | Modal | `z-[40]` | 2단계 현위치/노선 설정 다이얼로그 | `gameState === 'SET_DESTINATION'` & Stage 2 |
 | **Map** | **BottomBar** | `layout/BottomBar` | Footer | `z-[25]` | 하단 상태 바 (Zoom/Scale/Layer 토글) | **Always w/ Map** |
 | **Settings** | **LayerPanel** | `settings/LayerPanel` | Panel | `z-[25]+` | 레이어 on/off 드롭다운 (BottomBar에서 열림) | LAYERS 버튼 클릭 시 |
 | **Map** | **Interactive** | `map/InteractionLayer` | Layer | `z-20` | 지역 클릭/호버 감지 | 항상 (Interactive) |
