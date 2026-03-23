@@ -26,6 +26,6 @@ export interface AnswerFeedback {
   regionName?: string;       // 클릭한 지역 이름 (오답 피드백용)
   correctCode: string;       // 정답 지역 코드
   isCorrect: boolean;        // 정답 여부
-  timestamp?: number;        // 발생 시각 (자동 해제용)
-  message?: string;          // 예외 상황(함정 콜)에 대한 상세 피드백 메시지
+  message?: string;          // 유저에게 보여줄 메시지 (예: 똥콜 사유)
+  callData?: any;            // Stage 2 오더 상세 정보 보존용 (CallItem 타입 대신 any 사용으로 의존성 순환 방지)
 }

@@ -9,8 +9,7 @@ import { ResultModal } from './components/game/ResultModal';
 import { TopBar } from './components/layout/TopBar';
 
 import { Stage1ActionBar } from './components/game/Stage1ActionBar';
-import { Stage2DispatchBoard } from './components/game/Stage2DispatchBoard';
-import { Stage2SetupModal } from './components/game/Stage2SetupModal';
+import { Stage2App } from './components/game/Stage2App';
 import { AdSlot } from './components/ui/AdSlot';
 
 
@@ -46,8 +45,8 @@ function GameContent() {
           {/* 1단계 전용 ActionBar */}
           {currentStage === 1 && <Stage1ActionBar />}
 
-          {/* 2단계 전용 Call Dispatch Board */}
-          {currentStage === 2 && <Stage2DispatchBoard />}
+          {/* 2단계 전용 AppLayout 모듈 (모달/UI 관장을 전부 위임) */}
+          {currentStage === 2 && <Stage2App />}
 
           {/* 우측 전역 광고 슬롯 (Google AdSense 삽입 예정) */}
           {viewOptions.showAd && (
@@ -66,8 +65,7 @@ function GameContent() {
           {/* ADDED: Game Mode Selection Screen */}
           {gameState === 'GAME_MODE_SELECT' && <GameModeSelectScreen />}
 
-          {/* 2단계 전용: 희망 노선 설정 팝업 */}
-          {gameState === 'SET_DESTINATION' && <Stage2SetupModal />}
+
 
           {/* REGION_SELECT: 레벨/지역 선택 모달 */}
           {/* Now handled directly by Map.tsx and RegionModeSelectPopup */}

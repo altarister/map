@@ -22,65 +22,67 @@ export const generateCallBatch = (
 ): CallFilterQuestion => {
   const { mapData, currentLocCode, maxPickupDistanceKm = 15, minFare = 30000 } = ctx;
 
-  // 1. 기사의 현위치 설정 (currentLocCode 우선, 없으면 currentStartCode, 없으면 랜덤)
-  let driverFeature = mapData.find(f => f.properties.code === (currentStartCode || currentLocCode));
+  // 1. 기사의 현위치 설정 (currentLocCode로 시작하는 지역 중 랜덤, 없으면 전체 랜덤)
+  const locTarget = currentStartCode || currentLocCode;
+  let driverFeature = mapData.find(f => f.properties.code === locTarget);
+  
+  // 1.1 행정구역 코드가 구/동 단위일 때 0으로 끝나는 시 단위 코드(예: 성남시 41130)를 안전하게 찾기 위한 Prefix화
+  const locPrefix = locTarget ? locTarget.replace(/0+$/, '') : '';
+
+  if (!driverFeature && locPrefix) {
+    const candidates = mapData.filter(f => f.properties.code.startsWith(locPrefix));
+    if (candidates.length > 0) {
+      driverFeature = candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+
   if (!driverFeature) {
     driverFeature = mapData[Math.floor(Math.random() * mapData.length)];
   }
   const driverCentroid = getCentroid(driverFeature);
 
   // 2. 하차지 그룹 (정답 방향 vs 오답 방향)
-  const matchDestGroup = mapData.filter(f => f.properties.code.startsWith(targetDestCode));
-  const wrongDestGroup = mapData.filter(f => !f.properties.code.startsWith(targetDestCode));
+  const destPrefix = targetDestCode === 'ALL' ? '' : targetDestCode.replace(/0+$/, '');
+  const matchDestGroup = destPrefix ? mapData.filter(f => f.properties.code.startsWith(destPrefix)) : mapData;
+  const wrongDestGroup = destPrefix ? mapData.filter(f => !f.properties.code.startsWith(destPrefix)) : [];
+
+  // 3. 상차지(Pickup) 거리별 사전 분류
+  const pickupCandidates = mapData.map(f => ({
+    feature: f,
+    dist: calculateDistanceKm(driverCentroid, getCentroid(f))
+  }));
+
+  let validPickups = pickupCandidates.filter(p => p.dist <= maxPickupDistanceKm).map(p => p.feature);
+
+  // Fallback 처리
+  if (validPickups.length === 0) validPickups = mapData;
 
   const calls: CallItem[] = [];
 
-  // 3. 정답 콜 1~2개 무조건 포함 (방향 O, 상차거리 O, 요금 O)
+  // 4. 정답 콜 1~2개 무조건 포함 (방향 O, 상차거리 O, 요금 O)
   const answerCount = matchDestGroup.length > 0 ? (Math.random() > 0.5 ? 2 : 1) : 0;
 
   for (let i = 0; i < answerCount; i++) {
     const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-    let pickup = mapData[Math.floor(Math.random() * mapData.length)];
-    // 상차 거리가 설정값 이내인 곳 찾기 (최대 20번 탐색)
-    for(let j=0; j<20; j++) {
-       const pDist = calculateDistanceKm(driverCentroid, getCentroid(pickup));
-       if (pDist <= maxPickupDistanceKm) break;
-       pickup = mapData[Math.floor(Math.random() * mapData.length)];
-    }
+    const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
     calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT'));
   }
 
-  // 4. 나머지 함정(오답) 오더 채우기
+  // 5. 나머지 함정(오답) 오더 채우기
   const remainCount = CALLS_PER_BATCH - calls.length;
   for (let i = 0; i < remainCount; i++) {
     const trapType = Math.random();
     
-    if (trapType < 0.33 && matchDestGroup.length > 0) {
+    if (trapType < 0.5 && matchDestGroup.length > 0) {
       // 함정 1: 요금 미달 똥콜 (노선 O, 상차거리 O, 요금 X)
       const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-      let pickup = mapData[Math.floor(Math.random() * mapData.length)];
-      for(let j=0; j<20; j++) {
-         const pDist = calculateDistanceKm(driverCentroid, getCentroid(pickup));
-         if (pDist <= maxPickupDistanceKm) break;
-         pickup = mapData[Math.floor(Math.random() * mapData.length)];
-      }
+      const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
       calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE'));
     } 
-    else if (trapType < 0.66 && matchDestGroup.length > 0) {
-      // 함정 2: 상차거리 초과 똥콜 (노선 O, 상차거리 X, 요금 O)
-      const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-      let pickup = mapData[Math.floor(Math.random() * mapData.length)];
-      for(let j=0; j<20; j++) {
-         const pDist = calculateDistanceKm(driverCentroid, getCentroid(pickup));
-         if (pDist > maxPickupDistanceKm + 3) break; // 의도적으로 멀리
-         pickup = mapData[Math.floor(Math.random() * mapData.length)];
-      }
-      calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'FAR_PICKUP'));
-    } 
     else {
-      // 함정 3: 역방향 오답콜 (노선 X)
+      // 함정 2: 역방향 오답콜 (노선 X)
       const dest = wrongDestGroup[Math.floor(Math.random() * wrongDestGroup.length)];
-      const pickup = mapData[Math.floor(Math.random() * mapData.length)];
+      const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
       calls.push(createCallItem(pickup, dest, driverCentroid, false, minFare, 'PERFECT'));
     }
   }
@@ -90,7 +92,12 @@ export const generateCallBatch = (
   return {
     id: `call_batch_${Date.now()}`,
     type: 'CALL_FILTER',
-    calls: finalCalls
+    calls: finalCalls,
+    driverLocation: {
+      code: driverFeature.properties.code,
+      name: driverFeature.properties.name,
+      centroid: driverCentroid
+    }
   };
 };
 
@@ -108,7 +115,7 @@ function createCallItem(
   driverCentroid: [number, number],
   isMatchingRoute: boolean,
   minFare: number,
-  trapType: 'PERFECT' | 'BAD_FARE' | 'FAR_PICKUP'
+  trapType: 'PERFECT' | 'BAD_FARE'
 ): CallItem {
   const pickupCentroid = getCentroid(pickupFeature);
   const destCentroid = getCentroid(destFeature);
@@ -118,7 +125,7 @@ function createCallItem(
 
   let fare = 10000 + (distanceKm * 1500) + (Math.random() * 5000);
 
-  if (trapType === 'PERFECT' || trapType === 'FAR_PICKUP') {
+  if (trapType === 'PERFECT') {
     // 요금 통과 (최소 요금보다 무조건 3000원 이상 많게)
     fare = Math.max(fare, minFare + 3000 + (Math.random() * 5000));
   } else if (trapType === 'BAD_FARE') {
@@ -128,13 +135,11 @@ function createCallItem(
 
   const finalFare = Math.floor(fare / 1000) * 1000;
 
-  let violation: 'BAD_FARE' | 'FAR_PICKUP' | 'WRONG_DEST' | undefined = undefined;
+  let violation: 'BAD_FARE' | 'WRONG_DEST' | undefined = undefined;
   if (!isMatchingRoute) {
     violation = 'WRONG_DEST';
   } else if (trapType === 'BAD_FARE') {
     violation = 'BAD_FARE';
-  } else if (trapType === 'FAR_PICKUP') {
-    violation = 'FAR_PICKUP';
   }
 
   return {

@@ -16,15 +16,15 @@ export const validateStage2Answer = (question: CallFilterQuestion, input: UserIn
         status: 'CORRECT',
         feedback: {
           regionCode: selectedCall.targetRegion.code,
-          correctCode: selectedCall.targetRegion.code,
+          correctCode: selectedCall.targetRegion.code, // 정답 지역
           isCorrect: true,
-          message: '배차 성공!'
+          message: '콜을 성공적으로 수락했습니다.',
+          callData: selectedCall
         }
       };
     } else {
       let msg = '조건에 맞지 않는 오더입니다.';
       if (selectedCall.violation === 'BAD_FARE') msg = '똥콜입니다! 요금이 하한선보다 낮습니다.';
-      if (selectedCall.violation === 'FAR_PICKUP') msg = '공차 거리가 멉니다! 상차 한도를 초과했습니다.';
       if (selectedCall.violation === 'WRONG_DEST') msg = '도착지가 희망 노선 방향이 아닙니다!';
 
       return {
@@ -33,7 +33,8 @@ export const validateStage2Answer = (question: CallFilterQuestion, input: UserIn
           regionCode: selectedCall.targetRegion.code,
           correctCode: '',
           isCorrect: false,
-          message: msg
+          message: msg,
+          callData: selectedCall
         }
       };
     }

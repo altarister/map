@@ -66,12 +66,17 @@ export interface CallItem {
   distanceKm: number;
   fare: number;
   isMatchingRoute: boolean; // 유저 목표와 일치하는가?
-  violation?: 'BAD_FARE' | 'FAR_PICKUP' | 'WRONG_DEST';
+  violation?: 'BAD_FARE' | 'WRONG_DEST';
 }
 
 export interface CallFilterQuestion extends BaseQuestion {
   type: 'CALL_FILTER';
   calls: CallItem[];
+  driverLocation?: {
+    code: string;
+    name: string;
+    centroid: [number, number];
+  };
 }
 
 // 모든 문제 타입을 포함하는 유니언

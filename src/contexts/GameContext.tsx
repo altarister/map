@@ -36,10 +36,13 @@ interface GameContextType {
   replayGame: () => void;           // 방금 진행한 게임 동일 옵션으로 재시작
   backToRegionSelect: () => void;   // depth 유지하며 REGION_SELECT로 (한 뎁스 위)
   lastFeedback: AnswerFeedback | null;
+  setLastFeedback: (feedback: AnswerFeedback | null) => void;
   answeredRegions: Set<string>;
   levelState: any;
   isHintActive: boolean;
   setHintActive: (active: boolean) => void;
+  selectedCallId: string | null;
+  setSelectedCallId: (id: string | null) => void;
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[];
@@ -83,6 +86,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [maxPickupDistanceKm, setMaxPickupDistanceKm] = React.useState<number>(10);
   const [minFare, setMinFare] = React.useState<number>(30000);
   const [lastGameOptions, setLastGameOptions] = React.useState<any>(undefined);
+  const [selectedCallId, setSelectedCallId] = React.useState<string | null>(null);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -122,6 +126,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     skipQuestion,
     resetGame,
     lastFeedback,
+    setLastFeedback,
     answeredRegions,
     levelState,
     isHintActive,
@@ -186,11 +191,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const chapterCode = options?.chapterCode;
     const overrideRegions = options?.overrideRegions;
 
+    const filterParams = {
+      targetDestCode: options?.targetDestCode,
+      currentLocCode: options?.currentLocCode,
+      maxPickupDistanceKm: options?.maxPickupDistanceKm,
+      minFare: options?.minFare
+    };
+
     if (overrideRegions) {
       if (chapterCode) setSelectedChapter(chapterCode);
       const newFilteredData = { ...fullMapData, features: overrideRegions };
       setFilteredMapData(newFilteredData);
-      startGameLogic(overrideRegions);
+      startGameLogic(overrideRegions, filterParams);
     } else if (chapterCode) {
       setSelectedChapter(chapterCode);
 
@@ -200,11 +212,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const newFilteredData = { ...fullMapData, features: filteredFeatures };
       setFilteredMapData(newFilteredData);
-      startGameLogic(filteredFeatures);
+      startGameLogic(filteredFeatures, filterParams);
     } else {
       setSelectedChapter(null);
       setFilteredMapData(fullMapData);
-      startGameLogic(fullMapData.features);
+      startGameLogic(fullMapData.features, filterParams);
     }
   }, [gameState, fullMapData, currentStage, startGameLogic, setFilteredMapData, setSelectedChapter]);
 
@@ -243,10 +255,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     replayGame,
     backToRegionSelect,
     lastFeedback,
+    setLastFeedback,
     answeredRegions,
     levelState,
     isHintActive,
     setHintActive,
+    selectedCallId,
+    setSelectedCallId,
     currentStage,
     isBasicMode,
     highlightRegions,
@@ -264,8 +279,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMinFare
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
-    lastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation, maxPickupDistanceKm, minFare
+    lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
+    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation, maxPickupDistanceKm, minFare, selectedCallId, setSelectedCallId
   ]);
 
   return (

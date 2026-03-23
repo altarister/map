@@ -11,11 +11,12 @@ interface UseGameLogicReturn {
   currentQuestion: GameQuestion | null;
   totalQuestions: number; // 전체 문제 수 추가
   score: GameScore;
-  startGame: (overrideRegions?: RegionFeature[]) => void;
+  startGame: (overrideRegions?: RegionFeature[], filters?: any) => void;
   checkAnswer: (input: UserInput) => void; // string code -> UserInput 객체로 변경
   skipQuestion: () => void; // 오답 처리 후 다음 문제로 스킵
   resetGame: () => void;
   lastFeedback: AnswerFeedback | null;
+  setLastFeedback: (feedback: AnswerFeedback | null) => void;
   answeredRegions: Set<string>;
   startTime: number | null;
   endTime: number | null;
@@ -77,7 +78,7 @@ export const useGameLogic = (
   }, [onGameEnd]);
 
   // 다음 문제 출제
-  const setNextQuestion = useCallback((currentQueue: RegionFeature[], mapDataOverride?: RegionFeature[]) => {
+  const setNextQuestion = useCallback((currentQueue: RegionFeature[], mapDataOverride?: RegionFeature[], filters?: any) => {
     if (currentQueue.length === 0) {
       endGame();
       return;
@@ -88,10 +89,10 @@ export const useGameLogic = (
       mapData: mapDataOverride || regions, // Stage2: 실제 fullMapData를 직접 사용
       targetRegion: currentQueue[0],
       difficulty,
-      targetDestCode: targetDestination?.code,
-      currentLocCode: currentLocation?.code,
-      maxPickupDistanceKm,
-      minFare
+      targetDestCode: filters?.targetDestCode ?? targetDestination?.code,
+      currentLocCode: filters?.currentLocCode ?? currentLocation?.code,
+      maxPickupDistanceKm: filters?.maxPickupDistanceKm ?? maxPickupDistanceKm,
+      minFare: filters?.minFare ?? minFare
     });
 
     setCurrentQuestion(question);
@@ -104,7 +105,7 @@ export const useGameLogic = (
   }, [currentStage, difficulty, endGame, targetDestination, currentLocation, maxPickupDistanceKm, minFare]);
 
   // 게임 시작
-  const startGame = useCallback((overrideRegions?: RegionFeature[]) => {
+  const startGame = useCallback((overrideRegions?: RegionFeature[], filters?: any) => {
     setScore({ correct: 0, incorrect: 0, duration: 0, missedRegions: [] });
     setAnsweredRegions(new Set());
     setTotalQuestions(0);
@@ -134,8 +135,8 @@ export const useGameLogic = (
     setTotalQuestions(shuffledQueue.length);
     setQuestionQueue(shuffledQueue);
 
-    // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달 (mapData도 함께 전달)
-    setNextQuestion(shuffledQueue, targetRegions);
+    // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달 (mapData도 함께 전달) + filters 비동기 동기화
+    setNextQuestion(shuffledQueue, targetRegions, filters);
   }, [regions, setNextQuestion, targetDestination, currentLocation, maxPickupDistanceKm, minFare]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
@@ -177,17 +178,11 @@ export const useGameLogic = (
       // 여기서는 에러를 무시하고 리턴하여 게임이 멈추는 것을 방지.
       const result: ValidationResult = strategy.validateAnswer(currentQuestion, input, levelState);
 
-      const now = Date.now();
-
       // 피드백 처리
       if (result.feedback) {
-        const feedbackWithTimestamp = { ...result.feedback, timestamp: now };
-        setLastFeedback(feedbackWithTimestamp);
-
-        if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = setTimeout(() => {
-          setLastFeedback(null);
-        }, 3000);
+        setLastFeedback(result.feedback);
+        
+        // 기존 3초 자동 닫힘 타이머 제거
       }
 
       if (result.status === 'CORRECT') {
@@ -264,13 +259,12 @@ export const useGameLogic = (
     if (gameState !== 'PLAYING' || !currentQuestion) return;
     if (isProcessingRef.current) return;
 
-    const now = Date.now();
     const missedName =
       currentQuestion.type === 'LOCATE_SINGLE' ? currentQuestion.target.name :
         currentQuestion.type === 'LOCATE_PAIR' ? `${currentQuestion.start.name} → ${currentQuestion.end.name}` :
           '알 수 없는 지역';
 
-    setLastFeedback({ isCorrect: false, regionCode: '', correctCode: '', regionName: '스킵', timestamp: now });
+    setLastFeedback({ isCorrect: false, regionCode: '', correctCode: '', regionName: '스킵' });
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     feedbackTimerRef.current = setTimeout(() => setLastFeedback(null), 2000);
 
@@ -319,6 +313,7 @@ export const useGameLogic = (
     skipQuestion,
     resetGame,
     lastFeedback,
+    setLastFeedback,
     answeredRegions,
     startTime,
     endTime,
