@@ -18,7 +18,7 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
   isTimerPaused,
   onToggleTimer
 }: BoardProps) => {
-  const { gameState, currentQuestion, setSelectedCallId, selectedCallId, maxPickupDistanceKm } = useGame();
+  const { gameState, currentQuestion, setSelectedCallId, selectedCallId, maxPickupDistanceKm, isGpsOn, setIsGpsOn } = useGame();
 
   // questions가 바뀌면 선택값 초기화
   useEffect(() => {
@@ -61,7 +61,12 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
            완료({confirmedCalls.length})
         </div>
         <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">메시지함</div>
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">GPS</div>
+        <div 
+           className={`flex-1 py-1.5 text-center transition-colors cursor-pointer ${isGpsOn ? 'bg-[#0066cc] text-white border-b-4 border-green-400' : 'bg-[#0052a3] text-gray-300'}`}
+           onClick={() => setIsGpsOn(!isGpsOn)}
+        >
+          GPS {isGpsOn ? 'ON' : 'OFF'}
+        </div>
       </div>
 
       {/* 서브 툴바 */}

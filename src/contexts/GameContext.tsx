@@ -62,6 +62,8 @@ interface GameContextType {
   appendCall: (call: CallItem) => void;
   confirmedCallIds: string[];
   setConfirmedCallIds: (ids: string[]) => void;
+  isGpsOn: boolean;
+  setIsGpsOn: (on: boolean) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -93,6 +95,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const [confirmedCallIds, setConfirmedCallIds] = React.useState<string[]>([]);
   const [selectedCallId, setSelectedCallId] = React.useState<string | null>(null);
+  const [isGpsOn, setIsGpsOn] = React.useState<boolean>(false);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
     // 1. Top Score Update (Legacy global score)
@@ -292,7 +295,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fullMapData: fullMapData?.features || [],
     appendCall,
     confirmedCallIds, // Added
-    setConfirmedCallIds // Added
+    setConfirmedCallIds, // Added
+    isGpsOn,
+    setIsGpsOn
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
@@ -302,7 +307,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMaxPickupDistanceKm,
     minFare,
     setMinFare,
-    selectedCallId, setSelectedCallId, fullMapData, appendCall, confirmedCallIds, setConfirmedCallIds
+    selectedCallId, setSelectedCallId, fullMapData, appendCall, confirmedCallIds, setConfirmedCallIds, isGpsOn, setIsGpsOn
   ]);
 
   return (
