@@ -55,15 +55,21 @@ export interface CallItem {
   startRegion: {
     code: string;
     name: string;
+    fullName: string;
     centroid: [number, number];
   };
   pickupDistanceKm?: number;
   targetRegion: {
     code: string;
     name: string;
+    fullName: string;
     centroid: [number, number];
   };
   distanceKm: number;
+  paymentMethod?: string; // 선불, 착불, 송금, 세금계산서 등
+  vehicleType?: string;   // 다, 라, 카, 마 (오토방/카고)
+  itemDescription?: string; // 박스 1개, 서류 등
+  callCategory?: string;    // 보통, 급행, 예약
   fare: number;
   isMatchingRoute: boolean; // 유저 목표와 일치하는가?
   violation?: 'BAD_FARE' | 'WRONG_DEST';

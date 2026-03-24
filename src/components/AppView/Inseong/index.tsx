@@ -6,7 +6,7 @@ import { InseongCallDetailScreen } from './InseongCallDetailScreen';
 import type { CallItem, UserInput } from '../../../game/core/types';
 
 export const InseongApp = () => {
-  const { gameState, lastFeedback, setLastFeedback, checkAnswer } = useGame();
+  const { gameState, lastFeedback, setLastFeedback, checkAnswer, setSelectedCallId } = useGame();
   
   // 확정(배차 완료)된 콜 목록 및 탭 상태 (InseongApp 전역 관리)
   const [confirmedCalls, setConfirmedCalls] = useState<CallItem[]>([]);
@@ -15,17 +15,29 @@ export const InseongApp = () => {
   // 클릭해서 상세보기로 진입한 콜 (아직 수락/채점 전)
   const [selectedCall, setSelectedCall] = useState<CallItem | null>(null);
 
-  // 진행 상태가 바뀌면 모달 닫기
+  // 설정 모달 열림 여부
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // 진행 상태가 바뀌거나 모달을 닫을 때 등 상태 초기화
   useEffect(() => {
     if (gameState !== 'PLAYING') {
       setSelectedCall(null);
+      if (setSelectedCallId) setSelectedCallId(null);
+      setIsSettingsOpen(false); // 타 모드 이동 시 모달 초기화
       if (setLastFeedback) setLastFeedback(null);
+    } else {
+      // 2단계 최초 배차 시 (로컬 스토리지에 설정값이 없으면) 자동으로 설정 모달 노출
+      const saved = localStorage.getItem('STAGE2_SETTINGS');
+      if (!saved) {
+        setIsSettingsOpen(true);
+      }
     }
-  }, [gameState, setLastFeedback]);
+  }, [gameState, setLastFeedback, setSelectedCallId]);
 
   // 상세 보기 모달 닫기
   const handleCloseDetail = () => {
     setSelectedCall(null);
+    if (setSelectedCallId) setSelectedCallId(null);
     if (setLastFeedback) setLastFeedback(null);
   };
 
@@ -44,9 +56,6 @@ export const InseongApp = () => {
     handleCloseDetail();
     setActiveTab('CONFIRMED');
   };
-
-  // 설정 모달 열림 여부
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // 플레이 중일 때
   if (gameState === 'PLAYING') {
@@ -73,7 +82,10 @@ export const InseongApp = () => {
           confirmedCalls={confirmedCalls} 
           activeTab={activeTab} 
           onTabSelect={setActiveTab} 
-          onRowClick={(call: CallItem) => setSelectedCall(call)}
+          onRowClick={(call: CallItem) => {
+            setSelectedCall(call);
+            if (setSelectedCallId) setSelectedCallId(call.id);
+          }}
           onSettingsClick={() => setIsSettingsOpen(true)}
         />
         

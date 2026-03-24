@@ -10,130 +10,169 @@ interface Props {
 }
 
 export const InseongCallDetailScreen = ({ call, feedback, onClose, onAccept, onConfirm }: Props) => {
-  // 채점 진행 전이냐 후냐에 따라 다르게 표시
   const isEvaluated = feedback !== null;
   const isCorrect = feedback?.isCorrect ?? false;
 
+  const fareFormatted = call.fare.toLocaleString();
+  const distPickup = call.pickupDistanceKm?.toFixed(1) || '0.0';
+  const distDelivery = call.distanceKm.toFixed(1);
+
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans tracking-tight text-black select-none">
+    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans text-black select-none tracking-tight">
       
-      {/* 상단 파란색 헤더 */}
-      <div className={`flex items-center h-12 px-2 border-b-2 shadow-sm shrink-0 ${isEvaluated ? (isCorrect ? 'bg-[#0052a3] border-[#0052a3] text-white' : 'bg-[#d90000] border-[#d90000] text-white') : 'bg-[#0052a3] border-slate-500 text-white'}`}>
-        <button onClick={onClose} className="text-white text-2xl px-2 font-bold mb-1 active:scale-95">‹</button>
-        <div className="flex-1 text-center font-extrabold text-[17px]">
-          {isEvaluated ? (isCorrect ? '오더 상세 (배차 완료)' : '오더 상세 (배차 실패)') : '배차 신청장'}
+      {/* 1. Header (Standard Blue) */}
+      <div className="flex items-center justify-between h-[45px] bg-[#0052a3] px-2 shrink-0 border-b border-[#003d7a]">
+        <div className="font-extrabold text-white text-base">대도-1800-1101</div>
+        <div className="flex space-x-1 h-full py-1.5">
+          <button className="bg-[#4caf50] px-3 flex items-center justify-center rounded-sm shadow-sm active:bg-[#388e3c]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56M15.78 14.16l-2.03 2.03C10.63 14.6 8.4 12.38 6.8 9.24l2.03-2.03M4.61 8.62C4.24 7.51 4.04 6.32 4.04 5.09M20.01 15.38c.55 0 1 .45 1 1v3.58c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1H7.6c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57M15.78 14.16c.39.39.39 1.02 0 1.41M6.8 9.24c-.39-.39-1.02-.39-1.41 0" stroke="white" strokeWidth="2" fill="none"/></svg>
+          </button>
+          <button className="bg-[#e0e0e0] text-gray-800 px-3 font-bold text-sm rounded-sm shadow-sm active:bg-[#bdbdbd]">완료</button>
         </div>
-        <button className="text-white text-xl px-2 opacity-0">↻</button>
       </div>
 
-      {/* 채점 완료 시 나타나는 Feedback Banner */}
-      {isEvaluated && (
-        <div className={`px-4 py-3 text-center font-bold text-[15px] border-b border-gray-300 shadow-sm ${isCorrect ? 'bg-[#e8f5e9] text-green-800' : 'bg-[#ffebee] text-[#d90000]'}`}>
-          {isCorrect ? '✅ 성공적으로 콜이 배차되었습니다.' : `❌ ${feedback.message}`}
+      {isEvaluated && !isCorrect && (
+        <div className="bg-[#d90000] text-white text-center font-bold py-1.5 px-2 text-[15px] shadow-sm shrink-0">
+          ❌ 오답 사유: {feedback.message}
         </div>
       )}
 
-      {/* Info Rows (Scrollable Base) */}
-      <div className="flex-1 overflow-y-auto bg-white flex flex-col pt-2 pb-16">
+      {/* Info Area Base */}
+      <div className="flex-1 overflow-y-auto bg-white">
         
-        {/* 요금표 크게 */}
-        <div className="px-5 py-6 flex flex-col items-center justify-center border-b border-gray-300 bg-[#f8f9fa] shadow-inner font-sans">
-           <span className="font-bold text-gray-500 text-sm mb-1">총 결제 운임 (수수료 포함)</span>
-           <span className="text-4xl font-extrabold tracking-tighter text-[#0052a3]">{call.fare.toLocaleString()} <span className="text-2xl font-bold text-gray-700">원</span></span>
-           <div className="mt-3 flex gap-2">
-              <span className="bg-gray-200 px-2 py-0.5 text-xs font-bold rounded text-gray-700">카드결제</span>
-              <span className="bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-bold rounded text-blue-800">빠른입금</span>
-           </div>
-        </div>
-
-        {/* 상/하차지 정보 */}
-        <div className="flex flex-col border-b border-gray-300">
-          <div className="flex items-stretch border-b border-gray-200">
-            <div className="w-20 bg-[#f5f5dc] flex items-center justify-center border-r border-gray-300 font-bold text-sm text-gray-700">상차지</div>
-            <div className="flex-1 py-3 px-3 flex flex-col">
-              <span className="font-extrabold text-[16px] text-gray-900 leading-tight">{call.startRegion.name}</span>
-              <span className="text-[13px] font-bold text-gray-500 mt-1">현위치 ➜ 상차지(직선) {call.pickupDistanceKm?.toFixed(1) || '0.0'} km</span>
+        {/* 2. Status & Vehicle */}
+        <div className="bg-white flex flex-col pt-2 pb-2 px-3 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-2 mt-1">
+            <div className="flex gap-5 text-sm font-bold text-gray-500">
+              <span>상태 : <span className="text-gray-900 ml-1">배차</span></span>
+              <span>물품 : <span className="text-gray-900 ml-1"></span></span>
             </div>
+            <button onClick={onClose} className="px-4 py-1.5 bg-white border border-gray-400 font-bold text-xs rounded text-gray-800 shadow-sm active:bg-gray-100">
+              취소
+            </button>
           </div>
-          <div className="flex items-stretch">
-            <div className="w-20 bg-[#f5f5dc] flex items-center justify-center border-r border-gray-300 font-bold text-sm text-gray-700">하차지</div>
-            <div className="flex-1 py-3 px-3 flex flex-col">
-              <span className="font-extrabold text-[16px] text-gray-900 leading-tight">{call.targetRegion.name}</span>
-              <span className="text-[13px] font-bold text-gray-500 mt-1">상차지 ➜ 하차지(직선) {call.distanceKm.toFixed(1)} km</span>
-            </div>
+          <div className="flex gap-5 text-sm font-bold text-gray-500 mb-1">
+            <span>차량 : <span className="text-[#0052a3] ml-1">{call.vehicleType || '오토'}</span></span>
+            <span>탁송료 : <span className="text-gray-900 ml-1">0</span></span>
           </div>
         </div>
 
-        {/* 오더 기타 상세 정보 표 */}
-        <div className="flex flex-col border-b border-gray-300 mt-2 border-t">
-           {/* ... 기타 UI 유지 ... */}
-           <div className="flex border-b border-gray-200">
-             <div className="w-[50%] flex">
-               <div className="w-20 bg-[#f5f5dc] flex items-center justify-center border-r border-gray-300 font-bold text-xs text-gray-600">차종</div>
-               <div className="flex-1 flex items-center px-3 py-2 font-bold text-sm">오토바 / 카고</div>
-             </div>
-             <div className="w-[50%] flex border-l border-gray-300">
-               <div className="w-20 bg-[#f5f5dc] flex items-center justify-center border-r border-gray-300 font-bold text-xs text-gray-600">적재물</div>
-               <div className="flex-1 flex items-center px-3 py-2 font-bold text-sm truncate">박스 1개</div>
-             </div>
-           </div>
+        {/* 3. Fare & Type */}
+        <div className="bg-[#f8f9fa] flex flex-col px-3 py-4 border-b border-gray-200">
+          <div className="font-extrabold text-2xl text-[#d90000] tracking-tighter mb-1">
+            요금 : {fareFormatted}({call.paymentMethod || '선불'})
+          </div>
+          {/* <div className="text-[13px] font-bold text-gray-500 mb-2">#퀵서비스</div>
+          <div className="text-[12px] text-gray-400 mb-3 truncate">배차 식별번호 : {call.id}</div> */}
+          
+        </div>
+        
+        {/* ?.  */}
+        <div className="flex bg-white p-3 gap-2 border-b border-gray-200">
+          <div className="flex gap-8 text-sm font-bold text-gray-500">
+            <span>구분 : <span className="text-gray-900 ml-1">{call.callCategory || '보통'}</span></span>
+            <span>형태 : <span className="text-gray-900 ml-1">편도</span></span>
+          </div>
         </div>
 
-        {isEvaluated && call.violation && (
-            <div className="m-4 p-3 bg-red-50 border-2 border-red-400 rounded-md">
-              <div className="font-extrabold text-red-800 text-sm mb-1">통과 실패 사유:</div>
-              <div className="text-red-700 font-bold text-sm leading-tight">
-                {call.violation === 'BAD_FARE' ? '- 최소 허용 단가 미달 (설정 단가보다 낮음)' : '- 회원님의 희망 도착지(퇴근 방향) 존을 벗어났습니다.'}
-              </div>
+        {/* 4. Details & Distances Box */}
+        <div className="flex bg-white p-3 gap-2 h-[100px] border-b border-gray-200">
+          {/* Left buttons */}
+          <div className="flex flex-col gap-1.5 w-[85px] shrink-0">
+            <button className="flex-1 bg-white border border-gray-300 rounded shadow-sm flex items-center justify-center font-bold text-[13px] text-gray-700 active:bg-gray-50">
+              적요상세
+            </button>
+          </div>
+          {/* Right Dark Box */}
+          <div className="flex-1 bg-[#2b3543] text-white rounded p-2 flex flex-col justify-center gap-1 shadow-inner border border-gray-800">
+            <div className="text-[#ffeb3b] font-bold text-sm tracking-tight">{call.itemDescription || '박스 1개'}</div>
+            <div className="font-bold text-[13px] tracking-tight text-gray-200">현위치 ➔ 상차지(직선) {distPickup} KM</div>
+            <div className="font-bold text-[13px] tracking-tight text-gray-200">상차지 ➔ 하차지(직선) {distDelivery} KM</div>
+          </div>
+        </div>
+
+        {/* 5. Addresses */}
+        <div className="flex flex-col gap-2.5 p-3 bg-white pb-6">
+          
+          <div className="flex items-stretch gap-2 h-11">
+            <div className="w-[60px] bg-[#e3f2fd] border border-[#90caf9] rounded-sm flex items-center justify-center font-bold text-xs text-[#0052a3] shadow-sm shrink-0">
+              의뢰지
             </div>
-        )}
+            <div className="w-[45px] bg-[#ff8f00] border border-[#e65100] rounded-sm flex items-center justify-center font-bold text-xs text-white shadow-sm shrink-0">
+              픽업
+            </div>
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-sm flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
+              *****
+            </div>
+          </div>
+
+          <div className="flex items-stretch gap-2 h-11">
+            <div className="w-[60px] bg-[#e3f2fd] border border-[#90caf9] rounded-sm flex items-center justify-center font-bold text-xs text-[#0052a3] shadow-sm shrink-0">
+              출발지
+            </div>
+            <div className="w-[45px] bg-[#ff8f00] border border-[#e65100] rounded-sm flex items-center justify-center font-bold text-xs text-white shadow-sm shrink-0">
+              서명
+            </div>
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-sm flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
+              ***** / {call.startRegion.fullName}
+            </div>
+          </div>
+
+          <div className="flex items-stretch gap-2 h-11">
+            <div className="w-[60px] bg-[#e3f2fd] border border-[#90caf9] rounded-sm flex items-center justify-center font-bold text-xs text-[#0052a3] shadow-sm shrink-0">
+              도착지
+            </div>
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-sm flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
+              {call.targetRegion.fullName}
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
-      {/* 하단 플로팅 버튼바 로직 */}
-      <div className="absolute bottom-0 w-full p-2 bg-[#f8f9fa] border-t-2 border-slate-400 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] flex gap-2">
-        {!isEvaluated ? (
-          /* 채점 전 (단순 조회 상세 페이지) */
-          <>
-            <button 
-              onClick={onClose}
-              className="flex-1 bg-white text-gray-800 active:bg-gray-100 font-bold text-lg py-3 rounded border border-gray-400 shadow-sm transition-colors"
-            >
-              취소
-            </button>
-            <button 
-              onClick={() => onAccept(call)}
-              className="flex-[2] bg-[#ff8f00] text-white active:bg-orange-600 font-extrabold text-lg py-3 rounded border border-orange-900 shadow-sm transition-colors"
-            >
-              탁송
-            </button>
-          </>
-        ) : isCorrect ? (
-          /* 채점 결과: 정답 (콜 획득 성공) */
-          <>
-            <button 
-              onClick={() => onConfirm(call)}
-              className="flex-[2] bg-[#1e88e5] text-white active:bg-blue-700 font-extrabold text-lg flex items-center justify-center gap-1 py-3 rounded border border-blue-900 shadow-sm transition-colors"
-            >
-              <span className="text-[13px] bg-[#0d47a1] bg-opacity-40 px-1.5 py-0.5 rounded mr-1">배차완료</span>
-              확정
-            </button>
-            <button 
-              onClick={onClose}
-              className="flex-1 bg-white text-gray-800 active:bg-gray-100 font-bold text-lg py-3 rounded border border-gray-400 shadow-sm transition-colors"
-            >
-              취소
-            </button>
-          </>
-        ) : (
-          /* 채점 결과: 오답 (경고) */
+      {/* 6. Bottom Action Bar (Floating) */}
+      <div className="h-[60px] bg-[#f8f9fa] px-3 flex gap-2 items-center justify-between border-t border-gray-300 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        {(isEvaluated && isCorrect) ? (
           <button 
-            onClick={onClose}
-            className="w-full bg-[#d90000] text-white active:bg-red-800 font-bold text-lg py-3 rounded border border-red-900 shadow-sm transition-colors"
+            onClick={() => onConfirm(call)}
+            className="flex-1 h-11 bg-[#1e88e5] text-white font-extrabold text-base rounded shadow-sm border border-[#1565c0] active:scale-95 transition-transform"
           >
-            뒤로가기
+            확정(6) 완료
+          </button>
+        ) : (
+          <button 
+            disabled
+            className="flex-1 h-11 bg-[#1e88e5] text-white font-extrabold text-base rounded shadow-sm border border-[#1565c0] opacity-30 cursor-not-allowed"
+          >
+            확정(6)
+          </button>
+        )}
+
+        <button 
+          onClick={onClose}
+          className="flex-1 h-11 bg-white text-gray-800 font-extrabold text-base rounded shadow-sm border border-gray-400 active:scale-95 transition-transform"
+        >
+          취소
+        </button>
+
+        {!isEvaluated ? (
+          <button 
+            onClick={() => onAccept(call)}
+            className="flex-1 h-12 bg-[#ff8f00] text-white font-extrabold text-[19px] rounded shadow-sm border border-[#e65100] active:scale-95 transition-transform flex items-center justify-center"
+          >
+            탁송
+          </button>
+        ) : (
+          <button 
+            disabled
+            className="flex-1 h-12 bg-[#ff8f00] text-white font-extrabold text-[19px] rounded shadow-sm border border-[#e65100] opacity-30 cursor-not-allowed flex items-center justify-center"
+          >
+            탁송
           </button>
         )}
       </div>
+
     </div>
   );
 };

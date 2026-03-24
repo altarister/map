@@ -36,13 +36,6 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
   // 랜더링 도우미 포맷 함수
   const formatFare = (fare: number) => (fare / 1000).toFixed(1);
 
-  // 단순 해시로 차종 생성 (카, 라, 다, 마 등)
-  const getVehicleType = (id: string) => {
-    const types = ['다', '라', '카', '마'];
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash += id.charCodeAt(i);
-    return types[hash % types.length];
-  };
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans tracking-tight text-black select-none">
@@ -62,16 +55,26 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
            완료({confirmedCalls.length})
         </div>
         <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300"></div>
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300"></div>
+        <div 
+           className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300 hover:text-white transition-colors"
+           onClick={onSettingsClick}
+        >
+           설정
+        </div>
       </div>
 
       {/* 서브 툴바 */}
       {activeTab === 'ALL' && (
         <div className="flex bg-[#e4e4e4] border-b border-gray-400 text-xs text-gray-700 h-7 items-center px-1 gap-1">
-          <button className="bg-[#8bd14e] text-white px-2 py-0.5 border border-gray-500 text-[10px] font-bold">xxx</button>
-          <button className="bg-gray-200 px-2 py-0.5 border border-gray-400 text-[10px]">xxx</button>
-          <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">xxx</button>
-          <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">xxx</button>
+          <button className="bg-[#0052a3] text-white px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+            설정
+          </button>
+          <button className="bg-gray-200 px-3 py-0.5 border border-gray-400 text-[10px] font-bold text-gray-700">
+            전체
+          </button>
+          <button className="bg-[#facc15] text-black px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+            {maxPickupDistanceKm}km
+          </button>
         </div>
       )}
 
@@ -122,12 +125,13 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
               
               {/* 도착지 */}
               <div className="w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight">
-                <span className="whitespace-normal line-clamp-2">{call.targetRegion.name}</span>
+                {/* [TEST CODE] 개발 확인용: 정답(violation === undefined)인 경우 목적지를 붉은색으로 표시. 나중에 텍스트 색상을 기본(#0052a3)으로 복구할 것 */}
+                <span className={`whitespace-normal line-clamp-2 ${call.violation === undefined ? 'text-red-600' : ''}`}>{call.targetRegion.name}</span>
               </div>
               
               {/* 차종 */}
               <div className="w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold">
-                {getVehicleType(call.id)}
+                {call.vehicleType || '오토'}
               </div>
               
               {/* 요금 */}

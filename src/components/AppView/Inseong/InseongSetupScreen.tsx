@@ -13,10 +13,12 @@ export const InseongSetupScreen = ({ onClose }: Props) => {
     minFare,
     startGame
   } = useGame();
-  
-  const [selectedDestCode, setSelectedDestCode] = useState<string>(targetDestination?.code || 'ALL'); // 전체 (ALL) 기본
-  const [pickupDistance, setPickupDistance] = useState<number>(maxPickupDistanceKm);
-  const [fareLimit, setFareLimit] = useState<number>(minFare);
+  const savedSettings = localStorage.getItem('STAGE2_SETTINGS');
+  const parsedSettings = savedSettings ? JSON.parse(savedSettings) : null;
+
+  const [selectedDestCode, setSelectedDestCode] = useState<string>(parsedSettings?.targetDestCode || targetDestination?.code || 'ALL');
+  const [pickupDistance, setPickupDistance] = useState<number>(parsedSettings?.maxPickupDistanceKm ?? maxPickupDistanceKm ?? 10);
+  const [fareLimit, setFareLimit] = useState<number>(parsedSettings?.minFare ?? minFare ?? 30000);
 
   const [toggles, setToggles] = useState({
     noCollect: false,
@@ -32,6 +34,14 @@ export const InseongSetupScreen = ({ onClose }: Props) => {
       name: destSelect && selectedDestCode !== 'ALL' ? destSelect.options[destSelect.selectedIndex].text : '전체' 
     };
     
+    // 로컬 스토리지에 설정값 캐싱
+    localStorage.setItem('STAGE2_SETTINGS', JSON.stringify({
+      targetDestCode: dummyDest.code,
+      targetDestName: dummyDest.name,
+      maxPickupDistanceKm: pickupDistance,
+      minFare: fareLimit
+    }));
+
     // startGame을 호출하면 InseongDispatchBoard의 리스트가 즉시 새 필터 기반으로 새로고침됨
     startGame({
       currentLocCode: currentLocation?.code,
@@ -40,7 +50,7 @@ export const InseongSetupScreen = ({ onClose }: Props) => {
       targetDestName: dummyDest.name,
       maxPickupDistanceKm: pickupDistance,
       minFare: fareLimit
-    });
+    }, true); // forceRestart = true
 
     if (onClose) onClose();
   };
@@ -112,6 +122,7 @@ export const InseongSetupScreen = ({ onClose }: Props) => {
               <option value="41130">경기도 성남시</option>
               <option value="41150">경기도 의정부시</option>
               <option value="41480">경기도 파주시</option>
+              <option value="41610">경기도 광주시</option>
             </select>
           </div>
 

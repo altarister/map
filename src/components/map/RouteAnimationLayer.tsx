@@ -8,7 +8,7 @@ interface RouteAnimationLayerProps {
 }
 
 export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) => {
-  const { currentStage, gameState, currentQuestion, lastFeedback } = useGame();
+  const { currentStage, gameState, currentQuestion, lastFeedback, selectedCallId } = useGame();
   const { theme } = useSettings();
 
   if (currentStage !== 2 || gameState !== 'PLAYING') return null;
@@ -17,8 +17,8 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
   const question = currentQuestion as CallFilterQuestion;
   const isTactical = theme === 'tactical';
 
-  // 피드백 모달에서 판정 중인 콜 데이터가 있으면 그 콜을 우선하여 시각화
-  const activeCall = lastFeedback?.callData;
+  // 피드백 모달에서 판정 중인 콜 데이터나 현재 리스트에서 클릭한 콜 데이터 렌더링
+  const activeCall = lastFeedback?.callData || (selectedCallId ? question.calls.find((c: any) => c.id === selectedCallId) : null);
 
   return (
     <g id="layer-route-animation" style={{ pointerEvents: 'none' }}>
@@ -76,10 +76,17 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
               strokeWidth={strokeWidth}
               className="animate-pulse"
             />
-            {/* 상차지 점 */}
+            {/* 상차지 점 및 텍스트 */}
             <circle cx={pStart[0]} cy={pStart[1]} r={strokeWidth * 1.5} fill="#f59e0b" />
-            {/* 하차지 점 */}
+            <text x={pStart[0] + 10} y={pStart[1] + 4} fill="#f59e0b" fontSize={13} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+              상차지 ({call.startRegion.name})
+            </text>
+
+            {/* 하차지 점 및 텍스트 */}
             <circle cx={pEnd[0]} cy={pEnd[1]} r={strokeWidth * 1.5} fill={color} />
+            <text x={pEnd[0] + 10} y={pEnd[1] + 4} fill={color} fontSize={13} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+              하차지 ({call.targetRegion.name})
+            </text>
           </g>
         );
       })()}

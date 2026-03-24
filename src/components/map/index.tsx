@@ -44,7 +44,8 @@ export const Map = () => {
     selectionLevel,
     setSelectionLevel,
     currentFocusCode,
-    setCurrentFocusCode
+    setCurrentFocusCode,
+    selectedCallId // Added selectedCallId
   } = useGame();
 
   const {
@@ -128,6 +129,7 @@ export const Map = () => {
     answeredRegions,
     isBasicMode,
     defaultHoverFill: colors.hoverDefaultFill, // 테마별 호버 색상 (kids: #fde68a, tactical: #333333)
+    // selectedCallId, // Removed selectedCallId from useMapStyles
   });
 
   const isSingleRegion = filteredCityFeatures.length === 1;
@@ -160,10 +162,16 @@ export const Map = () => {
   // [NEW] Stage 2 Auto-Zoom Focus Region 연산
   const focusRegionCodes = useMemo(() => {
     if (gameState === 'PLAYING' && currentStage === 2 && currentQuestion?.type === 'CALL_FILTER') {
+      if (selectedCallId) {
+        const call = currentQuestion.calls.find((c: any) => c.id === selectedCallId);
+        if (call && currentQuestion.driverLocation) {
+          return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code];
+        }
+      }
       return currentQuestion.calls.flatMap((c: any) => [c.startRegion.code, c.targetRegion.code]);
     }
     return undefined;
-  }, [gameState, currentStage, currentQuestion]);
+  }, [gameState, currentStage, currentQuestion, selectedCallId]);
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
   useMapAutoZoom({
@@ -215,20 +223,39 @@ export const Map = () => {
         const prefix = groupCode.endsWith('0') ? groupCode.substring(0, 4) : groupCode;
         const targetDongs = fullMapData?.features.filter((f: any) =>
           f.properties.code.startsWith(prefix) &&
-          (f.properties as any)._isEmdGroup === true
+          !!(f.properties as any)._isEmdGroup
         ) || [];
+
+        // 2단계 설정 불러오기 (없으면 기본값)
+        const savedSettings = localStorage.getItem('STAGE2_SETTINGS');
+        let stage2Options = {
+          targetDestCode: 'ALL',
+          targetDestName: '전체',
+          maxPickupDistanceKm: 10,
+          minFare: 30000
+        };
+
+        if (savedSettings) {
+          try {
+            const parsed = JSON.parse(savedSettings);
+            stage2Options = {
+              targetDestCode: parsed.targetDestCode || 'ALL',
+              targetDestName: parsed.targetDestName || '전체',
+              maxPickupDistanceKm: parsed.maxPickupDistanceKm ?? 10,
+              minFare: parsed.minFare ?? 30000
+            };
+          } catch(e) {}
+        }
 
         startGame({
           chapterCode: groupCode,
-          overrideRegions: targetDongs,
+          overrideRegions: currentStage === 2 ? fullMapData?.features : targetDongs,
           highlightRegions: [],
           isBasicMode: false,
           ...(currentStage === 2 ? {
             currentLocCode: groupCode,
             currentLocName: feature.properties.name,
-            targetDestCode: 'ALL', 
-            maxPickupDistanceKm: 10,
-            minFare: 30000
+            ...stage2Options
           } : {})
         });
         return;
@@ -238,20 +265,39 @@ export const Map = () => {
         // 일반구 클릭 -> 바로 PLAYING (4단계)
         const targetDongs = fullMapData?.features.filter((f: any) =>
           f.properties.code.startsWith(code) &&
-          (f.properties as any)._isEmdGroup === true
+          !!(f.properties as any)._isEmdGroup
         ) || [];
+
+        // 2단계 설정 불러오기
+        const savedSettings = localStorage.getItem('STAGE2_SETTINGS');
+        let stage2Options = {
+          targetDestCode: 'ALL',
+          targetDestName: '전체',
+          maxPickupDistanceKm: 10,
+          minFare: 30000
+        };
+
+        if (savedSettings) {
+          try {
+            const parsed = JSON.parse(savedSettings);
+            stage2Options = {
+              targetDestCode: parsed.targetDestCode || 'ALL',
+              targetDestName: parsed.targetDestName || '전체',
+              maxPickupDistanceKm: parsed.maxPickupDistanceKm ?? 10,
+              minFare: parsed.minFare ?? 30000
+            };
+          } catch(e) {}
+        }
 
         startGame({
           chapterCode: code,
-          overrideRegions: targetDongs,
+          overrideRegions: currentStage === 2 ? fullMapData?.features : targetDongs,
           highlightRegions: [],
           isBasicMode: false,
           ...(currentStage === 2 ? {
             currentLocCode: code,
             currentLocName: feature.properties.name,
-            targetDestCode: 'ALL',
-            maxPickupDistanceKm: 10,
-            minFare: 30000
+            ...stage2Options
           } : {})
         });
         return;

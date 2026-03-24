@@ -73,11 +73,13 @@ export const generateCallBatch = (
   for (let i = 0; i < remainCount; i++) {
     const trapType = Math.random();
     
-    if (trapType < 0.5 && matchDestGroup.length > 0) {
-      // 함정 1: 요금 미달 똥콜 (노선 O, 상차거리 O, 요금 X)
-      const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-      const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-      calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE'));
+    if (trapType < 0.5 || wrongDestGroup.length === 0) {
+      if (matchDestGroup.length > 0) {
+        // 함정 1: 요금 미달 똥콜 (노선 O, 상차거리 O, 요금 X)
+        const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
+        const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
+        calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE'));
+      }
     } 
     else {
       // 함정 2: 역방향 오답콜 (노선 X)
@@ -142,20 +144,49 @@ function createCallItem(
     violation = 'BAD_FARE';
   }
 
+  const paymentOptions = ['선불', '착불', '송금', '세금계산서', '인수증'];
+  const randomPaymentMethod = paymentOptions[Math.floor(Math.random() * paymentOptions.length)];
+
+  const vehicleOptions = ['오토', '다마스', '라보', '1톤카고'];
+  const randomVehicle = vehicleOptions[Math.floor(Math.random() * vehicleOptions.length)];
+
+  const itemOptions = ['박스 1개', '서류봉투', '쇼핑백 2개', '소형 가전', '샘플 박스', '마대 1개'];
+  const randomItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
+
+  const categoryOptions = ['보통', '보통', '보통', '급행', '예약'];
+  const randomCategory = categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
+
+  const getFullName = (f: RegionFeature): string => {
+    const props = f.properties as any;
+    const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('41') ? '경기' : props.code.startsWith('28') ? '인천' : (props.grandParentName || '경기');
+    
+    if (props.SIG_KOR_NM) {
+      if (props.EMD_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
+      return `${doName} / ${props.SIG_KOR_NM} / ${props.name}`;
+    }
+    return `${doName} / ${props.parentName || ''} / ${props.name}`;
+  };
+
   return {
     id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     startRegion: {
       code: pickupFeature.properties.code,
       name: pickupFeature.properties.name,
+      fullName: getFullName(pickupFeature),
       centroid: pickupCentroid
     },
     targetRegion: {
       code: destFeature.properties.code,
       name: destFeature.properties.name,
+      fullName: getFullName(destFeature),
       centroid: destCentroid
     },
     pickupDistanceKm,
     distanceKm,
+    paymentMethod: randomPaymentMethod,
+    vehicleType: randomVehicle,
+    itemDescription: randomItem,
+    callCategory: randomCategory,
     fare: finalFare,
     isMatchingRoute,
     violation

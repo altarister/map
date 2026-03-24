@@ -29,7 +29,7 @@ interface GameContextType {
     currentLocName?: string;
     maxPickupDistanceKm?: number;
     minFare?: number;
-  }) => void;
+  }, forceRestart?: boolean) => void;
   checkAnswer: (input: UserInput) => void;
   skipQuestion: () => void;
   resetGame: () => void;
@@ -166,36 +166,41 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentLocName?: string;
     maxPickupDistanceKm?: number;
     minFare?: number;
-  }) => {
-    if (gameState === 'PLAYING') return;
+  }, forceRestart = false) => {
+    if (gameState === 'PLAYING' && !forceRestart) return;
     if (!fullMapData) return;
 
-    setLastGameOptions(options);
-    setIsBasicMode(options?.isBasicMode ?? false);
-    setHighlightRegions(options?.highlightRegions ?? []);
+    // 만약 옵션이 주어지고 forceRestart면 기존 lastGameOptions와 병합
+    const effectiveOptions = forceRestart && lastGameOptions && options
+      ? { ...lastGameOptions, ...options }
+      : options || (forceRestart ? lastGameOptions : undefined);
+
+    setLastGameOptions(effectiveOptions);
+    setIsBasicMode(effectiveOptions?.isBasicMode ?? false);
+    setHighlightRegions(effectiveOptions?.highlightRegions ?? []);
 
     // 2단계: 필터 세팅 즉시 반영 (async setState race condition 방지)
-    if (options?.targetDestCode) {
-      setTargetDestination({ code: options.targetDestCode, name: options.targetDestName || '' });
+    if (effectiveOptions?.targetDestCode) {
+      setTargetDestination({ code: effectiveOptions.targetDestCode, name: effectiveOptions.targetDestName || '' });
     }
-    if (options?.currentLocCode) {
-      setCurrentLocation({ code: options.currentLocCode, name: options.currentLocName || '' });
+    if (effectiveOptions?.currentLocCode) {
+      setCurrentLocation({ code: effectiveOptions.currentLocCode, name: effectiveOptions.currentLocName || '' });
     }
-    if (options?.maxPickupDistanceKm !== undefined) {
-      setMaxPickupDistanceKm(options.maxPickupDistanceKm);
+    if (effectiveOptions?.maxPickupDistanceKm !== undefined) {
+      setMaxPickupDistanceKm(effectiveOptions.maxPickupDistanceKm);
     }
-    if (options?.minFare !== undefined) {
-      setMinFare(options.minFare);
+    if (effectiveOptions?.minFare !== undefined) {
+      setMinFare(effectiveOptions.minFare);
     }
 
-    const chapterCode = options?.chapterCode;
-    const overrideRegions = options?.overrideRegions;
+    const chapterCode = effectiveOptions?.chapterCode;
+    const overrideRegions = effectiveOptions?.overrideRegions;
 
     const filterParams = {
-      targetDestCode: options?.targetDestCode,
-      currentLocCode: options?.currentLocCode,
-      maxPickupDistanceKm: options?.maxPickupDistanceKm,
-      minFare: options?.minFare
+      targetDestCode: effectiveOptions?.targetDestCode,
+      currentLocCode: effectiveOptions?.currentLocCode,
+      maxPickupDistanceKm: effectiveOptions?.maxPickupDistanceKm,
+      minFare: effectiveOptions?.minFare
     };
 
     if (overrideRegions) {
@@ -223,7 +228,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 방금 진행한 게임 동일 옵션으로 재시작
   const replayGame = useCallback(() => {
     resetGame();
-    startGame(lastGameOptions);
+    startGame(lastGameOptions, true);
   }, [resetGame, startGame, lastGameOptions]);
 
   // depth 유지하며 REGION_SELECT로 복귀 (한 뎁스 위 선택)
