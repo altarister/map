@@ -222,7 +222,14 @@ export const Map = () => {
           chapterCode: groupCode,
           overrideRegions: targetDongs,
           highlightRegions: [],
-          isBasicMode: false
+          isBasicMode: false,
+          ...(currentStage === 2 ? {
+            currentLocCode: groupCode,
+            currentLocName: feature.properties.name,
+            targetDestCode: 'ALL', 
+            maxPickupDistanceKm: 10,
+            minFare: 30000
+          } : {})
         });
         return;
       }
@@ -238,7 +245,14 @@ export const Map = () => {
           chapterCode: code,
           overrideRegions: targetDongs,
           highlightRegions: [],
-          isBasicMode: false
+          isBasicMode: false,
+          ...(currentStage === 2 ? {
+            currentLocCode: code,
+            currentLocName: feature.properties.name,
+            targetDestCode: 'ALL',
+            maxPickupDistanceKm: 10,
+            minFare: 30000
+          } : {})
         });
         return;
       }
@@ -491,6 +505,15 @@ export const Map = () => {
         >
           ← 뒤로 ({selectionLevel === 'CITY' ? '광역 선택' : '시/군 선택'})
         </button>
+      )}
+
+      {/* 2단계 전용: 현위치 선택 모드 안내 문구 */}
+      {gameState === 'REGION_SELECT' && currentStage === 2 && (
+        <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-40 glass-panel border-purple-500/50 text-white px-6 py-3 rounded-2xl shadow-2xl flex flex-col items-center animate-in slide-in-from-top-4 duration-500">
+           <span className="text-purple-400 font-bold mb-1">[ 2단계: 실전 배차 필터링 ]</span>
+           <span className="text-sm font-mono opacity-90">현재 위치(거점) 지정을 위해 행정구역을 터치하세요.</span>
+           <span className="text-[10px] text-gray-400 mt-1">터치한 지역을 중심으로 반경 내 배차 리스트가 생성됩니다.</span>
+        </div>
       )}
 
       {!showTownGeometry && gameState === 'PLAYING' && !forceShowTowns && (

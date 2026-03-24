@@ -61,11 +61,8 @@ export const GameModeSelectScreen = () => {
                                     key={`stage-${id}`}
                                     onClick={() => {
                                         setCurrentStage(id as any);
-                                        if (id === 2) {
-                                            setGameState('SET_DESTINATION');
-                                        } else {
-                                            setGameState('REGION_SELECT');
-                                        }
+                                        // 1단계, 2단계 모두 현위치(또는 시험 챕터)를 지도에서 클릭하도록 REGION_SELECT로 통일
+                                        setGameState('REGION_SELECT');
                                     }}
                                     className={`
                                         group relative flex flex-col items-start p-6 rounded-xl border-l-4 transition-all duration-300

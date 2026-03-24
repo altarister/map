@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { useGame } from '../../../contexts/GameContext';
 
-export const InseongSetupScreen = () => {
-  const { startGame } = useGame();
+interface Props {
+  onClose?: () => void;
+}
+
+export const InseongSetupScreen = ({ onClose }: Props) => {
+  const { 
+    currentLocation, 
+    targetDestination,
+    maxPickupDistanceKm,
+    minFare,
+    startGame
+  } = useGame();
   
-  const [currentLocCode, setCurrentLocCode] = useState<string>('41110'); // 수원시
-  const [selectedDestCode, setSelectedDestCode] = useState<string>('41610'); // 광주시
-  const [pickupDistance, setPickupDistance] = useState<number>(15);
-  const [fareLimit, setFareLimit] = useState<number>(30000);
+  const [selectedDestCode, setSelectedDestCode] = useState<string>(targetDestination?.code || 'ALL'); // 전체 (ALL) 기본
+  const [pickupDistance, setPickupDistance] = useState<number>(maxPickupDistanceKm);
+  const [fareLimit, setFareLimit] = useState<number>(minFare);
 
   const [toggles, setToggles] = useState({
     noCollect: false,
@@ -16,26 +25,24 @@ export const InseongSetupScreen = () => {
   });
 
   const handleStart = () => {
-    const locSelect = document.getElementById('locSelect') as HTMLSelectElement;
     const destSelect = document.getElementById('destSelect') as HTMLSelectElement;
 
-    const dummyCurrent = { 
-      code: currentLocCode, 
-      name: locSelect ? locSelect.options[locSelect.selectedIndex].text : '설정됨' 
-    };
     const dummyDest = { 
       code: selectedDestCode, 
-      name: destSelect ? destSelect.options[destSelect.selectedIndex].text : '전체' 
+      name: destSelect && selectedDestCode !== 'ALL' ? destSelect.options[destSelect.selectedIndex].text : '전체' 
     };
     
+    // startGame을 호출하면 InseongDispatchBoard의 리스트가 즉시 새 필터 기반으로 새로고침됨
     startGame({
-      currentLocCode: dummyCurrent.code,
-      currentLocName: dummyCurrent.name,
+      currentLocCode: currentLocation?.code,
+      currentLocName: currentLocation?.name,
       targetDestCode: dummyDest.code,
       targetDestName: dummyDest.name,
       maxPickupDistanceKm: pickupDistance,
       minFare: fareLimit
     });
+
+    if (onClose) onClose();
   };
 
   const toggleOption = (key: keyof typeof toggles) => {
@@ -43,12 +50,12 @@ export const InseongSetupScreen = () => {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans text-black select-none">
+    <div className="absolute inset-0 z-50 flex flex-col bg-[#eef1f6] font-sans text-black select-none">
       {/* 상단 파란색 헤더 (배차보드와 동일한 톤) */}
       <div className="flex bg-[#0052a3] text-white items-center h-12 px-2 border-b-2 border-slate-500 shadow-sm shrink-0">
-        <button className="text-white text-2xl px-2 font-bold mb-1">‹</button>
+        <button className="text-white text-2xl px-2 font-bold mb-1" onClick={onClose}>‹</button>
         <div className="flex-1 text-center font-extrabold text-[17px]">콜 설정</div>
-        <button className="text-white text-xl px-2">↻</button>
+        <button className="text-white text-xl px-2" onClick={onClose}>✖</button>
       </div>
       
       {/* 서브 헤더/툴바 영역 */}
@@ -64,18 +71,9 @@ export const InseongSetupScreen = () => {
         <div className="flex flex-col border-b border-gray-300">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="font-bold text-[15px] text-gray-800">현위치 (출발지)</span>
-            <select 
-              id="locSelect"
-              className="border border-gray-300 bg-gray-50 text-gray-800 text-sm font-bold rounded py-1 px-2 text-right outline-none focus:border-blue-500"
-              value={currentLocCode}
-              onChange={(e) => setCurrentLocCode(e.target.value)}
-            >
-              <option value="41110">현재: 수원시 (GPS)</option>
-              <option value="41130">현재: 성남시 (GPS)</option>
-              <option value="41460">현재: 용인시 (GPS)</option>
-              <option value="41280">현재: 고양시 (GPS)</option>
-              <option value="41480">현재: 파주시 (GPS)</option>
-            </select>
+            <div className="bg-gray-100 text-gray-600 text-[13px] font-bold rounded py-1 px-3 border border-gray-200 shadow-inner">
+              {currentLocation?.name || '지도에서 선택됨'} (자동감지)
+            </div>
           </div>
           
           <div className="flex flex-col px-4 py-3 bg-[#fcfcfa]">
@@ -100,21 +98,20 @@ export const InseongSetupScreen = () => {
         {/* 목적지 / 요금 */}
         <div className="flex flex-col border-b border-gray-300 mt-2 border-t">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <span className="font-bold text-[15px] text-gray-800">희망 도착지 (하차 존)</span>
+            <span className="font-bold text-[15px] text-gray-800">희망 하차 지역 (퇴근길)</span>
             <select 
               id="destSelect"
-              className="border border-gray-300 bg-gray-50 text-gray-800 text-sm font-bold rounded py-1 px-2 text-right outline-none focus:border-blue-500"
+              className="border border-blue-400 bg-white text-blue-900 text-sm font-extrabold rounded py-1 px-2 text-right outline-none focus:ring-2 focus:ring-blue-500"
               value={selectedDestCode}
               onChange={(e) => setSelectedDestCode(e.target.value)}
             >
-              <option value="41110">수원시 전체</option>
-              <option value="41610">광주시 전체</option>
-              <option value="41460">용인시 전체</option>
-              <option value="41280">고양시 전체</option>
-              <option value="41480">파주시 전체</option>
-              <option value="41390">시흥시 전체</option>
-              <option value="41590">화성시 전체</option>
-              <option value="ALL">전국 무관</option>
+              <option value="ALL">전체 (조건 없음)</option>
+              <option value="11">서울특별시 전체</option>
+              <option value="28">인천광역시 전체</option>
+              <option value="41110">경기도 수원시</option>
+              <option value="41130">경기도 성남시</option>
+              <option value="41150">경기도 의정부시</option>
+              <option value="41480">경기도 파주시</option>
             </select>
           </div>
 
@@ -175,9 +172,9 @@ export const InseongSetupScreen = () => {
       <div className="absolute bottom-0 w-full bg-[#f8f9fa] border-t-2 border-slate-400 p-2 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
         <button 
           onClick={handleStart}
-          className="w-full bg-[#ffb400] text-black font-extrabold py-3 border border-gray-500 rounded text-lg shadow-sm active:bg-yellow-500 flex justify-center items-center gap-2"
+          className="w-full bg-[#0052a3] text-white font-extrabold py-3 border border-blue-800 rounded text-lg shadow-sm active:bg-blue-700 flex justify-center items-center gap-2"
         >
-          <span>✔ 설정 저장 및 콜 받기</span>
+          <span>✔ 설정 저장 및 리스트 새로고침</span>
         </button>
       </div>
 

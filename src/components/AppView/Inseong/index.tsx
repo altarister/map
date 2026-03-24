@@ -45,6 +45,9 @@ export const InseongApp = () => {
     setActiveTab('CONFIRMED');
   };
 
+  // 설정 모달 열림 여부
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   // 플레이 중일 때
   if (gameState === 'PLAYING') {
     // 1. 채점이 완료되어 피드백이 내려왔거나 (수락 후 결과 화면)
@@ -65,18 +68,21 @@ export const InseongApp = () => {
 
     // 모달이 꺼져 있으면 배차 보드 리스트 출력
     return (
-      <InseongDispatchBoard 
-        confirmedCalls={confirmedCalls} 
-        activeTab={activeTab} 
-        onTabSelect={setActiveTab} 
-        onRowClick={(call: CallItem) => setSelectedCall(call)}
-      />
+      <div className="relative w-full h-full">
+        <InseongDispatchBoard 
+          confirmedCalls={confirmedCalls} 
+          activeTab={activeTab} 
+          onTabSelect={setActiveTab} 
+          onRowClick={(call: CallItem) => setSelectedCall(call)}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+        />
+        
+        {/* 자동배차 설정 모달 (기존 SetupScreen 재활용) */}
+        {isSettingsOpen && (
+          <InseongSetupScreen onClose={() => setIsSettingsOpen(false)} />
+        )}
+      </div>
     );
-  }
-
-  // 필터 설정 단계에서는 설정 화면 뷰 노출
-  if (gameState === 'SET_DESTINATION') {
-    return <InseongSetupScreen />;
   }
 
   // 그 외 에러/대기 상태 보호
