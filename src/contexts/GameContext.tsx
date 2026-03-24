@@ -59,7 +59,6 @@ interface GameContextType {
   minFare: number;
   setMinFare: (fare: number) => void;
   fullMapData: any | null;
-  setFullMapData: (data: any | null) => void;
   appendCall: (call: CallItem) => void;
   confirmedCallIds: string[];
   setConfirmedCallIds: (ids: string[]) => void;
@@ -73,7 +72,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 정적 지리 데이터 구독
   const {
-    // fullMapData, // Removed from useGeoContext
+    fullMapData,
     filteredMapData,
     setFilteredMapData,
     selectedChapter,
@@ -92,9 +91,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [minFare, setMinFare] = React.useState<number>(30000); // 2단계 자동배차 최소단가
   const [lastGameOptions, setLastGameOptions] = React.useState<any>(undefined);
   
-  // 3단계용 전체 지도 데이터 보관 (매번 필터링 방지)
-  const [fullMapData, setFullMapData] = React.useState<any | null>(null);
-
   const [confirmedCallIds, setConfirmedCallIds] = React.useState<string[]>([]);
   const [selectedCallId, setSelectedCallId] = React.useState<string | null>(null);
 
@@ -294,7 +290,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     minFare,
     setMinFare,
     fullMapData: fullMapData?.features || [],
-    setFullMapData, // Added
     appendCall,
     confirmedCallIds, // Added
     setConfirmedCallIds // Added
@@ -307,7 +302,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMaxPickupDistanceKm,
     minFare,
     setMinFare,
-    selectedCallId, setSelectedCallId, fullMapData, setFullMapData, appendCall, confirmedCallIds, setConfirmedCallIds
+    selectedCallId, setSelectedCallId, fullMapData, appendCall, confirmedCallIds, setConfirmedCallIds
   ]);
 
   return (
