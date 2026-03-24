@@ -168,7 +168,10 @@ export const Map = () => {
           return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code];
         }
       }
-      return currentQuestion.calls.flatMap((c: any) => [c.startRegion.code, c.targetRegion.code]);
+      return [
+        ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
+        ...currentQuestion.calls.flatMap((c: any) => [c.startRegion.code, c.targetRegion.code])
+      ];
     }
     return undefined;
   }, [gameState, currentStage, currentQuestion, selectedCallId]);

@@ -6,12 +6,19 @@ interface BoardProps {
   confirmedCalls: CallItem[];
   activeTab: 'ALL' | 'CONFIRMED';
   onTabSelect: (tab: 'ALL' | 'CONFIRMED') => void;
-  onRowClick?: (call: CallItem) => void;
-  onSettingsClick?: () => void;
+  onRowClick: (call: CallItem) => void;
+  onSettingsClick: () => void;
+  isTimerPaused: boolean;
+  onToggleTimer: () => void;
 }
 
-export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, onRowClick, onSettingsClick }: BoardProps) => {
-  const { gameState, currentQuestion, setSelectedCallId, maxPickupDistanceKm } = useGame();
+export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect, 
+  onRowClick,
+  onSettingsClick,
+  isTimerPaused,
+  onToggleTimer
+}: BoardProps) => {
+  const { gameState, currentQuestion, setSelectedCallId, selectedCallId, maxPickupDistanceKm } = useGame();
 
   // questions가 바뀌면 선택값 초기화
   useEffect(() => {
@@ -27,7 +34,6 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
   const calls = activeTab === 'ALL' ? question.calls : confirmedCalls;
 
   const handleRowClick = (call: CallItem) => {
-    if (activeTab === 'CONFIRMED') return; // 확정 탭에서는 상세 조회 방지(원한다면 허용 가능)
     if (onRowClick) {
       onRowClick(call);
     }
@@ -54,40 +60,46 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
         >
            완료({confirmedCalls.length})
         </div>
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300"></div>
-        <div 
-           className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300 hover:text-white transition-colors"
-           onClick={onSettingsClick}
-        >
-           설정
-        </div>
+        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">메시지함</div>
+        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">GPS</div>
       </div>
 
       {/* 서브 툴바 */}
       {activeTab === 'ALL' && (
         <div className="flex bg-[#e4e4e4] border-b border-gray-400 text-xs text-gray-700 h-7 items-center px-1 gap-1">
           <button className="bg-[#0052a3] text-white px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
-            설정
+            원터치
+          </button>
+          <button className="bg-[#0052a3] text-white px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+            그룹공지
           </button>
           <button className="bg-gray-200 px-3 py-0.5 border border-gray-400 text-[10px] font-bold text-gray-700">
-            전체
+            장터게시판
+          </button>
+          <button 
+            className={`px-3 py-0.5 border border-gray-400 text-[10px] font-bold ${isTimerPaused ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+            onClick={onToggleTimer}
+          >
+            {isTimerPaused ? '잠금해제' : '잠금'}
           </button>
           <button className="bg-[#facc15] text-black px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
-            {maxPickupDistanceKm}km
+            빠른설정
           </button>
         </div>
       )}
 
-      {/* 리스트 헤더 (표 모양) - 테두리 및 빨간 텍스트 */}
-      <div className="flex bg-[#f5f5dc] border-b-2 border-gray-400 text-[12px] font-bold text-red-600">
-        <div className="w-[12%] text-center py-1 border-r border-gray-300">거리</div>
-        <div className="w-[30%] text-center py-1 border-r border-gray-300">출발지</div>
-        <div className="w-[38%] text-center py-1 border-r border-gray-300">도착지</div>
-        <div className="w-[10%] text-center py-1 border-r border-gray-300">차종</div>
-        <div className="w-[10%] text-center py-1">요금</div>
-      </div>
+      {/* 리스트 헤더 (신규 탭 전용) */}
+      {activeTab === 'ALL' && (
+        <div className="flex bg-white border-b-2 border-gray-400 text-center font-bold text-[12px] text-[#ff3300] py-1 shadow-sm leading-tight tracking-tighter">
+          <div className="w-[12%] border-r border-gray-300">거리</div>
+          <div className="w-[30%] border-r border-gray-300">출발지</div>
+          <div className="w-[38%] border-r border-gray-300">도착지</div>
+          <div className="w-[10%] border-r border-gray-300">차종</div>
+          <div className="w-[10%]">요금</div>
+        </div>
+      )}
 
-      {/* 콜 리스트 (표 본문) */}
+      {/* 리스트 본문 */}
       <div className="flex flex-col overflow-y-auto flex-1 bg-white">
         {calls.length === 0 && (
            <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-[15px]">
@@ -95,9 +107,36 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
            </div>
         )}
         {calls.map((call, idx) => {
-          
-          // Row 배색 (홀수 짝수)
-          let bgColor = idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]';
+          const isSelected = selectedCallId === call.id;
+          const bgColor = isSelected ? 'bg-[#c9d3f8]' : (idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]');
+
+          if (activeTab === 'CONFIRMED') {
+            return (
+              <div 
+                key={`${call.id}-${idx}-confirmed`} 
+                className={`flex items-center border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8] py-2`}
+                onClick={() => handleRowClick(call)}
+              >
+                <div className="w-[15%] flex justify-center">
+                  <div className="border border-green-500 text-green-600 font-bold text-[11px] px-1 py-0.5 bg-white tracking-widest whitespace-nowrap">
+                    완료
+                  </div>
+                </div>
+                <div className="w-[35%] font-bold text-gray-900 text-[15px] truncate px-1 text-center tracking-tighter">
+                  {call.companyName || '태양메디스'}
+                </div>
+                <div className="w-[15%] font-bold text-black text-[14px] text-center tracking-tighter pr-2">
+                  {call.pickupTime || '12:19'}
+                </div>
+                <div className="w-[15%] font-bold text-black text-[14px] text-center tracking-tighter pl-2 border-l border-gray-200">
+                  {call.deliveryTime || '15:46'}
+                </div>
+                <div className="w-[20%] font-bold text-gray-900 text-[14px] truncate pl-2 pr-2 text-right">
+                  {call.targetRegion.name}
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div 
@@ -143,25 +182,24 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect, o
         })}
       </div>
 
-      {/* 하단 페이지네이션 및 액션 바 (근거리가 없는 임의 버튼 제거됨) */}
-      <div className="bg-[#e4e4e4] border-t-2 border-gray-400 p-1 flex justify-between items-center text-xs h-8">
-         <div className="flex items-center">
-            <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">◀</button>
-            <span className="mx-3 font-bold">1 / 1</span>
-            <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">▶</button>
-         </div>
-         {/* <span className="font-bold text-gray-600 mr-2 tracking-tighter">
-           {activeTab === 'ALL' ? '총 1건 (현재 페이지)' : `확정 ${confirmedCalls.length}건`}
-         </span> */}
-         <button 
-           className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold hover:bg-yellow-500 transition-colors"
-           onClick={onSettingsClick}
-         >
-           {maxPickupDistanceKm}km
-         </button>
-         <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">전체</button>
-         <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">리셋</button>
-      </div>
+      {/* 하단 페이지네이션 및 액션 바 (신규 탭 전용) */}
+      {activeTab === 'ALL' && (
+        <div className="bg-[#e4e4e4] border-t-2 border-gray-400 p-1 flex justify-between items-center text-xs h-8">
+           <div className="flex items-center">
+              <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">◀</button>
+              <span className="mx-3 font-bold">1 / 1</span>
+              <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">▶</button>
+           </div>
+           <button 
+             className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold hover:bg-yellow-500 transition-colors"
+             onClick={onSettingsClick}
+           >
+             {maxPickupDistanceKm}km
+           </button>
+           <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">전체</button>
+           <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">리셋</button>
+        </div>
+      )}
 
 
 

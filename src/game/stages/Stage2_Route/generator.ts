@@ -22,40 +22,9 @@ export const generateCallBatch = (
 ): CallFilterQuestion => {
   const { mapData, currentLocCode, maxPickupDistanceKm = 15, minFare = 30000 } = ctx;
 
-  // 1. 기사의 현위치 설정 (currentLocCode로 시작하는 지역 중 랜덤, 없으면 전체 랜덤)
-  const locTarget = currentStartCode || currentLocCode;
-  let driverFeature = mapData.find(f => f.properties.code === locTarget);
-  
-  // 1.1 행정구역 코드가 구/동 단위일 때 0으로 끝나는 시 단위 코드(예: 성남시 41130)를 안전하게 찾기 위한 Prefix화
-  const locPrefix = locTarget ? locTarget.replace(/0+$/, '') : '';
-
-  if (!driverFeature && locPrefix) {
-    const candidates = mapData.filter(f => f.properties.code.startsWith(locPrefix));
-    if (candidates.length > 0) {
-      driverFeature = candidates[Math.floor(Math.random() * candidates.length)];
-    }
-  }
-
-  if (!driverFeature) {
-    driverFeature = mapData[Math.floor(Math.random() * mapData.length)];
-  }
-  const driverCentroid = getCentroid(driverFeature);
-
-  // 2. 하차지 그룹 (정답 방향 vs 오답 방향)
-  const destPrefix = targetDestCode === 'ALL' ? '' : targetDestCode.replace(/0+$/, '');
-  const matchDestGroup = destPrefix ? mapData.filter(f => f.properties.code.startsWith(destPrefix)) : mapData;
-  const wrongDestGroup = destPrefix ? mapData.filter(f => !f.properties.code.startsWith(destPrefix)) : [];
-
-  // 3. 상차지(Pickup) 거리별 사전 분류
-  const pickupCandidates = mapData.map(f => ({
-    feature: f,
-    dist: calculateDistanceKm(driverCentroid, getCentroid(f))
-  }));
-
-  let validPickups = pickupCandidates.filter(p => p.dist <= maxPickupDistanceKm).map(p => p.feature);
-
-  // Fallback 처리
-  if (validPickups.length === 0) validPickups = mapData;
+  const { driverFeature, driverCentroid, matchDestGroup, wrongDestGroup, validPickups } = getMapContext(
+    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
+  );
 
   const calls: CallItem[] = [];
 
@@ -103,6 +72,78 @@ export const generateCallBatch = (
   };
 };
 
+function getMapContext(mapData: RegionFeature[], targetDestCode: string, locTarget?: string, maxPickupDistanceKm: number = 15) {
+  // 1. 기사의 현위치 설정 (currentLocCode로 시작하는 지역 중 랜덤, 없으면 전체 랜덤)
+  let driverFeature = mapData.find(f => f.properties.code === locTarget);
+  
+  // 1.1 행정구역 코드가 구/동 단위일 때 0으로 끝나는 시 단위 코드(예: 성남시 41130)를 안전하게 찾기 위한 Prefix화
+  const locPrefix = locTarget ? locTarget.replace(/0+$/, '') : '';
+
+  if (!driverFeature && locPrefix) {
+    const candidates = mapData.filter(f => f.properties.code.startsWith(locPrefix));
+    if (candidates.length > 0) {
+      driverFeature = candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+
+  if (!driverFeature) {
+    driverFeature = mapData[Math.floor(Math.random() * mapData.length)];
+  }
+  const driverCentroid = getCentroid(driverFeature);
+
+  // 2. 하차지 그룹 (정답 방향 vs 오답 방향)
+  const destPrefix = targetDestCode === 'ALL' ? '' : targetDestCode.replace(/0+$/, '');
+  const matchDestGroup = destPrefix ? mapData.filter(f => f.properties.code.startsWith(destPrefix)) : mapData;
+  const wrongDestGroup = destPrefix ? mapData.filter(f => !f.properties.code.startsWith(destPrefix)) : [];
+
+  // 3. 상차지(Pickup) 거리별 사전 분류
+  const pickupCandidates = mapData.map(f => ({
+    feature: f,
+    dist: calculateDistanceKm(driverCentroid, getCentroid(f))
+  }));
+
+  let validPickups = pickupCandidates.filter(p => p.dist <= maxPickupDistanceKm).map(p => p.feature);
+
+  // Fallback 처리
+  if (validPickups.length === 0) validPickups = mapData;
+
+  return { driverFeature, driverCentroid, matchDestGroup, wrongDestGroup, validPickups };
+}
+
+export const generateSingleCall = (
+  ctx: StageContext,
+  targetDestCode: string,
+  currentStartCode?: string,
+  isCorrectProb: number = 0.2
+): CallItem => {
+  const { mapData, currentLocCode, maxPickupDistanceKm = 15, minFare = 30000 } = ctx;
+
+  const { driverCentroid, matchDestGroup, wrongDestGroup, validPickups } = getMapContext(
+    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
+  );
+
+  const isAnswer = Math.random() < isCorrectProb;
+  const destGroup = isAnswer && matchDestGroup.length > 0 ? matchDestGroup : (wrongDestGroup.length > 0 ? wrongDestGroup : matchDestGroup);
+  
+  const dest = destGroup[Math.floor(Math.random() * destGroup.length)];
+  const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
+
+  if (isAnswer) {
+    return createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT');
+  } else {
+    // 오답 콜 중 50%는 요금 미달 똥콜, 50%는 역방향
+    const trapType = Math.random() < 0.5 ? 'BAD_FARE' : 'PERFECT';
+    const isMatchingRoute = trapType === 'BAD_FARE'; // 똥콜은 방향은 맞게 할 수 있음
+    
+    // 만약 똥콜이면 하차지는 matchDestGroup에서 고름 (방향 일치)
+    const trapDest = (trapType === 'BAD_FARE' && matchDestGroup.length > 0) 
+      ? matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)] 
+      : dest;
+
+    return createCallItem(pickup, trapDest, driverCentroid, isMatchingRoute, minFare, trapType);
+  }
+};
+
 function getCentroid(feature: RegionFeature): [number, number] {
   if (feature.properties.centroid) {
     return feature.properties.centroid;
@@ -144,10 +185,15 @@ function createCallItem(
     violation = 'BAD_FARE';
   }
 
-  const paymentOptions = ['선불', '착불', '송금', '세금계산서', '인수증'];
-  const randomPaymentMethod = paymentOptions[Math.floor(Math.random() * paymentOptions.length)];
+  const paymentTypes = ['신용', '선불', '착불', '월결'];
+  const randomPaymentType = paymentTypes[Math.floor(Math.random() * paymentTypes.length)];
 
-  const vehicleOptions = ['오토', '다마스', '라보', '1톤카고'];
+  const billingTypes = ['계산서', '인수증', '무과세'];
+  const randomBillingType = billingTypes[Math.floor(Math.random() * billingTypes.length)];
+
+  const randomStatus = '신규'; // 기본값 (추후 고도화 가능)
+
+  const vehicleOptions = ['오', '다', '라', '1t'];
   const randomVehicle = vehicleOptions[Math.floor(Math.random() * vehicleOptions.length)];
 
   const itemOptions = ['박스 1개', '서류봉투', '쇼핑백 2개', '소형 가전', '샘플 박스', '마대 1개'];
@@ -155,6 +201,16 @@ function createCallItem(
 
   const categoryOptions = ['보통', '보통', '보통', '급행', '예약'];
   const randomCategory = categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
+
+  const companyOptions = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
+  const randomCompany = companyOptions[Math.floor(Math.random() * companyOptions.length)];
+
+  const pHour = Math.floor(Math.random() * 8) + 8; // 08 ~ 15
+  const pMin = Math.floor(Math.random() * 60);
+  const dHour = pHour + Math.floor(Math.random() * 3) + 1;
+  const dMin = Math.floor(Math.random() * 60);
+  const randomPickupTime = `${pHour.toString().padStart(2, '0')}:${pMin.toString().padStart(2, '0')}`;
+  const randomDeliveryTime = `${dHour.toString().padStart(2, '0')}:${dMin.toString().padStart(2, '0')}`;
 
   const getFullName = (f: RegionFeature): string => {
     const props = f.properties as any;
@@ -183,10 +239,15 @@ function createCallItem(
     },
     pickupDistanceKm,
     distanceKm,
-    paymentMethod: randomPaymentMethod,
+    status: randomStatus,
+    paymentType: randomPaymentType,
+    billingType: randomBillingType,
     vehicleType: randomVehicle,
     itemDescription: randomItem,
     callCategory: randomCategory,
+    companyName: randomCompany,
+    pickupTime: randomPickupTime,
+    deliveryTime: randomDeliveryTime,
     fare: finalFare,
     isMatchingRoute,
     violation

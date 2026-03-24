@@ -10,10 +10,7 @@ interface Props {
   onConfirm?: (call: CallItem) => void;
 }
 
-export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, onAccept, onConfirm }: Props) => {
-  const isEvaluated = feedback !== undefined && feedback !== null;
-  const isCorrect = feedback?.isCorrect;
-
+export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) => {
   const fareFormatted = call.fare.toLocaleString();
   const distPickup = call.pickupDistanceKm?.toFixed(1) || '0.0';
   const distDelivery = call.distanceKm.toFixed(1);
@@ -30,19 +27,9 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
           <div className="w-[42px] h-[32px] bg-[#8bc34a] rounded shadow-sm border border-[#689f38] flex justify-center items-center">
              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56M15.78 14.16l-2.03 2.03C10.63 14.6 8.4 12.38 6.8 9.24l2.03-2.03M4.61 8.62C4.24 7.51 4.04 6.32 4.04 5.09M20.01 15.38c.55 0 1 .45 1 1v3.58c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1H7.6c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57M15.78 14.16c.39.39.39 1.02 0 1.41M6.8 9.24c-.39-.39-1.02-.39-1.41 0" stroke="white" strokeWidth="2" fill="none"/></svg>
           </div>
-          {isConfirmed ? (
-            <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-500 rounded shadow-sm border border-gray-400">완료건</button>
-          ) : (
-            <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-800 rounded shadow-sm border border-gray-400">완료</button>
-          )}
+          <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-500 rounded shadow-sm border border-gray-400">진행중</button>
         </div>
       </div>
-
-      {isEvaluated && !isCorrect && (
-        <div className="bg-[#d90000] text-white text-center font-bold py-1.5 px-2 text-[15px] shadow-sm shrink-0">
-          ❌ 오답 사유: {feedback.message}
-        </div>
-      )}
 
       {/* Info Area Base - Pale Green Background like screenshot */}
       <div className="flex-1 overflow-y-auto bg-[#e8f5e9]">
@@ -50,11 +37,11 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         {/* 2. Status & Item */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-[#aed581]/40">
           <div className="flex gap-8 text-[15px] font-bold text-gray-800 tracking-tight">
-            <span>상태 : <span className="text-gray-900 ml-1">{isConfirmed ? '완료' : (call.status || '배차')}</span></span>
+            <span>상태 : <span className="text-gray-900 ml-1">배차확정 (진행중)</span></span>
             <span>물품 : <span className="text-gray-900 ml-1">{call.itemDescription || ''}</span></span>
           </div>
           <button onClick={onClose} className="px-5 py-2 bg-white border border-gray-300 font-bold text-[14px] rounded shadow-sm text-gray-600 active:bg-gray-100">
-            취소
+            닫기
           </button>
         </div>
 
@@ -144,44 +131,32 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
       </div>
 
-      {/* 8. Bottom Action Bar (Floating) */}
+      {/* 8. Bottom Action Bar (Ongoing Mode) */}
       <div className="h-[65px] bg-[#263238] px-2 flex gap-2 items-center justify-between border-t border-gray-800 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-        
-        {isConfirmed ? (
-          <button 
-            onClick={onClose}
-            className="flex-1 h-12 bg-[#26a69a] text-white font-extrabold text-lg rounded-sm shadow-sm border border-[#00897b] active:scale-95 transition-transform"
-          >
-            닫기
-          </button>
-        ) : (
-          <>
-            <button 
-              onClick={() => onAccept?.(call)}
-              disabled={isEvaluated}
-              className={`w-[130px] h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm transition-transform ${isEvaluated ? 'bg-[#ffca28] text-gray-700 opacity-40 cursor-not-allowed' : 'bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95'}`}
-            >
-              탁송
-            </button>
-
-            <div className="flex-1 flex gap-2 h-12">
-              <button 
-                onClick={onClose}
-                className="flex-1 bg-white text-gray-800 font-extrabold text-base rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
-              >
-                취소
-              </button>
-
-              <button 
-                onClick={() => onConfirm?.(call)}
-                disabled={!(isEvaluated && isCorrect)}
-                className={`flex-1 font-extrabold text-base rounded-sm shadow-sm transition-transform ${!(isEvaluated && isCorrect) ? 'bg-[#26a69a] text-white opacity-40 cursor-not-allowed' : 'bg-[#009688] text-white border border-[#00796b] active:scale-95'}`}
-              >
-                닫기
-              </button>
-            </div>
-          </>
-        )}
+        <button 
+          className="flex-1 h-12 flex flex-col items-center justify-center font-bold text-[14px] text-gray-800 bg-[#e0e0e0] rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
+        >
+          픽업지 내비
+        </button>
+        <button 
+          className="flex-1 flex flex-col items-center justify-center font-bold text-[14px] text-gray-800 bg-[#e0e0e0] h-12 rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
+        >
+          도착지 내비
+        </button>
+        <button 
+          className="flex-1 flex flex-col items-center justify-center font-extrabold text-[15px] text-white bg-[#0288d1] h-12 rounded-sm shadow-sm border border-[#0277bd] active:scale-95 transition-transform"
+        >
+          픽업 완료
+        </button>
+        <button 
+          onClick={() => {
+            if (onConfirm) onConfirm(call);
+            else onClose();
+          }}
+          className="flex-1 h-12 flex flex-col items-center justify-center font-extrabold text-[15px] text-white bg-[#d32f2f] rounded-sm shadow-sm border border-[#c62828] active:scale-95 transition-transform"
+        >
+          배송 완료
+        </button>
       </div>
 
     </div>

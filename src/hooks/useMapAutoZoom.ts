@@ -152,12 +152,13 @@ export function useMapAutoZoom({
 
     if (!isFinite(x0) || !isFinite(y0)) return;
 
-    // 패딩을 더 넓게 주어 경로 선이 잘리지 않도록 함
-    const padding = 100;
+    // 패딩을 더 넓게 주어 경로 선이 잘리지 않도록 하고, 현위치 주변 시야를 확보합니다.
+    const padding = 120;
     const bw = x1 - x0, bh = y1 - y0;
     if (bw === 0 || bh === 0) return;
 
-    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 8);
+    // 최대 확대 비율(scale)을 8에서 4.5로 낮추어 부담스러운 초근접 줌을 방지합니다.
+    const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 4.5);
     const cx = (x0 + x1) / 2;
     const cy = (y0 + y1) / 2;
 

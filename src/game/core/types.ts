@@ -66,10 +66,15 @@ export interface CallItem {
     centroid: [number, number];
   };
   distanceKm: number;
-  paymentMethod?: string; // 선불, 착불, 송금, 세금계산서 등
-  vehicleType?: string;   // 다, 라, 카, 마 (오토방/카고)
+  status?: string;          // 상태 (신규, 배차, 픽업, 완료, 등)
+  paymentType?: string;     // 결제 방식 (신용, 선불, 착불, 월결 등)
+  billingType?: string;     // 증빙 방식 (계산서, 인수증, 현금증빙 등)
+  vehicleType?: string;     // 다, 라, 카, 마 (오토방/카고)
   itemDescription?: string; // 박스 1개, 서류 등
   callCategory?: string;    // 보통, 급행, 예약
+  companyName?: string;     // 고객/상호명 (완료 탭 표기용)
+  pickupTime?: string;      // 픽업 시간 (HH:MM)
+  deliveryTime?: string;    // 예상 하차 시간 (HH:MM)
   fare: number;
   isMatchingRoute: boolean; // 유저 목표와 일치하는가?
   violation?: 'BAD_FARE' | 'WRONG_DEST';

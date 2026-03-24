@@ -7,7 +7,7 @@ import { useMapContext } from './MapContext'; // Added import
 import { useSettings } from './SettingsContext';
 
 import type { GameState, GameScore, AnswerFeedback } from '../types/game';
-import type { GameQuestion, UserInput } from '../game/core/types';
+import type { GameQuestion, UserInput, CallItem } from '../game/core/types';
 import type { SelectionLevel } from '../types/region';
 
 interface GameContextType {
@@ -58,6 +58,11 @@ interface GameContextType {
   setMaxPickupDistanceKm: (dist: number) => void;
   minFare: number;
   setMinFare: (fare: number) => void;
+  fullMapData: any | null;
+  setFullMapData: (data: any | null) => void;
+  appendCall: (call: CallItem) => void;
+  confirmedCallIds: string[];
+  setConfirmedCallIds: (ids: string[]) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -68,7 +73,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 정적 지리 데이터 구독
   const {
-    fullMapData,
+    // fullMapData, // Removed from useGeoContext
     filteredMapData,
     setFilteredMapData,
     selectedChapter,
@@ -84,8 +89,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [targetDestination, setTargetDestination] = React.useState<{ code: string; name: string } | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<{ code: string; name: string } | null>(null);
   const [maxPickupDistanceKm, setMaxPickupDistanceKm] = React.useState<number>(10);
-  const [minFare, setMinFare] = React.useState<number>(30000);
+  const [minFare, setMinFare] = React.useState<number>(30000); // 2단계 자동배차 최소단가
   const [lastGameOptions, setLastGameOptions] = React.useState<any>(undefined);
+  
+  // 3단계용 전체 지도 데이터 보관 (매번 필터링 방지)
+  const [fullMapData, setFullMapData] = React.useState<any | null>(null);
+
+  const [confirmedCallIds, setConfirmedCallIds] = React.useState<string[]>([]);
   const [selectedCallId, setSelectedCallId] = React.useState<string | null>(null);
 
   const handleGameEnd = useCallback((finalScore: GameScore) => {
@@ -130,7 +140,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     answeredRegions,
     levelState,
     isHintActive,
-    setHintActive
+    setHintActive,
+    appendCall
   } = useGameLogic(
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
@@ -281,11 +292,22 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     maxPickupDistanceKm,
     setMaxPickupDistanceKm,
     minFare,
-    setMinFare
+    setMinFare,
+    fullMapData: fullMapData?.features || [],
+    setFullMapData, // Added
+    appendCall,
+    confirmedCallIds, // Added
+    setConfirmedCallIds // Added
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
     lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
-    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation, maxPickupDistanceKm, minFare, selectedCallId, setSelectedCallId
+    skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation,
+    setCurrentLocation,
+    maxPickupDistanceKm,
+    setMaxPickupDistanceKm,
+    minFare,
+    setMinFare,
+    selectedCallId, setSelectedCallId, fullMapData, setFullMapData, appendCall, confirmedCallIds, setConfirmedCallIds
   ]);
 
   return (
