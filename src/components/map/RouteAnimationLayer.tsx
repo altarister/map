@@ -34,9 +34,9 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
     // 아무것도 선택되지 않았을 때 다중 표출 로직
     const callMap = new Map<string, CallItem>();
     
-    // GPS ON 상태면 리스트(신규 오더 목록)에 있는 진행 중 콜들을 지도에 전부 그림
-    if (isGpsOn) {
-      question.calls.forEach(c => callMap.set(c.id, c));
+    // GPS ON 상태(힌트 모드): 리스트 최상단(가장 최근에 생성된) 콜 딱 하나만 표시
+    if (isGpsOn && question.calls.length > 0) {
+      callMap.set(question.calls[0].id, question.calls[0]);
     }
     
     // 확정 오더들도 무조건 보여준다 (합짐용)

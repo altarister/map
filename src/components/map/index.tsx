@@ -45,7 +45,9 @@ export const Map = () => {
     setSelectionLevel,
     currentFocusCode,
     setCurrentFocusCode,
-    selectedCallId // Added selectedCallId
+    selectedCallId, // Added selectedCallId
+    isGpsOn,
+    confirmedCallIds
   } = useGame();
 
   const {
@@ -162,19 +164,37 @@ export const Map = () => {
   // [NEW] Stage 2 Auto-Zoom Focus Region 연산
   const focusRegionCodes = useMemo(() => {
     if (gameState === 'PLAYING' && currentStage === 2 && currentQuestion?.type === 'CALL_FILTER') {
+      
+      const confirmedCalls = currentQuestion.calls.filter(c => confirmedCallIds.includes(c.id));
+      const confirmedCodes = confirmedCalls.flatMap(c => [c.startRegion.code, c.targetRegion.code]);
+
+      // 1. 특정 콜(목록에서 클릭된 콜)이 있다면 해당 콜 우선 + 내 장부 콜
       if (selectedCallId) {
         const call = currentQuestion.calls.find((c: any) => c.id === selectedCallId);
         if (call && currentQuestion.driverLocation) {
-          return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code];
+          return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code, ...confirmedCodes];
         }
       }
+      
+      // 2. GPS 파워 ON(힌트 모드): 최상단(가장 최근) 콜 위주로 줌아웃/줌인 + 내 장부 콜
+      if (isGpsOn && currentQuestion.calls.length > 0) {
+        const topCall = currentQuestion.calls[0];
+        return [
+          ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
+          topCall.startRegion.code,
+          topCall.targetRegion.code,
+          ...confirmedCodes
+        ];
+      }
+
+      // 3. 평시 상태: 내 위치(거점) 위주로만 보여주나, 확정된 내 장부 오더가 있다면 그것까지는 포함하여 보여줌
       return [
         ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
-        ...currentQuestion.calls.flatMap((c: any) => [c.startRegion.code, c.targetRegion.code])
+        ...confirmedCodes
       ];
     }
     return undefined;
-  }, [gameState, currentStage, currentQuestion, selectedCallId]);
+  }, [gameState, currentStage, currentQuestion, selectedCallId, isGpsOn, confirmedCallIds]);
 
   // ── Auto-Zoom Controller ────────────────────────────────────────────────────
   useMapAutoZoom({
