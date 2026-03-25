@@ -2,6 +2,7 @@ import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { GeoDataProvider } from './contexts/GeoDataContext';
 import { MapProvider } from './contexts/MapContext';
+import { DispatchProvider } from './contexts/DispatchContext';
 import { Map } from './components/map';
 import { GameModeSelectScreen } from './components/game/GameModeSelectScreen';
 
@@ -86,10 +87,12 @@ function App() {
       <GeoDataProvider>
         <MapProvider>
           <GameProvider>
-            <div className="w-full h-screen bg-slate-100 flex flex-col">
-              <TopBar />
-              <GameContent />
-            </div>
+            <DispatchProvider>
+              <div className="w-full h-screen bg-slate-100 flex flex-col">
+                <TopBar />
+                <GameContent />
+              </div>
+            </DispatchProvider>
           </GameProvider>
         </MapProvider>
       </GeoDataProvider>

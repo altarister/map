@@ -1,5 +1,7 @@
 import type { CallItem } from '../../../game/core/types';
 import type { AnswerFeedback } from '../../../types/game';
+import { formatRegionName, formatRegionFullName } from '../../../utils/format';
+
 
 interface Props {
   call: CallItem;
@@ -99,7 +101,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
               픽업
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
-              {call.startRegion.name.split(' ')[0]} / ()
+              {formatRegionName(call.startRegion.name)} / ()
             </div>
           </div>
 
@@ -111,7 +113,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate pb-0.5">
-              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.startRegion.fullName.split('/').pop()}
+              {call.companyName || '태양메디스'} / {call.pickupTime} / {formatRegionFullName(call.startRegion.fullName)}
             </div>
           </div>
 

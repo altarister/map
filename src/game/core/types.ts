@@ -69,6 +69,9 @@ export interface CallItem {
   status?: string;          // 상태 (신규, 배차, 픽업, 완료, 등)
   isShared?: boolean;       // 공유 오더 여부 (출발지에 @ 표시)
   isExpress?: boolean;      // 급송 여부 (노란 바탕, 붉은 글씨, 합짐 불가)
+  isWaypoint?: boolean;     // 경유콜 여부 (상/하차지 복수)
+  pickupCount?: number;     // 상차지 개수 (기본 1)
+  dropoffCount?: number;    // 하차지 개수 (기본 1)
   paymentType?: '신용' | '선불' | '착불' | '월결';     // 결제 방식
   billingType?: '계산서' | '인수증' | '무과세';        // 증빙 방식 (계산서는 파란 바탕)
   vehicleType?: string;     // 다, 라, 카, 마 (오토방/카고)
@@ -101,7 +104,8 @@ export type InputType = 'MAP_CLICK' | 'OPTION_SELECT';
 export type UserInput =
   | { type: 'MAP_CLICK'; regionCode: string }
   | { type: 'OPTION_SELECT'; value: string | number }
-  | { type: 'ESTIMATE_VALUE'; value: number }; // 거리 등 수치 입력
+  | { type: 'ESTIMATE_VALUE'; value: number }
+  | { type: 'CALL_ACCEPT'; call: any }; // CallItem type
 
 // 3. 정답 검증 결과 (Validation Result)
 export type ValidationResult =
@@ -157,4 +161,16 @@ export interface StageStrategy {
 
   // 조작 패널 (옵션: 입력창, 제출 버튼 등)
   renderControlPanel?(question: GameQuestion, onSubmit: (input: UserInput) => void): ReactNode;
+}
+
+// 5. 자동배차 설정 인터페이스 (인성 기본 UI 완전 동기화)
+export interface AutoDispatchFilter {
+  allowWaypoint: boolean;       // 경유 허용 여부
+  allowRoundTrip: boolean;      // 왕복 허용 여부
+  pickupRadiusKm: number;       // 내위치 반경(km)
+  minFare: number;              // 최소 운임
+  maxFare: number;              // 최대 운임
+  excludedKeywords: string;     // 제외 단어 (키워드 콤마 분리형)
+  destinationKeywords: string;  // 도착지 단어 (키워드 콤마 분리형)
+  customFilters: string[];      // 하단 빠른 설정 텍스트 (ex: "^^,@", "김포,인천...")
 }

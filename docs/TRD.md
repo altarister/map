@@ -68,9 +68,11 @@ src/
 │   ├── GameContext.tsx             # 게임 진행 상태, 점수
 │   ├── GeoDataContext.tsx          # 지도 GeoJSON 원본 메모리 적재
 │   ├── MapContext.tsx              # 지도 렌더링 상태 (줌/팬 transform, 레이어 on/off)
-│   └── SettingsContext.tsx         # 유저 설정 및 환경 설정
+│   ├── SettingsContext.tsx         # 유저 설정 및 환경 설정
+│   └── DispatchContext.tsx         # 배차 스트리밍 특화 전역 상태 관리
 ├── hooks/              # 비즈니스 로직 및 D3 제어 (상세 역할은 2.2절 참조)
 │   ├── useGameLogic.ts             # 게임 점수/출제/상태 관리
+│   ├── useDispatchStreaming.ts     # 50초 윈도우 배차 사이클 생성 타이머 로직
 │   ├── useGeoData.ts               # GeoJSON 데이터 로드
 │   ├── useLocalStorage.ts          # 유저 설정/최고 점수 저장
 │   ├── useMapAutoZoom.ts           # 부드러운 자동 스크롤 애니메이션
@@ -97,6 +99,7 @@ src/
 **1. 전역 시스템 훅 (Context 연동)**
 
 - **`useGameLogic.ts`**: 게임 점수, 단계, 문제 출제 및 정답 검증 로직. 데이터는 `GameContext`에 저장.
+- **`useDispatchStreaming.ts`**: 2단계 실전 배차 모드에서 50초 윈도우 기반의 콜(오더) 무작위 생성 타이머 루프를 관장. 데이터는 `DispatchContext`에 저장.
 - **`useGeoData.ts`**: 대용량 GeoJSON 지도 데이터를 브라우저에 로드 및 인메모리 적재. 데이터는 `GeoDataContext`에 저장.
 
 **2. 스토리지 훅 (영구 저장소 연동)**
@@ -193,9 +196,11 @@ interface StageStrategy {
 
 ### 3.1 핵심 상태 (Game State)
 
-`GameContext`와 `useGameLogic` 훅을 통해 게임의 전반적인 상태를 관리합니다.
+`GameContext`(저빈도 상태)와 `DispatchContext`(고빈도 실시간 상태)를 통해 게임의 전반적인 상태를 격리 관리합니다.
 
+#### GameContext (저빈도/전역 상태)
 - **`currentStage`**: 현재 플레이 중인 게임 단계 (SettingsContext)
+
 - **`currentQuestion`**: 현재 문제 객체 (레벨별로 타입 상이)
 - **`levelState`**: 레벨 내부의 임시 상태 (예: 경로 찾기 중 '상차지 선택 완료' 상태)
 - **`score`**: 점수 및 소요 시간
@@ -206,6 +211,13 @@ interface StageStrategy {
   - `'DISTRICT'` → 대도시 일반구 선택 화면 (고양/수원/용인 등 대도시만 진입)
   - `'DONG'` → 읍/면/법정동 게임 시작 (이 단계는 `gameState === 'PLAYING'`으로 전환됨)
 - **`currentFocusCode`**: 현재 선택된 상위 지역의 코드 (PROVINCE→경기도 코드, CITY→시군 코드 등)
+
+#### DispatchContext (고빈도/배차 상태)
+2단계 모드에서 초당 변화하는 배차 리스트로 인한 캔버스 전체 리렌더링을 방지하기 위해 분리된 전용 스토어입니다.
+- **`streamingCalls`**: 현재 생성되어 화면에 떠 있는 콜(오더) 객체 배열 (최대 50개 유지)
+- **`confirmedCalls`**: 유저가 수락(탁송)하여 '내 장부'에 확정된 콜 배열
+- **`selectedCallId`**: 배차판에서 유저가 현재 클릭하여 지도(RouteAnimationLayer)에 동기화 표출 중인 타겟 오더 ID
+- **`isGpsOn`**: 활성화 시 `streamingCalls` 중 최상단 오더 하나만 지도에 힌트성으로 렌더링
 
 ### 3.2 게임 라이프사이클 (Game Lifecycle)
 

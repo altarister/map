@@ -126,17 +126,21 @@ export function useMapAutoZoom({
   }, [gameState, selectedChapter, width, height, zoomTo]);
 
   // 4. 여러 지역 동시 포커싱 (2단계 배차 모드 등)
+  // 배열 참조 대신 내부 값이 변경될 때만 트리거하기 위해 문자열 직렬화 사용
+  const focusCodesString = focusRegionCodes?.slice().sort().join(',') || '';
+
   useEffect(() => {
-    if (!width || !height || !focusRegionCodes || focusRegionCodes.length === 0) return;
+    if (!width || !height || !focusCodesString) return;
 
     const md = mapDataRef.current;
     const pg = pathGeneratorRef.current;
     if (!md?.features?.length) return;
 
+    const codesToFocus = focusCodesString.split(',');
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     
     // 타겟 지역 필터링
-    const targetFeatures = md.features.filter(f => focusRegionCodes.includes(f.properties.code));
+    const targetFeatures = md.features.filter(f => codesToFocus.includes(f.properties.code));
     if (targetFeatures.length === 0) return;
 
     for (const feature of targetFeatures) {
@@ -164,5 +168,5 @@ export function useMapAutoZoom({
 
     zoomTo({ x: width / 2 - scale * cx, y: height / 2 - scale * cy, k: scale });
 
-  }, [focusRegionCodes, width, height, zoomTo]);
+  }, [focusCodesString, width, height, zoomTo]);
 }

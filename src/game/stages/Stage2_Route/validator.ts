@@ -1,11 +1,9 @@
 import type { UserInput, ValidationResult, CallFilterQuestion } from '../../core/types';
 
-export const validateStage2Answer = (question: CallFilterQuestion, input: UserInput): ValidationResult => {
-  // 2단계에서는 유저가 선택한 콜 카드의 옵션 값이 input으로 들어옴
-  // Option Select로 넘어온 value를 콜 ID로 취급  
-  if (input.type === 'OPTION_SELECT') {
-    const selectedCallId = input.value as string;
-    const selectedCall = question.calls.find(c => c.id === selectedCallId);
+export const validateStage2Answer = (_question: CallFilterQuestion, input: UserInput): ValidationResult => {
+  // 2단계에서는 유저가 선택한 콜 카드의 전체 객체가 input으로 들어옴
+  if (input.type === 'CALL_ACCEPT') {
+    const selectedCall = input.call;
 
     if (!selectedCall) {
       return { status: 'CONTINUE' };
@@ -38,6 +36,11 @@ export const validateStage2Answer = (question: CallFilterQuestion, input: UserIn
         }
       };
     }
+  }
+
+  // 기존 호환용 방어코드 유지
+  if (input.type === 'OPTION_SELECT') {
+    // ...
   }
 
   // 맵 클릭 등 잘못된 입력은 무시

@@ -1,6 +1,7 @@
 import type { GeoProjection } from 'd3-geo';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useDispatchContext } from '../../contexts/DispatchContext';
 import type { CallFilterQuestion, CallItem } from '../../game/core/types';
 
 interface RouteAnimationLayerProps {
@@ -8,41 +9,40 @@ interface RouteAnimationLayerProps {
 }
 
 export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) => {
-  const { currentStage, gameState, currentQuestion, lastFeedback, selectedCallId, isGpsOn, confirmedCallIds } = useGame();
+  const { currentStage, gameState, currentQuestion, lastFeedback } = useGame();
+  const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls } = useDispatchContext();
   const { theme } = useSettings();
 
   if (currentStage !== 2 || gameState !== 'PLAYING') return null;
   if (!currentQuestion || currentQuestion.type !== 'CALL_FILTER') return null;
 
-  const question = currentQuestion as CallFilterQuestion;
   const isTactical = theme === 'tactical';
-
+  const callFilterQuestion = currentQuestion as CallFilterQuestion;
   // 렌더링 대상 콜 수집 로직
   // 1. 피드백 창이 떴으면 오직 해당 콜만
   // 2. 특정 콜 요소가 클릭되었다면 해당 콜 위주로 노출
   // 3. (사용자 요청) GPS가 켜져 있다면 출제된 전체 콜의 시작/도착지 표시
-  // 4. 내 장부에 확정된 콜(confirmedCallIds)도 보여주기 (합짐 동선 파악)
+  // 4. 내 장부에 확정된 콜(confirmedCalls)도 보여주기 (합짐 동선 파악)
   
   let callsToRender: CallItem[] = [];
   
   if (lastFeedback?.callData) {
     callsToRender = [lastFeedback.callData as CallItem];
   } else if (selectedCallId) {
-    const selected = question.calls.find((c: any) => c.id === selectedCallId);
+    const selected = streamingCalls.find((c: any) => c.id === selectedCallId) || confirmedCalls.find((c: any) => c.id === selectedCallId);
     if (selected) callsToRender = [selected];
   } else {
     // 아무것도 선택되지 않았을 때 다중 표출 로직
     const callMap = new Map<string, CallItem>();
     
     // GPS ON 상태(힌트 모드): 리스트 최상단(가장 최근에 생성된) 콜 딱 하나만 표시
-    if (isGpsOn && question.calls.length > 0) {
-      callMap.set(question.calls[0].id, question.calls[0]);
+    if (isGpsOn && streamingCalls.length > 0) {
+      callMap.set(streamingCalls[0].id, streamingCalls[0]);
     }
     
     // 확정 오더들도 무조건 보여준다 (합짐용)
-    confirmedCallIds.forEach(id => {
-      const confirmed = question.calls.find((c: any) => c.id === id);
-      if (confirmed) callMap.set(id, confirmed);
+    confirmedCalls.forEach(call => {
+      callMap.set(call.id, call);
     });
 
     callsToRender = Array.from(callMap.values());
@@ -51,14 +51,14 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
   return (
     <g id="layer-route-animation" style={{ pointerEvents: 'none' }}>
       {/* 1. 기사 현위치 마커 (가장 밑에 렌더링되도록) */}
-      {question.driverLocation && (() => {
-        const pDriver = projection(question.driverLocation.centroid);
+      {currentQuestion.driverLocation && (() => {
+        const pDriver = projection(currentQuestion.driverLocation!.centroid);
         if (!pDriver) return null;
         return (
           <g id="driver-location-marker">
             <circle cx={pDriver[0]} cy={pDriver[1]} r={6} fill="#ef4444" stroke="#ffffff" strokeWidth={2} className="animate-pulse" />
             <text x={pDriver[0] + 10} y={pDriver[1] + 4} fill="#ef4444" fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-              내 위치 ({question.driverLocation.name})
+              내 위치 ({currentQuestion.driverLocation!.name})
             </text>
           </g>
         );
@@ -68,11 +68,11 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
       {callsToRender.map(call => {
         const pStart = projection(call.startRegion.centroid); // 상차지
         const pEnd = projection(call.targetRegion.centroid);  // 하차지
-        const pDriver = question.driverLocation ? projection(question.driverLocation.centroid) : null;
+        const pDriver = callFilterQuestion.driverLocation ? projection(callFilterQuestion.driverLocation.centroid) : null;
         
         if (!pStart || !pEnd) return null;
 
-        const isConfirmed = confirmedCallIds.includes(call.id);
+        const isConfirmed = confirmedCalls.some(c => c.id === call.id);
         const isActive = call.id === selectedCallId || call.id === lastFeedback?.callData?.id;
 
         // 선택되었거나 확정된 건 더 두껍고 명확하게 표시

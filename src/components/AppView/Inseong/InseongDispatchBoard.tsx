@@ -1,46 +1,152 @@
-import { useEffect } from 'react';
+import React from 'react';
 import { useGame } from '../../../contexts/GameContext';
-import type { CallFilterQuestion, CallItem } from '../../../game/core/types';
+import { useDispatchContext } from '../../../contexts/DispatchContext';
+import { formatRegionName } from '../../../utils/format';
+import type { CallItem } from '../../../game/core/types';
 
 interface BoardProps {
   confirmedCalls: CallItem[];
   activeTab: 'ALL' | 'CONFIRMED';
   onTabSelect: (tab: 'ALL' | 'CONFIRMED') => void;
-  onRowClick: (call: CallItem) => void;
+  onCallClick: (call: CallItem) => void;
   onSettingsClick: () => void;
   isTimerPaused: boolean;
   onToggleTimer: () => void;
 }
 
+// 요금 포맷 헬퍼 (예: 35000 -> "35")
+const formatFare = (fare: number) => {
+  const adjusted = Math.round(fare / 1000);
+  return adjusted.toString();
+};
+
+// 불필요한 리렌더링 방지를 위해 React.memo 적용된 행 컴포넌트
+const CallRow = React.memo(({ 
+  call, 
+  idx, 
+  isSelected, 
+  activeTab, 
+  onRowClick 
+}: { 
+  call: CallItem, 
+  idx: number, 
+  isSelected: boolean, 
+  activeTab: 'ALL' | 'CONFIRMED', 
+  onRowClick: (call: CallItem) => void 
+}) => {
+  let bgColor = idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]';
+  let isExpressTheme = false;
+
+  // 우선순위 1: 급송 (노란 바탕, 빨간 글씨)
+  if (call.isExpress) {
+    bgColor = 'bg-[#ffeb3b]';
+    isExpressTheme = true;
+  } 
+  // 우선순위 2: 계산서 (파란(Cyan) 바탕)
+  else if (call.billingType === '계산서') {
+    bgColor = 'bg-[#80deea]'; 
+  }
+  // 우선순위 3: 다중 상하차 경유콜 (보라색 바탕)
+  else if (call.isWaypoint) {
+    bgColor = 'bg-[#d0c6ff]';
+  }
+
+  if (isSelected) {
+    bgColor = 'bg-[#c9d3f8]';
+  }
+
+  // 헬퍼: 급송이면 텍스트 컬러 강제 덮어쓰기
+  const cxText = (defaultColor: string) => isExpressTheme ? 'text-red-600' : defaultColor;
+
+  if (activeTab === 'CONFIRMED') {
+    return (
+      <div 
+        className={`flex items-center border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8] py-2`}
+        onClick={() => onRowClick(call)}
+      >
+        <div className="w-[15%] flex justify-center">
+          <div className="border border-green-500 text-green-600 font-bold text-[11px] px-1 py-0.5 bg-white tracking-widest whitespace-nowrap">
+            완료
+          </div>
+        </div>
+        <div className={`w-[35%] font-bold text-[15px] truncate px-1 text-center tracking-tighter ${cxText('text-gray-900')}`}>
+          {call.companyName || '태양메디스'}
+        </div>
+        <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pr-2 ${cxText('text-black')}`}>
+          {call.pickupTime || '12:19'}
+        </div>
+        <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pl-2 border-l border-gray-200 ${cxText('text-black')}`}>
+          {call.deliveryTime || '15:46'}
+        </div>
+        <div className={`w-[20%] font-bold text-[14px] truncate pl-2 pr-2 text-right ${cxText('text-gray-900')}`}>
+          {call.targetRegion.name}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className={`flex border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8]`}
+      onClick={() => onRowClick(call)}
+    >
+      {/* 거리 (상단: 공차거리, 하단: 운행거리) */}
+      <div className={`w-[12%] py-1 flex flex-col justify-center px-1 border-r border-gray-200 font-bold text-[13px] leading-[1.1] ${cxText('text-black')}`}>
+        <span className={`text-[12px] tracking-tighter ${cxText('text-gray-600')}`}>
+          {call.pickupDistanceKm?.toFixed(1) || '0.0'}
+        </span>
+        <span>{call.distanceKm.toFixed(1)}</span>
+      </div>
+      
+      {/* 출발지 */}
+      <div className="w-[30%] px-1 py-1 flex flex-col justify-center border-r border-gray-200 truncate leading-tight">
+        <div className="flex items-start">
+          {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
+          <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
+            {formatRegionName(call.startRegion.name)}
+          </span>
+        </div>
+      </div>
+      
+      {/* 도착지 */}
+      <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText('text-black')}`}>
+        <span className={`whitespace-normal line-clamp-2`}>{call.targetRegion.name}</span>
+      </div>
+      
+      {/* 차종 */}
+      <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
+        {call.vehicleType || '오토'}
+      </div>
+      
+      {/* 요금 */}
+      <div className={`w-[10%] flex justify-center items-center font-bold text-[14px] ${cxText('text-black')}`}>
+        {formatFare(call.fare)}
+      </div>
+    </div>
+  );
+});
+
 export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect, 
-  onRowClick,
+  onCallClick,
   onSettingsClick,
   isTimerPaused,
   onToggleTimer
 }: BoardProps) => {
-  const { gameState, currentQuestion, setSelectedCallId, selectedCallId, maxPickupDistanceKm, isGpsOn, setIsGpsOn } = useGame();
-
-  // questions가 바뀌면 선택값 초기화
-  useEffect(() => {
-    if (setSelectedCallId) setSelectedCallId(null);
-  }, [currentQuestion, setSelectedCallId]);
+  const { gameState, currentQuestion, maxPickupDistanceKm } = useGame();
+  const { selectedCallId, isGpsOn, setIsGpsOn, streamingCalls } = useDispatchContext();
 
   if (gameState !== 'PLAYING' || !currentQuestion || currentQuestion.type !== 'CALL_FILTER') {
     return null;
   }
 
-  const question = currentQuestion as CallFilterQuestion;
   // 탭에 따라 전체 콜을 보여줄지 확정(내 장부) 콜을 보여줄지 분기
-  const calls = activeTab === 'ALL' ? question.calls : confirmedCalls;
+  const calls = activeTab === 'ALL' ? streamingCalls : confirmedCalls;
 
-  const handleRowClick = (call: CallItem) => {
-    if (onRowClick) {
-      onRowClick(call);
+  const handleRowClick = React.useCallback((call: CallItem) => {
+    if (onCallClick) {
+      onCallClick(call);
     }
-  };
-
-  // 랜더링 도우미 포맷 함수
-  const formatFare = (fare: number) => (fare / 1000).toFixed(1);
+  }, [onCallClick]);
 
 
   return (
@@ -105,104 +211,23 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
       )}
 
       {/* 리스트 본문 */}
+      {/* 리스트 본문 */}
       <div className="flex flex-col overflow-y-auto flex-1 bg-white">
         {calls.length === 0 && (
            <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-[15px]">
              {activeTab === 'CONFIRMED' ? '아직 확정(배차 수락)된 오더가 없습니다.' : '대기 중인 오더가 없습니다.'}
            </div>
         )}
-        {calls.map((call, idx) => {
-          const isSelected = selectedCallId === call.id;
-          
-          let bgColor = idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]';
-          let isExpressTheme = false;
-
-          // 우선순위 1: 급송 (노란 바탕, 빨간 글씨)
-          if (call.isExpress) {
-            bgColor = 'bg-[#ffeb3b]';
-            isExpressTheme = true;
-          } 
-          // 우선순위 2: 계산서 (파란(Cyan) 바탕)
-          else if (call.billingType === '계산서') {
-            bgColor = 'bg-[#80deea]'; 
-          }
-
-          if (isSelected) {
-            bgColor = 'bg-[#c9d3f8]';
-          }
-
-          // 헬퍼: 급송이면 텍스트 컬러 강제 덮어쓰기
-          const cxText = (defaultColor: string) => isExpressTheme ? 'text-red-600' : defaultColor;
-
-          if (activeTab === 'CONFIRMED') {
-            return (
-              <div 
-                key={`${call.id}-${idx}-confirmed`} 
-                className={`flex items-center border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8] py-2`}
-                onClick={() => handleRowClick(call)}
-              >
-                <div className="w-[15%] flex justify-center">
-                  <div className="border border-green-500 text-green-600 font-bold text-[11px] px-1 py-0.5 bg-white tracking-widest whitespace-nowrap">
-                    완료
-                  </div>
-                </div>
-                <div className={`w-[35%] font-bold text-[15px] truncate px-1 text-center tracking-tighter ${cxText('text-gray-900')}`}>
-                  {call.companyName || '태양메디스'}
-                </div>
-                <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pr-2 ${cxText('text-black')}`}>
-                  {call.pickupTime || '12:19'}
-                </div>
-                <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pl-2 border-l border-gray-200 ${cxText('text-black')}`}>
-                  {call.deliveryTime || '15:46'}
-                </div>
-                <div className={`w-[20%] font-bold text-[14px] truncate pl-2 pr-2 text-right ${cxText('text-gray-900')}`}>
-                  {call.targetRegion.name}
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div 
-              key={`${call.id}-${idx}`} 
-              className={`flex border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8]`}
-              onClick={() => handleRowClick(call)}
-            >
-              {/* 거리 (상단: 공차거리, 하단: 운행거리) */}
-              <div className={`w-[12%] py-1 flex flex-col justify-center px-1 border-r border-gray-200 font-bold text-[13px] leading-[1.1] ${cxText('text-black')}`}>
-                <span className={`text-[12px] tracking-tighter ${cxText('text-gray-600')}`}>
-                  {call.pickupDistanceKm?.toFixed(1) || '0.0'}
-                </span>
-                <span>{call.distanceKm.toFixed(1)}</span>
-              </div>
-              
-              {/* 출발지 */}
-              <div className="w-[30%] px-1 py-1 flex flex-col justify-center border-r border-gray-200 truncate leading-tight">
-                <div className="flex items-start">
-                  {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
-                  <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
-                    {call.startRegion.name.split(' ')[0]}
-                  </span>
-                </div>
-              </div>
-              
-              {/* 도착지 */}
-              <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText('text-black')}`}>
-                <span className={`whitespace-normal line-clamp-2`}>{call.targetRegion.name}</span>
-              </div>
-              
-              {/* 차종 */}
-              <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
-                {call.vehicleType || '오'}
-              </div>
-              
-              {/* 요금 */}
-              <div className={`w-[10%] flex justify-center items-center font-bold text-[14px] ${cxText('text-black')}`}>
-                {formatFare(call.fare)}
-              </div>
-            </div>
-          );
-        })}
+        {calls.map((call, idx) => (
+          <CallRow
+            key={call.id}
+            call={call}
+            idx={idx}
+            isSelected={selectedCallId === call.id}
+            activeTab={activeTab}
+            onRowClick={handleRowClick}
+          />
+        ))}
       </div>
 
       {/* 하단 페이지네이션 및 액션 바 (신규 탭 전용) */}

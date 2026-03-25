@@ -19,9 +19,9 @@ import { useMapDimensions } from '../../hooks/useMapDimensions';
 import { useMapStyles } from '../../hooks/useMapStyles';
 import { useMapZoom } from '../../hooks/useMapZoom';
 import { useMapGeometry } from '../../hooks/useMapGeometry';
-import { useMapAutoZoom } from '../../hooks/useMapAutoZoom';
 import { useMapFeatures } from '../../hooks/useMapFeatures';
 import { useMapCrossfadeTransition } from '../../hooks/useMapCrossfadeTransition';
+import { MapZoomDispatcher } from './MapZoomDispatcher';
 import { log } from '../../lib/debug';
 
 
@@ -44,10 +44,7 @@ export const Map = () => {
     selectionLevel,
     setSelectionLevel,
     currentFocusCode,
-    setCurrentFocusCode,
-    selectedCallId, // Added selectedCallId
-    isGpsOn,
-    confirmedCallIds
+    setCurrentFocusCode
   } = useGame();
 
   const {
@@ -160,58 +157,6 @@ export const Map = () => {
 
   const labelsToRender = gameState === 'REGION_SELECT' ? featuresToRender : filteredCityFeatures;
   const showDistrictLabels = gameState === 'PLAYING' && showTownGeometry;
-
-  // [NEW] Stage 2 Auto-Zoom Focus Region 연산
-  const focusRegionCodes = useMemo(() => {
-    if (gameState === 'PLAYING' && currentStage === 2 && currentQuestion?.type === 'CALL_FILTER') {
-      
-      const confirmedCalls = currentQuestion.calls.filter(c => confirmedCallIds.includes(c.id));
-      const confirmedCodes = confirmedCalls.flatMap(c => [c.startRegion.code, c.targetRegion.code]);
-
-      // 1. 특정 콜(목록에서 클릭된 콜)이 있다면 해당 콜 우선 + 내 장부 콜
-      if (selectedCallId) {
-        const call = currentQuestion.calls.find((c: any) => c.id === selectedCallId);
-        if (call && currentQuestion.driverLocation) {
-          return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code, ...confirmedCodes];
-        }
-      }
-      
-      // 2. GPS 파워 ON(힌트 모드): 최상단(가장 최근) 콜 위주로 줌아웃/줌인 + 내 장부 콜
-      if (isGpsOn && currentQuestion.calls.length > 0) {
-        const topCall = currentQuestion.calls[0];
-        return [
-          ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
-          topCall.startRegion.code,
-          topCall.targetRegion.code,
-          ...confirmedCodes
-        ];
-      }
-
-      // 3. 평시 상태: 내 위치(거점) 위주로만 보여주나, 확정된 내 장부 오더가 있다면 그것까지는 포함하여 보여줌
-      return [
-        ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
-        ...confirmedCodes
-      ];
-    }
-    return undefined;
-  }, [gameState, currentStage, currentQuestion, selectedCallId, isGpsOn, confirmedCallIds]);
-
-  // ── Auto-Zoom Controller ────────────────────────────────────────────────────
-  useMapAutoZoom({
-    gameState,
-    selectedChapter,
-    width,
-    height,
-    zoomTo,
-    mapData,
-    pathGenerator,
-    selectionLevel,
-    currentFocusCode,
-    level1Data,
-    cityData,
-    focusRegionCodes,
-  });
-
 
 
   // ── Event Handlers ──────────────────────────────────────────────────────────
@@ -348,6 +293,16 @@ export const Map = () => {
       ref={containerRef}
       className={`w-full h-full relative overflow-hidden ${layerVisibility.grid ? 'map-grid' : 'bg-background'}`}
     >
+      <MapZoomDispatcher
+        width={width}
+        height={height}
+        zoomTo={zoomTo}
+        mapData={mapData}
+        pathGenerator={pathGenerator}
+        cityData={cityData}
+        level1Data={level1Data}
+        selectedChapter={selectedChapter}
+      />
       {/* =============== [START] 하위 Canvas 레이어 래퍼 =============== */}
       {/* Canvas 레이어 래퍼: 이벤트 캡처 기능이 없고 그려지기만 하는 도화지들입니다. 스냅샷 복제를 위해 ref 할당 */}
       <div

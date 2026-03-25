@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { GameState, GameScore, AnswerFeedback, Difficulty } from '../types/game';
 import type { RegionFeature } from '../types/geo';
-import type { GameQuestion, UserInput, ValidationResult, CallItem } from '../game/core/types';
+import type { GameQuestion, UserInput, ValidationResult } from '../game/core/types';
 import { getStageStrategy } from '../game/stages/registry';
 
 interface UseGameLogicReturn {
@@ -23,7 +23,6 @@ interface UseGameLogicReturn {
   levelState: any;
   isHintActive: boolean;
   setHintActive: (active: boolean) => void;
-  appendCall: (call: CallItem) => void;
 }
 
 export const useGameLogic = (
@@ -303,18 +302,7 @@ export const useGameLogic = (
     setEndTime(null);
   }, []);
 
-  const appendCall = useCallback((call: CallItem) => {
-    setCurrentQuestion(prev => {
-      if (prev && prev.type === 'CALL_FILTER') {
-        const newCalls = [call, ...prev.calls];
-        // 제한된 개수(예: 30개) 이상이면 오래된 콜 제거
-        if (newCalls.length > 30) newCalls.pop();
-        return { ...prev, calls: newCalls };
-      }
-      return prev;
-    });
-  }, []);
-
+  // ... appendCall removed ...
   return {
     gameState,
     setGameState,
@@ -332,7 +320,6 @@ export const useGameLogic = (
     endTime,
     levelState,
     isHintActive,
-    setHintActive,
-    appendCall
+    setHintActive
   };
 };

@@ -34,7 +34,7 @@ export const generateCallBatch = (
   for (let i = 0; i < answerCount; i++) {
     const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
     const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-    calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT'));
+    calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT', validPickups, matchDestGroup));
   }
 
   // 5. 나머지 함정(오답) 오더 채우기
@@ -47,14 +47,14 @@ export const generateCallBatch = (
         // 함정 1: 요금 미달 똥콜 (노선 O, 상차거리 O, 요금 X)
         const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
         const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-        calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE'));
+        calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE', validPickups, matchDestGroup));
       }
     } 
     else {
       // 함정 2: 역방향 오답콜 (노선 X)
       const dest = wrongDestGroup[Math.floor(Math.random() * wrongDestGroup.length)];
       const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-      calls.push(createCallItem(pickup, dest, driverCentroid, false, minFare, 'PERFECT'));
+      calls.push(createCallItem(pickup, dest, driverCentroid, false, minFare, 'PERFECT', validPickups, wrongDestGroup));
     }
   }
 
@@ -129,7 +129,7 @@ export const generateSingleCall = (
   const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
 
   if (isAnswer) {
-    return createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT');
+    return createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT', validPickups, destGroup);
   } else {
     // 오답 콜 중 50%는 요금 미달 똥콜, 50%는 역방향
     const trapType = Math.random() < 0.5 ? 'BAD_FARE' : 'PERFECT';
@@ -140,7 +140,7 @@ export const generateSingleCall = (
       ? matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)] 
       : dest;
 
-    return createCallItem(pickup, trapDest, driverCentroid, isMatchingRoute, minFare, trapType);
+    return createCallItem(pickup, trapDest, driverCentroid, isMatchingRoute, minFare, trapType, validPickups, trapType === 'BAD_FARE' ? matchDestGroup : wrongDestGroup);
   }
 };
 
@@ -158,7 +158,9 @@ function createCallItem(
   driverCentroid: [number, number],
   isMatchingRoute: boolean,
   minFare: number,
-  trapType: 'PERFECT' | 'BAD_FARE'
+  trapType: 'PERFECT' | 'BAD_FARE',
+  validPickups: RegionFeature[] = [],
+  destGroup: RegionFeature[] = []
 ): CallItem {
   const pickupCentroid = getCentroid(pickupFeature);
   const destCentroid = getCentroid(destFeature);
@@ -207,6 +209,41 @@ function createCallItem(
   const categoryOptions = ['보통', '보통', '예약'];
   const randomCategory = isExpress ? '급송' : categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
 
+  // 경유콜 팩터 (25% 확률)
+  const isWaypoint = Math.random() < 0.25;
+  let pickupCount = 1;
+  let dropoffCount = 1;
+
+  if (isWaypoint) {
+    // 경유콜이면 30% 확률로 상차 2곳, 70% 확률로 하차 2~3곳
+    if (Math.random() < 0.3) {
+      pickupCount = 2;
+    } else {
+      dropoffCount = Math.random() < 0.7 ? 2 : 3;
+    }
+  }
+
+  // 복수 경유 텍스트 조합용 헬퍼
+  const getCombinedName = (baseFeature: RegionFeature, featureGroup: RegionFeature[], count: number) => {
+    let name = baseFeature.properties.name;
+    if (count === 2 && featureGroup.length > 1) {
+      // "+다른동" 추가
+      const others = featureGroup.filter(f => f.properties.code !== baseFeature.properties.code);
+      if (others.length > 0) {
+        const extra = others[Math.floor(Math.random() * others.length)].properties.name;
+        name = `${name}+${extra}`;
+      } else {
+        name = `${name} 외1곳`;
+      }
+    } else if (count >= 2) {
+      name = `${baseFeature.properties.SIG_KOR_NM || baseFeature.properties.name}${count}곳`;
+    }
+    return name;
+  };
+
+  const finalStartName = getCombinedName(pickupFeature, validPickups, pickupCount);
+  const finalTargetName = getCombinedName(destFeature, destGroup, dropoffCount);
+
   const companyOptions = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
   const randomCompany = companyOptions[Math.floor(Math.random() * companyOptions.length)];
 
@@ -217,10 +254,16 @@ function createCallItem(
   const randomPickupTime = `${pHour.toString().padStart(2, '0')}:${pMin.toString().padStart(2, '0')}`;
   const randomDeliveryTime = `${dHour.toString().padStart(2, '0')}:${dMin.toString().padStart(2, '0')}`;
 
-  const getFullName = (f: RegionFeature): string => {
+  const getFullName = (f: RegionFeature, customName?: string): string => {
     const props = f.properties as any;
     const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('41') ? '경기' : props.code.startsWith('28') ? '인천' : (props.grandParentName || '경기');
     
+    // 만약 customName(예: 포곡읍+왕산리)이 전달되었다면 EMD_KOR_NM 등 대신 customName 사용
+    if (customName) {
+      if (props.SIG_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${customName}`;
+      return `${doName} / ${props.parentName || ''} / ${customName}`;
+    }
+
     if (props.SIG_KOR_NM) {
       if (props.EMD_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
       return `${doName} / ${props.SIG_KOR_NM} / ${props.name}`;
@@ -232,14 +275,14 @@ function createCallItem(
     id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     startRegion: {
       code: pickupFeature.properties.code,
-      name: pickupFeature.properties.name,
-      fullName: getFullName(pickupFeature),
+      name: finalStartName,
+      fullName: getFullName(pickupFeature, finalStartName),
       centroid: pickupCentroid
     },
     targetRegion: {
       code: destFeature.properties.code,
-      name: destFeature.properties.name,
-      fullName: getFullName(destFeature),
+      name: finalTargetName,
+      fullName: getFullName(destFeature, finalTargetName),
       centroid: destCentroid
     },
     pickupDistanceKm,
@@ -247,6 +290,9 @@ function createCallItem(
     status: randomStatus,
     isShared,
     isExpress,
+    isWaypoint,
+    pickupCount,
+    dropoffCount,
     paymentType: randomPaymentType,
     billingType: randomBillingType,
     vehicleType: randomVehicle,
