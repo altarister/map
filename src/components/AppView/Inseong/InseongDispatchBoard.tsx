@@ -187,13 +187,13 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
               </div>
               
               {/* 도착지 */}
-              <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
+              <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText('text-black')}`}>
                 <span className={`whitespace-normal line-clamp-2`}>{call.targetRegion.name}</span>
               </div>
               
               {/* 차종 */}
               <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
-                {call.vehicleType || '오토'}
+                {call.vehicleType || '오'}
               </div>
               
               {/* 요금 */}
