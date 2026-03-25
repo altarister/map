@@ -159,32 +159,20 @@ export const InseongApp = () => {
   // 합짐 정산 결과 뷰
   if (gameState === 'RESULT' && currentStage === 2) {
     return (
-      <div className="relative w-full h-full">
-        {/* 뒤에 배차 리스트가 깔려 있게 UI 유지 */}
-        <InseongDispatchBoard 
-          confirmedCalls={confirmedCalls}
-          activeTab={activeTab}
-          onTabSelect={setActiveTab}
-          onCallClick={handleCallClick}
-          onSettingsClick={() => {}}
-          isTimerPaused={true}
-          onToggleTimer={() => {}}
-        />
-        <Stage2ResultModal 
-          confirmedCalls={confirmedCalls}
-          currentLocation={currentLocation}
-          fullMapData={fullMapData}
-          onRetry={() => {
-            setConfirmedCalls([]);
-            resetGame();
-            startGame({}, true); // 이전 필터(지도 픽킹) 그대로 리플레이
-          }}
-          onExit={() => {
-            setConfirmedCalls([]);
-            resetGame(); // 앱 종료(초기 화면으로 이동)
-          }}
-        />
-      </div>
+      <Stage2ResultModal 
+        confirmedCalls={confirmedCalls}
+        currentLocation={currentLocation}
+        fullMapData={fullMapData}
+        onRetry={() => {
+          setConfirmedCalls([]);
+          resetGame();
+          startGame({}, true);
+        }}
+        onExit={() => {
+          setConfirmedCalls([]);
+          resetGame();
+        }}
+      />
     );
   }
 
