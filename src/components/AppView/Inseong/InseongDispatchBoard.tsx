@@ -165,7 +165,7 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
            className={`flex-1 py-1.5 text-center transition-colors ${activeTab === 'CONFIRMED' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
            onClick={() => onTabSelect('CONFIRMED')}
         >
-           완료({confirmedCalls.length}/5)
+           완료({confirmedCalls.length}/3)
         </div>
         <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">메시지함</div>
         <div 

@@ -65,7 +65,7 @@ export const InseongApp = () => {
   // ========== [Advanced Routing] 5콜 합짐 트리거 ==========
   useEffect(() => {
     // 2단계 플레이 중 확정 오더가 5개에 도달하면 게임 강제 종료 (정산 모드 진입)
-    if (gameState === 'PLAYING' && currentStage === 2 && confirmedCalls.length >= 5) {
+    if (gameState === 'PLAYING' && currentStage === 2 && confirmedCalls.length >= 3) {
       endGame();
     }
   }, [confirmedCalls.length, gameState, currentStage, endGame]);
