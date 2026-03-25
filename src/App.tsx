@@ -71,8 +71,8 @@ function GameContent() {
           {/* REGION_SELECT: 레벨/지역 선택 모달 */}
           {/* Now handled directly by Map.tsx and RegionModeSelectPopup */}
 
-          {/* RESULT: 결과 모달 */}
-          <ResultModal />
+          {/* RESULT: 1단계 전용 결과 모달 */}
+          {currentStage === 1 && <ResultModal />}
 
 
         </>

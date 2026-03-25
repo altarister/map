@@ -66,7 +66,7 @@ export const useGameLogic = (
     const endTimestamp = Date.now();
     setEndTime(endTimestamp);
     setGameState('RESULT');
-
+    console.log('endGame');
     setScore(prev => {
       const duration = startTimeRef.current ? endTimestamp - startTimeRef.current : 0;
       const finalScore = { ...prev, duration };
