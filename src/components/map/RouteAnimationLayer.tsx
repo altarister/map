@@ -90,15 +90,10 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
     // [완료 탭] 내 장부의 확정 콜 전부 표시
     callsToRender = [...confirmedCalls];
   } else {
-    // [신규 탭] GPS 힌트 모드: 최신 스트리밍 콜 1개 + 확정 콜
-    const callMap = new Map<string, CallItem>();
+    // [신규 탭] GPS 힌트 모드: GPS ON이면 최신 스트리밍 콜 1개만 표시
     if (isGpsOn && streamingCalls.length > 0) {
-      callMap.set(streamingCalls[0].id, streamingCalls[0]);
+      callsToRender = [streamingCalls[0]];
     }
-    confirmedCalls.forEach(call => {
-      callMap.set(call.id, call);
-    });
-    callsToRender = Array.from(callMap.values());
   }
 
   return (
