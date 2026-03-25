@@ -50,28 +50,24 @@ export interface EstimateDistanceQuestion extends BaseQuestion {
 }
 
 // 2단계: 콜 필터링 (배차 잡기)
+
+// 상/하차지 개별 포인트 타입
+export interface LocationPoint {
+  code: string;
+  name: string;
+  fullName: string;
+  centroid: [number, number];
+}
+
 export interface CallItem {
   id: string; // 고유 ID (UI 렌더링 키값 등)
-  startRegion: {
-    code: string;
-    name: string;
-    fullName: string;
-    centroid: [number, number];
-  };
+  pickups: LocationPoint[];   // 상차지 배열 (1개 이상)
+  dropoffs: LocationPoint[];  // 하차지 배열 (1개 이상)
   pickupDistanceKm?: number;
-  targetRegion: {
-    code: string;
-    name: string;
-    fullName: string;
-    centroid: [number, number];
-  };
   distanceKm: number;
   status?: string;          // 상태 (신규, 배차, 픽업, 완료, 등)
   isShared?: boolean;       // 공유 오더 여부 (출발지에 @ 표시)
   isExpress?: boolean;      // 급송 여부 (노란 바탕, 붉은 글씨, 합짐 불가)
-  isWaypoint?: boolean;     // 경유콜 여부 (상/하차지 복수)
-  pickupCount?: number;     // 상차지 개수 (기본 1)
-  dropoffCount?: number;    // 하차지 개수 (기본 1)
   paymentType?: '신용' | '선불' | '착불' | '월결';     // 결제 방식
   billingType?: '계산서' | '인수증' | '무과세';        // 증빙 방식 (계산서는 파란 바탕)
   vehicleType?: string;     // 다, 라, 카, 마 (오토방/카고)

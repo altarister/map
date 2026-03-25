@@ -47,7 +47,7 @@ const CallRow = React.memo(({
     bgColor = 'bg-[#80deea]'; 
   }
   // 우선순위 3: 다중 상하차 경유콜 (보라색 바탕)
-  else if (call.isWaypoint) {
+  else if (call.pickups.length > 1 || call.dropoffs.length > 1) {
     bgColor = 'bg-[#d0c6ff]';
   }
 
@@ -79,7 +79,7 @@ const CallRow = React.memo(({
           {call.deliveryTime || '15:46'}
         </div>
         <div className={`w-[20%] font-bold text-[14px] truncate pl-2 pr-2 text-right ${cxText('text-gray-900')}`}>
-          {call.targetRegion.name}
+          {call.dropoffs[0].name}
         </div>
       </div>
     );
@@ -103,14 +103,14 @@ const CallRow = React.memo(({
         <div className="flex items-start">
           {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
           <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
-            {formatRegionName(call.startRegion.name)}
+            {formatRegionName(call.pickups[0].name)}
           </span>
         </div>
       </div>
       
       {/* 도착지 */}
       <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText('text-black')}`}>
-        <span className={`whitespace-normal line-clamp-2`}>{call.targetRegion.name}</span>
+        <span className={`whitespace-normal line-clamp-2`}>{call.dropoffs[0].name}</span>
       </div>
       
       {/* 차종 */}

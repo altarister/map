@@ -15,12 +15,12 @@ export const MapZoomDispatcher = ({
 
   const focusRegionCodes = useMemo(() => {
     if (gameState === 'PLAYING' && currentStage === 2 && currentQuestion?.type === 'CALL_FILTER') {
-      const confirmedCodes = confirmedCalls.flatMap(c => [c.startRegion.code, c.targetRegion.code]);
+      const confirmedCodes = confirmedCalls.flatMap(c => [...c.pickups.map(p => p.code), ...c.dropoffs.map(d => d.code)]);
 
       if (selectedCallId) {
         const call = streamingCalls.find(c => c.id === selectedCallId) || confirmedCalls.find(c => c.id === selectedCallId);
         if (call && currentQuestion.driverLocation) {
-          return [currentQuestion.driverLocation.code, call.startRegion.code, call.targetRegion.code, ...confirmedCodes];
+          return [currentQuestion.driverLocation.code, ...call.pickups.map(p => p.code), ...call.dropoffs.map(d => d.code), ...confirmedCodes];
         }
       }
       
@@ -28,8 +28,8 @@ export const MapZoomDispatcher = ({
         const topCall = streamingCalls[0];
         return [
           ...(currentQuestion.driverLocation ? [currentQuestion.driverLocation.code] : []),
-          topCall.startRegion.code,
-          topCall.targetRegion.code,
+          ...topCall.pickups.map(p => p.code),
+          ...topCall.dropoffs.map(d => d.code),
           ...confirmedCodes
         ];
       }

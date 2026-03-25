@@ -13,8 +13,8 @@ export const validateStage2Answer = (_question: CallFilterQuestion, input: UserI
       return {
         status: 'CORRECT',
         feedback: {
-          regionCode: selectedCall.targetRegion.code,
-          correctCode: selectedCall.targetRegion.code, // 정답 지역
+          regionCode: selectedCall.dropoffs[0].code,
+          correctCode: selectedCall.dropoffs[0].code, // 정답 지역
           isCorrect: true,
           message: '콜을 성공적으로 수락했습니다.',
           callData: selectedCall
@@ -28,7 +28,7 @@ export const validateStage2Answer = (_question: CallFilterQuestion, input: UserI
       return {
         status: 'WRONG',
         feedback: {
-          regionCode: selectedCall.targetRegion.code,
+          regionCode: selectedCall.dropoffs[0].code,
           correctCode: '',
           isCorrect: false,
           message: msg,

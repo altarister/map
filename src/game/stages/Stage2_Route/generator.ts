@@ -210,23 +210,23 @@ function createCallItem(
   const randomCategory = isExpress ? '급송' : categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
 
   // 경유콜 팩터 (25% 확률)
-  const isWaypoint = Math.random() < 0.25;
-  let pickupCount = 1;
-  let dropoffCount = 1;
+  const isMultiStop = Math.random() < 0.25;
+  let extraPickupCount = 0;
+  let extraDropoffCount = 0;
 
-  if (isWaypoint) {
+  if (isMultiStop) {
     // 경유콜이면 30% 확률로 상차 2곳, 70% 확률로 하차 2~3곳
     if (Math.random() < 0.3) {
-      pickupCount = 2;
+      extraPickupCount = 1;
     } else {
-      dropoffCount = Math.random() < 0.7 ? 2 : 3;
+      extraDropoffCount = Math.random() < 0.7 ? 1 : 2;
     }
   }
 
-  // 복수 경유 텍스트 조합용 헬퍼
-  const getCombinedName = (baseFeature: RegionFeature, featureGroup: RegionFeature[], count: number) => {
+  // 복수 경유 텍스트 조합용 헬퍼 (대표 이름 생성)
+  const getCombinedDisplayName = (baseFeature: RegionFeature, featureGroup: RegionFeature[], totalCount: number) => {
     let name = baseFeature.properties.name;
-    if (count === 2 && featureGroup.length > 1) {
+    if (totalCount === 2 && featureGroup.length > 1) {
       // "+다른동" 추가
       const others = featureGroup.filter(f => f.properties.code !== baseFeature.properties.code);
       if (others.length > 0) {
@@ -235,14 +235,37 @@ function createCallItem(
       } else {
         name = `${name} 외1곳`;
       }
-    } else if (count >= 2) {
-      name = `${baseFeature.properties.SIG_KOR_NM || baseFeature.properties.name}${count}곳`;
+    } else if (totalCount >= 3) {
+      name = `${baseFeature.properties.SIG_KOR_NM || baseFeature.properties.name}${totalCount}곳`;
     }
     return name;
   };
 
-  const finalStartName = getCombinedName(pickupFeature, validPickups, pickupCount);
-  const finalTargetName = getCombinedName(destFeature, destGroup, dropoffCount);
+  // LocationPoint 헬퍼
+  const makePoint = (f: RegionFeature, customName?: string) => ({
+    code: f.properties.code,
+    name: customName || f.properties.name,
+    fullName: getFullName(f, customName),
+    centroid: getCentroid(f)
+  });
+
+  // pickups 배열 구성
+  const pickups = [makePoint(pickupFeature, getCombinedDisplayName(pickupFeature, validPickups, 1 + extraPickupCount))];
+  if (extraPickupCount > 0 && validPickups.length > 1) {
+    const extras = validPickups.filter(f => f.properties.code !== pickupFeature.properties.code);
+    for (let i = 0; i < Math.min(extraPickupCount, extras.length); i++) {
+      pickups.push(makePoint(extras[i]));
+    }
+  }
+
+  // dropoffs 배열 구성
+  const dropoffs = [makePoint(destFeature, getCombinedDisplayName(destFeature, destGroup, 1 + extraDropoffCount))];
+  if (extraDropoffCount > 0 && destGroup.length > 1) {
+    const extras = destGroup.filter(f => f.properties.code !== destFeature.properties.code);
+    for (let i = 0; i < Math.min(extraDropoffCount, extras.length); i++) {
+      dropoffs.push(makePoint(extras[i]));
+    }
+  }
 
   const companyOptions = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
   const randomCompany = companyOptions[Math.floor(Math.random() * companyOptions.length)];
@@ -273,26 +296,13 @@ function createCallItem(
 
   return {
     id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    startRegion: {
-      code: pickupFeature.properties.code,
-      name: finalStartName,
-      fullName: getFullName(pickupFeature, finalStartName),
-      centroid: pickupCentroid
-    },
-    targetRegion: {
-      code: destFeature.properties.code,
-      name: finalTargetName,
-      fullName: getFullName(destFeature, finalTargetName),
-      centroid: destCentroid
-    },
+    pickups,
+    dropoffs,
     pickupDistanceKm,
     distanceKm,
     status: randomStatus,
     isShared,
     isExpress,
-    isWaypoint,
-    pickupCount,
-    dropoffCount,
     paymentType: randomPaymentType,
     billingType: randomBillingType,
     vehicleType: randomVehicle,

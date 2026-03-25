@@ -66,8 +66,8 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
 
       {/* 2. 대상 배차 콜 경로 멀티플 렌더링 */}
       {callsToRender.map(call => {
-        const pStart = projection(call.startRegion.centroid); // 상차지
-        const pEnd = projection(call.targetRegion.centroid);  // 하차지
+        const pStart = projection(call.pickups[0].centroid); // 상차지
+        const pEnd = projection(call.dropoffs[0].centroid);  // 하차지
         const pDriver = callFilterQuestion.driverLocation ? projection(callFilterQuestion.driverLocation.centroid) : null;
         
         if (!pStart || !pEnd) return null;
@@ -113,13 +113,13 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
             {/* 상차지 점 및 텍스트 */}
             <circle cx={pStart[0]} cy={pStart[1]} r={strokeWidth * 1.5} fill="#f59e0b" />
             <text x={pStart[0] + 8} y={pStart[1] + 3} fill="#f59e0b" fontSize={isActive || isConfirmed ? 13 : 11} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-              {isConfirmed ? '픽업' : '상차'}({call.startRegion.name})
+              {isConfirmed ? '픽업' : '상차'}({call.pickups[0].name})
             </text>
 
             {/* 하차지 점 및 텍스트 */}
             <circle cx={pEnd[0]} cy={pEnd[1]} r={strokeWidth * 1.5} fill={color} />
             <text x={pEnd[0] + 8} y={pEnd[1] + 3} fill={color} fontSize={isActive || isConfirmed ? 13 : 11} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-              {isConfirmed ? '배송' : '하차'}({call.targetRegion.name})
+              {isConfirmed ? '배송' : '하차'}({call.dropoffs[0].name})
             </text>
           </g>
         );

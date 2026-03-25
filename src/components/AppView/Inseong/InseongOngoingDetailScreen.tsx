@@ -101,7 +101,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
               픽업
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
-              {formatRegionName(call.startRegion.name)} / ()
+              {formatRegionName(call.pickups[0].name)} / ()
             </div>
           </div>
 
@@ -113,7 +113,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate pb-0.5">
-              {call.companyName || '태양메디스'} / {call.pickupTime} / {formatRegionFullName(call.startRegion.fullName)}
+              {call.companyName || '태양메디스'} / {call.pickupTime} / {formatRegionFullName(call.pickups[0].fullName)}
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm overflow-hidden whitespace-normal line-clamp-2 leading-tight py-1">
-              {call.targetRegion.fullName} / 최우선주임님
+              {call.dropoffs[0].fullName} / 최우선주임님
             </div>
           </div>
 
