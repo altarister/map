@@ -119,13 +119,8 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
 
       {/* 2. 대상 배차 콜 경로 멀티플 렌더링 */}
       {callsToRender.map(call => {
-        // [다중 웨이포인트 지원] 임시로 첫 번째 상/하차지만 선 긋기
-        const pStart = projection(call.pickups[0].centroid); 
-        const pEnd = projection(call.dropoffs[0].centroid);  
         const pDriver = callFilterQuestion.driverLocation ? projection(callFilterQuestion.driverLocation.centroid) : null;
         
-        if (!pStart || !pEnd) return null;
-
         const isConfirmed = confirmedCalls.some(c => c.id === call.id);
         const isActive = call.id === selectedCallId || call.id === lastFeedback?.callData?.id;
 
@@ -134,11 +129,31 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
         const color = isConfirmed ? '#9333ea' : primaryColor; 
         const opacity = isActive || isConfirmed ? 1 : 0.6; 
 
-        // 공차 경로 (내 위치 -> 상차지) 
+        // ===== 다중 웨이포인트 지원: 모든 pickup → 모든 dropoff 순차 연결 =====
+        const waypoints: Array<{ point: [number, number]; label: string; type: 'PICKUP' | 'DROPOFF' }> = [];
+        
+        call.pickups.forEach((p, i) => {
+          const proj = projection(p.centroid);
+          if (proj) {
+            const suffix = call.pickups.length > 1 ? `${i + 1}` : '';
+            waypoints.push({ point: proj as [number, number], label: `상차${suffix}(${p.name})`, type: 'PICKUP' });
+          }
+        });
+        call.dropoffs.forEach((d, i) => {
+          const proj = projection(d.centroid);
+          if (proj) {
+            const suffix = call.dropoffs.length > 1 ? `${i + 1}` : '';
+            waypoints.push({ point: proj as [number, number], label: `하차${suffix}(${d.name})`, type: 'DROPOFF' });
+          }
+        });
+
+        if (waypoints.length === 0) return null;
+
+        // 공차 경로 (내 위치 -> 첫 상차지) 점선
         const pickupLineRender = (pDriver && (isActive || isConfirmed)) ? (
           <line
             x1={pDriver[0]} y1={pDriver[1]}
-            x2={pStart[0]} y2={pStart[1]}
+            x2={waypoints[0].point[0]} y2={waypoints[0].point[1]}
             stroke="#ef4444" 
             strokeWidth={1}
             strokeDasharray="4 4"
@@ -146,33 +161,43 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
           />
         ) : null;
 
-        // 곡선(아치) 배차 경로 (상차지 -> 하차지)
-        const dx = pEnd[0] - pStart[0];
-        const dy = pEnd[1] - pStart[1];
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; 
-        const d = `M${pStart[0]},${pStart[1]} A${dr},${dr} 0 0,1 ${pEnd[0]},${pEnd[1]}`;
-
         return (
           <g key={`route-${call.id}`} style={{ opacity, transition: 'opacity 0.3s ease' }}>
             {pickupLineRender}
-            <path
-              d={d}
-              fill="none"
-              stroke={color}
-              strokeWidth={strokeWidth}
-              className={isActive ? "animate-pulse" : ""}
-            />
-            {/* 상차지 점 및 텍스트 */}
-            <circle cx={pStart[0]} cy={pStart[1]} r={strokeWidth * 1.5} fill="#f59e0b" />
-            <text x={pStart[0] + 8} y={pStart[1] + 3} fill="#f59e0b" fontSize={isActive || isConfirmed ? 13 : 11} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-              {isConfirmed ? '픽업' : '상차'}({call.pickups[0].name})
-            </text>
 
-            {/* 하차지 점 및 텍스트 */}
-            <circle cx={pEnd[0]} cy={pEnd[1]} r={strokeWidth * 1.5} fill={color} />
-            <text x={pEnd[0] + 8} y={pEnd[1] + 3} fill={color} fontSize={isActive || isConfirmed ? 13 : 11} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-              {isConfirmed ? '배송' : '하차'}({call.dropoffs[0].name})
-            </text>
+            {/* 웨이포인트 간 연결선 (순차: pickup1 → pickup2 → dropoff1 → dropoff2) */}
+            {waypoints.map((wp, idx) => {
+              if (idx === 0) return null;
+              const prev = waypoints[idx - 1];
+              const dx = wp.point[0] - prev.point[0];
+              const dy = wp.point[1] - prev.point[1];
+              const dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
+              const d = `M${prev.point[0]},${prev.point[1]} A${dr},${dr} 0 0,1 ${wp.point[0]},${wp.point[1]}`;
+              return (
+                <path
+                  key={`seg-${call.id}-${idx}`}
+                  d={d}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={strokeWidth}
+                  className={isActive ? "animate-pulse" : ""}
+                />
+              );
+            })}
+
+            {/* 각 웨이포인트 마커 + 텍스트 */}
+            {waypoints.map((wp, idx) => {
+              const dotColor = wp.type === 'PICKUP' ? '#f59e0b' : color;
+              const fontSize = isActive || isConfirmed ? 13 : 11;
+              return (
+                <g key={`wp-${call.id}-${idx}`}>
+                  <circle cx={wp.point[0]} cy={wp.point[1]} r={strokeWidth * 1.5} fill={dotColor} />
+                  <text x={wp.point[0] + 8} y={wp.point[1] + 3} fill={dotColor} fontSize={fontSize} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+                    {wp.label}
+                  </text>
+                </g>
+              );
+            })}
           </g>
         );
       })}
