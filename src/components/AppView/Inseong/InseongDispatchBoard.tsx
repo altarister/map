@@ -135,9 +135,10 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
   const { gameState, currentQuestion, maxPickupDistanceKm } = useGame();
   const { selectedCallId, isGpsOn, setIsGpsOn, streamingCalls } = useDispatchContext();
 
-  if (gameState !== 'PLAYING' || !currentQuestion || currentQuestion.type !== 'CALL_FILTER') {
+  if ((gameState !== 'PLAYING' && gameState !== 'RESULT') || !currentQuestion || currentQuestion.type !== 'CALL_FILTER') {
     return null;
   }
+
 
   // 탭에 따라 전체 콜을 보여줄지 확정(내 장부) 콜을 보여줄지 분기
   const calls = activeTab === 'ALL' ? streamingCalls : confirmedCalls;
@@ -250,6 +251,32 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
       )}
 
 
+
+      {/* 적재함 HUD 프로그레스 바 */}
+      {confirmedCalls.length > 0 && (
+        <div className="bg-gradient-to-r from-[#1a237e] to-[#283593] border-t-2 border-indigo-900 px-3 py-2 flex items-center gap-3">
+          <span className="text-white font-bold text-[13px] whitespace-nowrap">
+            🚛 적재함
+          </span>
+          <div className="flex-1 h-5 bg-[#0d1137] rounded-full overflow-hidden border border-indigo-700 relative">
+            <div 
+              className="h-full rounded-full transition-all duration-500 ease-out"
+              style={{ 
+                width: `${Math.min((confirmedCalls.length / 5) * 100, 100)}%`,
+                background: confirmedCalls.length >= 5 
+                  ? 'linear-gradient(90deg, #f59e0b, #ef4444)' 
+                  : 'linear-gradient(90deg, #818cf8, #6366f1)'
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-white font-extrabold text-[12px] tracking-wider" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }}>
+              {confirmedCalls.length} / 5 {confirmedCalls.length >= 5 ? '🔥 FULL!' : ''}
+            </div>
+          </div>
+          <span className="text-indigo-300 font-bold text-[11px] whitespace-nowrap">
+            {5 - confirmedCalls.length > 0 ? `${5 - confirmedCalls.length}건 남음` : '정산 준비!'}
+          </span>
+        </div>
+      )}
 
       <div className="flex bg-[#0052a3] text-white text-[15px] font-bold border-b-2 border-slate-500 cursor-pointer">
         <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">xxx</div>

@@ -119,7 +119,7 @@ graph TD
 
 ### 5.4 기술적 검토 및 개발 마일스톤 (To-Do)
 1. [`완료`] 단일 객체였던 `CallItem.startRegion` / `targetRegion`을 배열 형태의 `pickups[]`, `dropoffs[]`로 타입 리팩토링 및 하위 의존성(렌더러, 보드 등) 전부 교체.
-2. [`NEXT`] 5콜이 쌓였을 때 스트리밍을 중단시키고 상태를 전환시킬 `useGameLogic` 내 트리거 구축.
-3. [`NEXT`] `RouteOptimizer` 유틸 클래스 개발 (TSP 계산 헬퍼 및 픽업-드롭오프 순서 유효성 검증).
-4. [`NEXT`] `Stage2ResultModal.tsx` 파이널 정산 UI 컴포넌트 프론트엔드 퍼블리싱.
-5. [`NEXT`] D3 `RouteAnimationLayer.tsx`에 점대점이 아닌 배열 기반 다중 Polyline 렌더링 애니메이션 기능 추가.
+2. [`완료`] 5콜이 쌓였을 때 스트리밍을 중단시키고 상태를 전환시킬 `useGameLogic` 내 트리거 구축.
+3. [`완료`] `RouteOptimizer` 유틸 클래스 개발 (TSP 계산 헬퍼 및 픽업-드롭오프 순서 유효성 검증).
+4. [`완료`] `Stage2ResultModal.tsx` 파이널 정산 UI 컴포넌트 프론트엔드 퍼블리싱.
+5. [`완료`] D3 `RouteAnimationLayer.tsx`에 점대점이 아닌 배열 기반 다중 Polyline 렌더링 애니메이션 기능 추가.
