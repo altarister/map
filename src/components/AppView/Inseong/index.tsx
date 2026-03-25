@@ -18,6 +18,7 @@ export const InseongApp = () => {
   const {
     confirmedCalls,
     setConfirmedCalls,
+    setStreamingCalls,
     setSelectedCallId,
     isTimerPaused,
     setIsTimerPaused,
@@ -83,16 +84,20 @@ export const InseongApp = () => {
   };
 
   // [Advanced Routing] 상세 페이지에서 "탁송" 버튼을 눌렀을 때
-  // → 즉각 채점(checkAnswer)을 하지 않고, 바로 '내 장부(confirmedCalls)'에 담는다.
-  // → 채점은 5개가 모두 쌓인 후, RouteOptimizer에서 종합 평가된다.
+  // → streamingCalls에서 해당 콜 제거 + confirmedCalls에 추가
+  // → 상세 닫고 신규(ALL) 탭으로 복귀, 지도는 GPS 상태에 맞추어 리셋
   const handleAcceptCall = (call: CallItem) => {
+    // 1. 스트리밍 리스트에서 팝
+    setStreamingCalls((prev: CallItem[]) => prev.filter((c: CallItem) => c.id !== call.id));
+    // 2. 확정 리스트에 추가 (중복 방지)
     setConfirmedCalls((prev: CallItem[]) => {
       if (prev.find((c: CallItem) => c.id === call.id)) return prev;
       return [...prev, call];
     });
-    // 탁송 완료 후 상세 닫고 내 장부 탭으로 이동
+    // 3. 상세 닫기 + 신규 탭 유지 + 지도 리셋(선택 해제)
     handleCloseDetail();
-    setActiveTab('CONFIRMED');
+    setSelectedCallId(null);
+    setActiveTab('ALL');
   };
 
   // 배송 완료 처리 (내 장부에서 제거)
