@@ -13,7 +13,7 @@ interface RouteAnimationLayerProps {
 
 export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) => {
   const { currentStage, gameState, currentQuestion, lastFeedback, currentLocation, fullMapData } = useGame();
-  const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls } = useDispatchContext();
+  const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls, activeTab } = useDispatchContext();
   const { theme } = useSettings();
 
   // [Hooks 규칙 준수] useMemo는 조건부 블록 바깥(컴포넌트 최상단)에서 호출해야 합니다
@@ -76,15 +76,21 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
     );
   }
 
-  // ================= [PLAYING 모드] 개별 콜 렌더링 로직 (기존) =================
+  // ================= [PLAYING 모드] 개별 콜 렌더링 로직 =================
   let callsToRender: CallItem[] = [];
   
   if (lastFeedback?.callData) {
+    // 피드백 중이면 해당 콜만
     callsToRender = [lastFeedback.callData as CallItem];
   } else if (selectedCallId) {
+    // 특정 콜 선택 시 해당 콜만
     const selected = streamingCalls.find((c: any) => c.id === selectedCallId) || confirmedCalls.find((c: any) => c.id === selectedCallId);
     if (selected) callsToRender = [selected];
+  } else if (activeTab === 'CONFIRMED') {
+    // [완료 탭] 내 장부의 확정 콜 전부 표시
+    callsToRender = [...confirmedCalls];
   } else {
+    // [신규 탭] GPS 힌트 모드: 최신 스트리밍 콜 1개 + 확정 콜
     const callMap = new Map<string, CallItem>();
     if (isGpsOn && streamingCalls.length > 0) {
       callMap.set(streamingCalls[0].id, streamingCalls[0]);

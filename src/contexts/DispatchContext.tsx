@@ -14,6 +14,8 @@ interface DispatchContextType {
   setIsGpsOn: (on: boolean) => void;
   isTimerPaused: boolean;
   setIsTimerPaused: (paused: boolean) => void;
+  activeTab: 'ALL' | 'CONFIRMED';
+  setActiveTab: (tab: 'ALL' | 'CONFIRMED') => void;
   appendCall: (call: CallItem) => void;
 }
 
@@ -25,6 +27,7 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
   const [isGpsOn, setIsGpsOn] = useState(false);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'CONFIRMED'>('ALL');
 
   const { currentStage } = useGame();
 
@@ -35,6 +38,7 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
     setSelectedCallId(null);
     setIsGpsOn(false);
     setIsTimerPaused(false);
+    setActiveTab('ALL');
   }, [currentStage]);
 
   const MAX_STREAMING_CALLS = 50;
@@ -57,6 +61,8 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
       setIsGpsOn,
       isTimerPaused,
       setIsTimerPaused,
+      activeTab,
+      setActiveTab,
       appendCall
     }}>
       {children}

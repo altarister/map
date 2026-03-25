@@ -21,11 +21,10 @@ export const InseongApp = () => {
     setSelectedCallId,
     isTimerPaused,
     setIsTimerPaused,
+    activeTab,
+    setActiveTab,
     appendCall
   } = useDispatchContext();
-  
-  // 탭 상태 (InseongApp 전역 관리)
-  const [activeTab, setActiveTab] = useState<'ALL' | 'CONFIRMED'>('ALL'); // '전체오더' vs '내 장부'
   
   // 클릭해서 상세보기로 진입한 콜 (아직 수락/채점 전)
   const [selectedCall, setSelectedCall] = useState<CallItem | null>(null);

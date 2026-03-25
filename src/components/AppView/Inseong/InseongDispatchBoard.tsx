@@ -103,7 +103,7 @@ const CallRow = React.memo(({
         <div className="flex items-start">
           {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
           <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
-            {formatRegionName(call.pickups[0].name)}
+            {formatRegionName(call.pickups[0].name)}{call.violation === undefined ? '' : '-'}
           </span>
         </div>
       </div>
@@ -114,7 +114,7 @@ const CallRow = React.memo(({
       </div>
       
       {/* 차종 */}
-      <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
+      <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold `}>
         {call.vehicleType || '오토'}
       </div>
       
