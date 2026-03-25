@@ -12,6 +12,7 @@ interface BoardProps {
   onSettingsClick: () => void;
   isTimerPaused: boolean;
   onToggleTimer: () => void;
+  batchTarget: number;
 }
 
 // 요금 포맷 헬퍼 (예: 35000 -> "35")
@@ -130,7 +131,8 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
   onCallClick,
   onSettingsClick,
   isTimerPaused,
-  onToggleTimer
+  onToggleTimer,
+  batchTarget
 }: BoardProps) => {
   const { gameState, currentQuestion, maxPickupDistanceKm } = useGame();
   const { selectedCallId, isGpsOn, setIsGpsOn, streamingCalls } = useDispatchContext();
@@ -165,7 +167,7 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
            className={`flex-1 py-1.5 text-center transition-colors ${activeTab === 'CONFIRMED' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
            onClick={() => onTabSelect('CONFIRMED')}
         >
-           완료({confirmedCalls.length}/3)
+           완료({confirmedCalls.length}/{batchTarget})
         </div>
         <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">메시지함</div>
         <div 
