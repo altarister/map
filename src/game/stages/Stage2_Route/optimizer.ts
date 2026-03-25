@@ -1,6 +1,7 @@
 // src/game/stages/Stage2_Route/optimizer.ts
 import type { CallItem, LocationPoint } from '../../core/types';
 import { calculateDistanceKm } from '../../../utils/geo';
+import { RANK_THRESHOLDS } from './constants';
 
 export interface RouteOptimizationResult {
   idealDistanceKm: number;
@@ -111,16 +112,16 @@ export class RouteOptimizer {
     let rank: RouteOptimizationResult['rank'] = 'C';
     let feedback = "";
 
-    if (profitPerKm >= 4000) {
+    if (profitPerKm >= RANK_THRESHOLDS.S) {
       rank = 'S';
       feedback = "합짐의 마술사! km당 4,000원 이상의 환상적인 운임을 기록했습니다.";
-    } else if (profitPerKm >= 2500) {
+    } else if (profitPerKm >= RANK_THRESHOLDS.A) {
       rank = 'A';
       feedback = "훌륭한 동선 기획입니다. 빈차 운행이 거의 없네요.";
-    } else if (profitPerKm >= 1500) {
+    } else if (profitPerKm >= RANK_THRESHOLDS.B) {
       rank = 'B';
       feedback = "무난한 운행이었습니다. 다소 공차가 섞여 있습니다.";
-    } else if (profitPerKm >= 800) {
+    } else if (profitPerKm >= RANK_THRESHOLDS.C) {
       rank = 'C';
       feedback = "배보다 배꼽이 큽니다! 짐을 싣지 않고 뛰는 구간이 너무 깁니다.";
     } else {

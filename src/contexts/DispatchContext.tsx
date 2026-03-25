@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { CallItem } from '../game/core/types';
+import { MAX_STREAMING_CALLS } from '../game/stages/Stage2_Route/constants';
 import { useGame } from './GameContext';
 
 interface DispatchContextType {
@@ -41,7 +42,6 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
     setActiveTab('ALL');
   }, [currentStage]);
 
-  const MAX_STREAMING_CALLS = 50;
   const appendCall = (call: CallItem) => {
     setStreamingCalls(prev => {
       const next = [call, ...prev];

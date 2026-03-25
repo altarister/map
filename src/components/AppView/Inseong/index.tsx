@@ -8,6 +8,7 @@ import { InseongCallDetailScreen } from './InseongCallDetailScreen';
 import { InseongOngoingDetailScreen } from './InseongOngoingDetailScreen';
 import { Stage2ResultModal } from './Stage2ResultModal';
 import type { CallItem } from '../../../game/core/types';
+import { BATCH_TARGET_COUNT } from '../../../game/stages/Stage2_Route/constants';
 
 export const InseongApp = () => {
   const { 
@@ -61,8 +62,6 @@ export const InseongApp = () => {
     minFare,
     appendCall
   });
-
-  const BATCH_TARGET_COUNT = 3; // 합짐 목표 콜 수 (이 값만 바꾸면 전체 반영)
 
   // ========== [Advanced Routing] 합짐 트리거 ==========
   useEffect(() => {
