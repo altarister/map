@@ -20,8 +20,9 @@ export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
   onExit
 }) => {
   const result = useMemo(() => {
-    if (!currentLocation) return null;
-    const feature = fullMapData.find((f: any) => f.properties?.code === currentLocation.code);
+    if (!currentLocation || !fullMapData) return null;
+    const features = fullMapData.features || [];
+    const feature = features.find((f: any) => f.properties?.code === currentLocation.code);
     const centroid: [number, number] = feature ? d3Geo.geoCentroid(feature) : [0, 0];
     return RouteOptimizer.analyzeBatch(confirmedCalls, { ...currentLocation, center: centroid });
   }, [confirmedCalls, currentLocation, fullMapData]);
