@@ -3,67 +3,23 @@ import { geoCentroid } from 'd3-geo';
 import type { StageContext, CallFilterQuestion, CallItem } from '../../core/types';
 import type { RegionFeature } from '../../../types/geo';
 
-const CALLS_PER_BATCH = 4; // 한 번에 노출될 콜 카드 수
-
-// Fisher-Yates shuffle
-function shuffle<T>(array: T[]): T[] {
-  const result = [...array];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
 export const generateCallBatch = (
   ctx: StageContext,
   targetDestCode: string, // 예: "41610" (경기 광주시)
   currentStartCode?: string // 현재 하차한 위치 (꼬리물기용)
 ): CallFilterQuestion => {
-  const { mapData, currentLocCode, maxPickupDistanceKm = 15, minFare = 30000 } = ctx;
+  const { mapData, currentLocCode, maxPickupDistanceKm = 15 } = ctx;
 
-  const { driverFeature, driverCentroid, matchDestGroup, wrongDestGroup, validPickups } = getMapContext(
+  const { driverFeature, driverCentroid } = getMapContext(
     mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
   );
 
-  const calls: CallItem[] = [];
-
-  // 4. 정답 콜 1~2개 무조건 포함 (방향 O, 상차거리 O, 요금 O)
-  const answerCount = matchDestGroup.length > 0 ? (Math.random() > 0.5 ? 2 : 1) : 0;
-
-  for (let i = 0; i < answerCount; i++) {
-    const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-    const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-    calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT', validPickups, matchDestGroup));
-  }
-
-  // 5. 나머지 함정(오답) 오더 채우기
-  const remainCount = CALLS_PER_BATCH - calls.length;
-  for (let i = 0; i < remainCount; i++) {
-    const trapType = Math.random();
-    
-    if (trapType < 0.5 || wrongDestGroup.length === 0) {
-      if (matchDestGroup.length > 0) {
-        // 함정 1: 요금 미달 똥콜 (노선 O, 상차거리 O, 요금 X)
-        const dest = matchDestGroup[Math.floor(Math.random() * matchDestGroup.length)];
-        const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-        calls.push(createCallItem(pickup, dest, driverCentroid, true, minFare, 'BAD_FARE', validPickups, matchDestGroup));
-      }
-    } 
-    else {
-      // 함정 2: 역방향 오답콜 (노선 X)
-      const dest = wrongDestGroup[Math.floor(Math.random() * wrongDestGroup.length)];
-      const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
-      calls.push(createCallItem(pickup, dest, driverCentroid, false, minFare, 'PERFECT', validPickups, wrongDestGroup));
-    }
-  }
-
-  const finalCalls = shuffle(calls);
-
+  // 콜 생성은 useDispatchStreaming 단일 파이프라인에서 관리
+  // 여기서는 driverLocation 셸만 반환
   return {
     id: `call_batch_${Date.now()}`,
     type: 'CALL_FILTER',
-    calls: finalCalls,
+    calls: [],
     driverLocation: {
       code: driverFeature.properties.code,
       name: driverFeature.properties.name,
@@ -241,6 +197,23 @@ function createCallItem(
     return name;
   };
 
+  const getFullName = (f: RegionFeature, customName?: string): string => {
+    const props = f.properties as any;
+    const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('41') ? '경기' : props.code.startsWith('28') ? '인천' : (props.grandParentName || '경기');
+    
+    // 만약 customName(예: 포곡읍+왕산리)이 전달되었다면 EMD_KOR_NM 등 대신 customName 사용
+    if (customName) {
+      if (props.SIG_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${customName}`;
+      return `${doName} / ${props.parentName || ''} / ${customName}`;
+    }
+
+    if (props.SIG_KOR_NM) {
+      if (props.EMD_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
+      return `${doName} / ${props.SIG_KOR_NM} / ${props.name}`;
+    }
+    return `${doName} / ${props.parentName || ''} / ${props.name}`;
+  };
+
   // LocationPoint 헬퍼
   const makePoint = (f: RegionFeature, customName?: string) => ({
     code: f.properties.code,
@@ -277,24 +250,7 @@ function createCallItem(
   const randomPickupTime = `${pHour.toString().padStart(2, '0')}:${pMin.toString().padStart(2, '0')}`;
   const randomDeliveryTime = `${dHour.toString().padStart(2, '0')}:${dMin.toString().padStart(2, '0')}`;
 
-  const getFullName = (f: RegionFeature, customName?: string): string => {
-    const props = f.properties as any;
-    const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('41') ? '경기' : props.code.startsWith('28') ? '인천' : (props.grandParentName || '경기');
-    
-    // 만약 customName(예: 포곡읍+왕산리)이 전달되었다면 EMD_KOR_NM 등 대신 customName 사용
-    if (customName) {
-      if (props.SIG_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${customName}`;
-      return `${doName} / ${props.parentName || ''} / ${customName}`;
-    }
-
-    if (props.SIG_KOR_NM) {
-      if (props.EMD_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
-      return `${doName} / ${props.SIG_KOR_NM} / ${props.name}`;
-    }
-    return `${doName} / ${props.parentName || ''} / ${props.name}`;
-  };
-
-  return {
+  const result = {
     id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     pickups,
     dropoffs,
@@ -315,4 +271,6 @@ function createCallItem(
     isMatchingRoute,
     violation
   };
+  console.log('[🚚 CallItem 생성]', result);
+  return result;
 }

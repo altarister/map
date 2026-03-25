@@ -28,7 +28,6 @@ export const useDispatchStreaming = ({
   appendCall
 }: UseDispatchStreamingProps) => {
 
-  // 내부 콜백에서 항상 최신 설정값을 참조하기 위한 ref
   const configRef = useRef({
     fullMapData,
     currentLocation,
@@ -37,6 +36,9 @@ export const useDispatchStreaming = ({
     minFare,
     appendCall
   });
+
+  // 어떤 스테이지의 초기 콜을 배포했는지 기억 (React Strict Mode 완벽 방어)
+  const seededStageRef = useRef<number | null>(null);
 
   // 렌더링될 때마다 최신 설정 덮어쓰기 (useEffect 안 써도 무방하나 관행적으로 동기화)
   useEffect(() => {
@@ -96,7 +98,24 @@ export const useDispatchStreaming = ({
         });
       };
 
-      // 첫 번째 사이클 즉시 실행
+
+      // 초기 진입 시 즉시 4개의 콜을 생성 (유일한 콜 생성 소스)
+      // Strict Mode에서 컴포넌트 마운트가 2번 일어나도 seededStageRef 값은 유지되므로 중복 생성 완벽 방어
+      if (seededStageRef.current !== currentStage) {
+        const cfg = configRef.current;
+        if (cfg.fullMapData && cfg.fullMapData.length > 0) {
+          for (let i = 0; i < 4; i++) {
+            const call = generateSingleCall(
+              { mapData: cfg.fullMapData, currentLocCode: cfg.currentLocation?.code, maxPickupDistanceKm: cfg.maxPickupDistanceKm, minFare: cfg.minFare, difficulty: 'NORMAL' },
+              cfg.targetDestination?.code || 'ALL', undefined, 0.2
+            );
+            cfg.appendCall(call);
+          }
+          seededStageRef.current = currentStage;
+        }
+      }
+
+      // 첫 번째 스트리밍 사이클 즉시 실행 (0~50초 사이 랜덤 딜레이로 5개 점진적 추가)
       scheduleCalls();
 
       // 이후 50초마다 사이클 반복
