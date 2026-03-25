@@ -6,11 +6,12 @@ import { InseongDispatchBoard } from './InseongDispatchBoard';
 import { InseongSetupScreen } from './InseongSetupScreen';
 import { InseongCallDetailScreen } from './InseongCallDetailScreen';
 import { InseongOngoingDetailScreen } from './InseongOngoingDetailScreen';
-import type { CallItem, UserInput } from '../../../game/core/types';
+import { Stage2ResultModal } from './Stage2ResultModal';
+import type { CallItem } from '../../../game/core/types';
 
 export const InseongApp = () => {
   const { 
-    gameState, lastFeedback, setLastFeedback, checkAnswer, 
+    gameState, lastFeedback, setLastFeedback, endGame, resetGame, startGame,
     fullMapData, currentLocation, targetDestination, maxPickupDistanceKm, minFare, currentStage 
   } = useGame();
 
@@ -61,6 +62,14 @@ export const InseongApp = () => {
     appendCall
   });
 
+  // ========== [Advanced Routing] 5콜 합짐 트리거 ==========
+  useEffect(() => {
+    // 2단계 플레이 중 확정 오더가 5개에 도달하면 게임 강제 종료 (정산 모드 진입)
+    if (gameState === 'PLAYING' && currentStage === 2 && confirmedCalls.length >= 5) {
+      endGame();
+    }
+  }, [confirmedCalls.length, gameState, currentStage, endGame]);
+
   // 상세 보기 모달 닫기
   const handleCloseDetail = () => {
     setSelectedCall(null);
@@ -74,18 +83,15 @@ export const InseongApp = () => {
     if (setSelectedCallId) setSelectedCallId(call.id);
   };
 
-  // 상세 페이지에서 "탁송" (배차 수락) 버튼을 눌렀을 때 => 채점(checkAnswer) 진입
+  // [Advanced Routing] 상세 페이지에서 "탁송" 버튼을 눌렀을 때
+  // → 즉각 채점(checkAnswer)을 하지 않고, 바로 '내 장부(confirmedCalls)'에 담는다.
+  // → 채점은 5개가 모두 쌓인 후, RouteOptimizer에서 종합 평가된다.
   const handleAcceptCall = (call: CallItem) => {
-    const input: UserInput = { type: 'CALL_ACCEPT', call };
-    checkAnswer(input);
-  };
-
-  // 채점 완료 후 "확정" 을 눌렀을 때 => 내 장부로 이동
-  const handleConfirmCall = (call: CallItem) => {
     setConfirmedCalls((prev: CallItem[]) => {
       if (prev.find((c: CallItem) => c.id === call.id)) return prev;
       return [...prev, call];
     });
+    // 탁송 완료 후 상세 닫고 내 장부 탭으로 이동
     handleCloseDetail();
     setActiveTab('CONFIRMED');
   };
@@ -124,7 +130,6 @@ export const InseongApp = () => {
           isConfirmed={isConfirmed}
           onClose={handleCloseDetail}
           onAccept={handleAcceptCall}
-          onConfirm={handleConfirmCall} 
         />
       );
     }
@@ -147,6 +152,38 @@ export const InseongApp = () => {
         {isSettingsOpen && (
           <InseongSetupScreen onClose={() => setIsSettingsOpen(false)} />
         )}
+      </div>
+    );
+  }
+
+  // 합짐 정산 결과 뷰
+  if (gameState === 'RESULT' && currentStage === 2) {
+    return (
+      <div className="relative w-full h-full">
+        {/* 뒤에 배차 리스트가 깔려 있게 UI 유지 */}
+        <InseongDispatchBoard 
+          confirmedCalls={confirmedCalls}
+          activeTab={activeTab}
+          onTabSelect={setActiveTab}
+          onCallClick={handleCallClick}
+          onSettingsClick={() => {}}
+          isTimerPaused={true}
+          onToggleTimer={() => {}}
+        />
+        <Stage2ResultModal 
+          confirmedCalls={confirmedCalls}
+          currentLocation={currentLocation}
+          fullMapData={fullMapData}
+          onRetry={() => {
+            setConfirmedCalls([]);
+            resetGame();
+            startGame({}, true); // 이전 필터(지도 픽킹) 그대로 리플레이
+          }}
+          onExit={() => {
+            setConfirmedCalls([]);
+            resetGame(); // 앱 종료(초기 화면으로 이동)
+          }}
+        />
       </div>
     );
   }

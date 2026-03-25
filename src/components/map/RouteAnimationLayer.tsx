@@ -1,29 +1,82 @@
 import type { GeoProjection } from 'd3-geo';
+import * as d3Geo from 'd3-geo';
+import { useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useDispatchContext } from '../../contexts/DispatchContext';
-import type { CallFilterQuestion, CallItem } from '../../game/core/types';
+import type { CallFilterQuestion, CallItem, LocationPoint } from '../../game/core/types';
+import { RouteOptimizer } from '../../game/stages/Stage2_Route/optimizer';
 
 interface RouteAnimationLayerProps {
   projection: GeoProjection;
 }
 
 export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) => {
-  const { currentStage, gameState, currentQuestion, lastFeedback } = useGame();
+  const { currentStage, gameState, currentQuestion, lastFeedback, currentLocation, fullMapData } = useGame();
   const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls } = useDispatchContext();
   const { theme } = useSettings();
 
-  if (currentStage !== 2 || gameState !== 'PLAYING') return null;
+  // [Hooks 규칙 준수] useMemo는 조건부 블록 바깥(컴포넌트 최상단)에서 호출해야 합니다
+  const routeResult = useMemo(() => {
+    if (!currentLocation || confirmedCalls.length === 0) return null;
+    const feature = (fullMapData || []).find((f: any) => f.properties?.code === currentLocation.code);
+    const centroid: [number, number] = feature ? d3Geo.geoCentroid(feature) : [0, 0];
+    return RouteOptimizer.analyzeBatch(confirmedCalls, { ...currentLocation, center: centroid });
+  }, [confirmedCalls, currentLocation, fullMapData]);
+
+  if (currentStage !== 2 || (gameState !== 'PLAYING' && gameState !== 'RESULT')) return null;
   if (!currentQuestion || currentQuestion.type !== 'CALL_FILTER') return null;
 
   const isTactical = theme === 'tactical';
   const callFilterQuestion = currentQuestion as CallFilterQuestion;
-  // 렌더링 대상 콜 수집 로직
-  // 1. 피드백 창이 떴으면 오직 해당 콜만
-  // 2. 특정 콜 요소가 클릭되었다면 해당 콜 위주로 노출
-  // 3. (사용자 요청) GPS가 켜져 있다면 출제된 전체 콜의 시작/도착지 표시
-  // 4. 내 장부에 확정된 콜(confirmedCalls)도 보여주기 (합짐 동선 파악)
   
+  // ================= [RESULT 모드] 합짐 5콜 종합 궤적 렌더링 =================
+  if (gameState === 'RESULT') {
+    if (!routeResult) return null;
+
+    // 경로점 D3 궤적 파싱
+    const points = routeResult.orderedPoints
+      .map(p => projection(p.centroid))
+      .filter(p => p !== null) as [number, number][];
+
+    if (points.length < 2) return null;
+
+    const polylineData = points.map(p => `${p[0]},${p[1]}`).join(' ');
+
+    return (
+      <g id="layer-route-animation-result" style={{ pointerEvents: 'none' }}>
+        {/* 다중 폴리라인 선 그리기 */}
+        <polyline 
+          points={polylineData}
+          fill="none"
+          stroke="#4f46e5" // Indigo-600
+          strokeWidth={4}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          className="animate-in slide-in-from-left duration-1000 origin-left"
+          style={{ 
+            strokeDasharray: '20, 10', 
+            animation: 'dash 30s linear infinite' 
+          }}
+        />
+        {/* 각 경유지 마커 */}
+        {routeResult.orderedPoints.map((pt: LocationPoint, idx: number) => {
+          const p = projection(pt.centroid);
+          if (!p) return null;
+          return (
+            <g key={`point-${idx}`}>
+              <circle cx={p[0]} cy={p[1]} r={idx === 0 ? 8 : 5} fill={idx === 0 ? '#ef4444' : '#4f46e5'} stroke="#fff" strokeWidth={2} />
+              <text x={p[0] + 10} y={p[1] + 4} fill={idx === 0 ? '#ef4444' : '#4f46e5'} fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+                {idx === 0 ? `START(${pt.name})` : `경유${idx}(${pt.name})`}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  }
+
+  // ================= [PLAYING 모드] 개별 콜 렌더링 로직 (기존) =================
   let callsToRender: CallItem[] = [];
   
   if (lastFeedback?.callData) {
@@ -32,19 +85,13 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
     const selected = streamingCalls.find((c: any) => c.id === selectedCallId) || confirmedCalls.find((c: any) => c.id === selectedCallId);
     if (selected) callsToRender = [selected];
   } else {
-    // 아무것도 선택되지 않았을 때 다중 표출 로직
     const callMap = new Map<string, CallItem>();
-    
-    // GPS ON 상태(힌트 모드): 리스트 최상단(가장 최근에 생성된) 콜 딱 하나만 표시
     if (isGpsOn && streamingCalls.length > 0) {
       callMap.set(streamingCalls[0].id, streamingCalls[0]);
     }
-    
-    // 확정 오더들도 무조건 보여준다 (합짐용)
     confirmedCalls.forEach(call => {
       callMap.set(call.id, call);
     });
-
     callsToRender = Array.from(callMap.values());
   }
 
@@ -66,8 +113,9 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
 
       {/* 2. 대상 배차 콜 경로 멀티플 렌더링 */}
       {callsToRender.map(call => {
-        const pStart = projection(call.pickups[0].centroid); // 상차지
-        const pEnd = projection(call.dropoffs[0].centroid);  // 하차지
+        // [다중 웨이포인트 지원] 임시로 첫 번째 상/하차지만 선 긋기
+        const pStart = projection(call.pickups[0].centroid); 
+        const pEnd = projection(call.dropoffs[0].centroid);  
         const pDriver = callFilterQuestion.driverLocation ? projection(callFilterQuestion.driverLocation.centroid) : null;
         
         if (!pStart || !pEnd) return null;
@@ -75,14 +123,12 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
         const isConfirmed = confirmedCalls.some(c => c.id === call.id);
         const isActive = call.id === selectedCallId || call.id === lastFeedback?.callData?.id;
 
-        // 선택되었거나 확정된 건 더 두껍고 명확하게 표시
         const strokeWidth = isActive || isConfirmed ? 3 : 1.5;
-        // 색상 계열 분리 (택티컬 모드 지원)
         const primaryColor = isTactical ? '#10b981' : '#3b82f6';
-        const color = isConfirmed ? '#9333ea' : primaryColor; // 확정 건은 보라색
-        const opacity = isActive || isConfirmed ? 1 : 0.6; // 일반 백그라운드 콜은 살짝 투명하게
+        const color = isConfirmed ? '#9333ea' : primaryColor; 
+        const opacity = isActive || isConfirmed ? 1 : 0.6; 
 
-        // 공차 경로 (내 위치 -> 상차지) - 연한 점선 (선택 시에만 렌더링 권장)
+        // 공차 경로 (내 위치 -> 상차지) 
         const pickupLineRender = (pDriver && (isActive || isConfirmed)) ? (
           <line
             x1={pDriver[0]} y1={pDriver[1]}
@@ -97,7 +143,7 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
         // 곡선(아치) 배차 경로 (상차지 -> 하차지)
         const dx = pEnd[0] - pStart[0];
         const dy = pEnd[1] - pStart[1];
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; // radius for arc (곡률)
+        const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; 
         const d = `M${pStart[0]},${pStart[1]} A${dr},${dr} 0 0,1 ${pEnd[0]},${pEnd[1]}`;
 
         return (

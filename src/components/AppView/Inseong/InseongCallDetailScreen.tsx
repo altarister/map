@@ -8,10 +8,9 @@ interface Props {
   isConfirmed?: boolean;
   onClose: () => void;
   onAccept?: (call: CallItem) => void;
-  onConfirm?: (call: CallItem) => void;
 }
 
-export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, onAccept, onConfirm }: Props) => {
+export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, onAccept }: Props) => {
   const isEvaluated = feedback !== undefined && feedback !== null;
   const isCorrect = feedback?.isCorrect;
 
@@ -159,28 +158,17 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
           <>
             <button 
               onClick={() => onAccept?.(call)}
-              disabled={isEvaluated}
-              className={`w-[130px] h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm transition-transform ${isEvaluated ? 'bg-[#ffca28] text-gray-700 opacity-40 cursor-not-allowed' : 'bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95'}`}
+              className="flex-1 h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95 transition-transform"
             >
-              탁송
+              🚛 탁송 (장부에 담기)
             </button>
 
-            <div className="flex-1 flex gap-2 h-12">
-              <button 
-                onClick={onClose}
-                className="flex-1 bg-white text-gray-800 font-extrabold text-base rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
-              >
-                취소
-              </button>
-
-              <button 
-                onClick={() => onConfirm?.(call)}
-                disabled={!(isEvaluated && isCorrect)}
-                className={`flex-1 font-extrabold text-base rounded-sm shadow-sm transition-transform ${!(isEvaluated && isCorrect) ? 'bg-[#26a69a] text-white opacity-40 cursor-not-allowed' : 'bg-[#009688] text-white border border-[#00796b] active:scale-95'}`}
-              >
-                닫기
-              </button>
-            </div>
+            <button 
+              onClick={onClose}
+              className="w-[100px] h-12 bg-white text-gray-800 font-extrabold text-base rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
+            >
+              취소
+            </button>
           </>
         )}
       </div>

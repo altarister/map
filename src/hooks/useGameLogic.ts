@@ -12,6 +12,7 @@ interface UseGameLogicReturn {
   totalQuestions: number; // 전체 문제 수 추가
   score: GameScore;
   startGame: (overrideRegions?: RegionFeature[], filters?: any) => void;
+  endGame: () => void;
   checkAnswer: (input: UserInput) => void; // string code -> UserInput 객체로 변경
   skipQuestion: () => void; // 오답 처리 후 다음 문제로 스킵
   resetGame: () => void;
@@ -310,6 +311,7 @@ export const useGameLogic = (
     totalQuestions,
     score,
     startGame,
+    endGame,
     checkAnswer,
     skipQuestion,
     resetGame,

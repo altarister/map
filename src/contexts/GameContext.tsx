@@ -30,6 +30,7 @@ interface GameContextType {
     maxPickupDistanceKm?: number;
     minFare?: number;
   }, forceRestart?: boolean) => void;
+  endGame: () => void;
   checkAnswer: (input: UserInput) => void;
   skipQuestion: () => void;
   resetGame: () => void;
@@ -120,6 +121,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     startTime,
     endTime,
     startGame: startGameLogic,
+    endGame,
     checkAnswer,
     skipQuestion,
     resetGame,
@@ -252,6 +254,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     startTime,
     endTime,
     startGame,
+    endGame,
     checkAnswer,
     skipQuestion,
     resetGame: resetGameWithDepth,
@@ -280,7 +283,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMinFare,
     fullMapData: fullMapData?.features || []
   }), [
-    gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, checkAnswer, resetGameWithDepth,
+    gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, endGame, checkAnswer, resetGameWithDepth,
     lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
     skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation,
     setCurrentLocation,
