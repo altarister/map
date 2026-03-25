@@ -185,10 +185,14 @@ function createCallItem(
     violation = 'BAD_FARE';
   }
 
-  const paymentTypes = ['신용', '선불', '착불', '월결'];
+  // 확률 기반 신규 속성 부여
+  const isShared = Math.random() < 0.3; // 30% 공유 오더
+  const isExpress = Math.random() < 0.15; // 15% 급송 오더 (고단가/합짐불가)
+
+  const paymentTypes: Array<'신용' | '선불' | '착불' | '월결'> = ['신용', '선불', '착불', '월결'];
   const randomPaymentType = paymentTypes[Math.floor(Math.random() * paymentTypes.length)];
 
-  const billingTypes = ['계산서', '인수증', '무과세'];
+  const billingTypes: Array<'계산서' | '인수증' | '무과세'> = ['계산서', '인수증', '무과세'];
   const randomBillingType = billingTypes[Math.floor(Math.random() * billingTypes.length)];
 
   const randomStatus = '신규'; // 기본값 (추후 고도화 가능)
@@ -199,8 +203,9 @@ function createCallItem(
   const itemOptions = ['박스 1개', '서류봉투', '쇼핑백 2개', '소형 가전', '샘플 박스', '마대 1개'];
   const randomItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
 
-  const categoryOptions = ['보통', '보통', '보통', '급행', '예약'];
-  const randomCategory = categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
+  // 급송 팩터가 뽑혔다면 무조건 확정 급송, 아니면 대개 보통
+  const categoryOptions = ['보통', '보통', '예약'];
+  const randomCategory = isExpress ? '급송' : categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
 
   const companyOptions = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
   const randomCompany = companyOptions[Math.floor(Math.random() * companyOptions.length)];
@@ -240,6 +245,8 @@ function createCallItem(
     pickupDistanceKm,
     distanceKm,
     status: randomStatus,
+    isShared,
+    isExpress,
     paymentType: randomPaymentType,
     billingType: randomBillingType,
     vehicleType: randomVehicle,

@@ -50,7 +50,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         {/* 2. Status & Item */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-[#aed581]/40">
           <div className="flex gap-8 text-[15px] font-bold text-gray-800 tracking-tight">
-            <span>상태 : <span className="text-gray-900 ml-1">{isConfirmed ? '완료' : (call.status || '배차')}</span></span>
+            <span>상태 : <span className={`ml-1 ${call.isExpress ? 'text-red-600' : 'text-gray-900'}`}>{isConfirmed ? '완료' : (call.status || '배차')}</span></span>
             <span>물품 : <span className="text-gray-900 ml-1">{call.itemDescription || ''}</span></span>
           </div>
           <button onClick={onClose} className="px-5 py-2 bg-white border border-gray-300 font-bold text-[14px] rounded shadow-sm text-gray-600 active:bg-gray-100">
@@ -68,7 +68,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
         {/* 4. Fare */}
         <div className="flex px-4 py-4 border-b border-[#aed581]/40">
-          <div className="font-extrabold text-[22px] text-[#d32f2f] tracking-tighter">
+          <div className={`font-extrabold text-[22px] tracking-tighter ${call.isExpress ? 'text-red-600' : 'text-[#d32f2f]'}`}>
             요금 : {fareFormatted}({call.paymentType || '신용'})({call.billingType || '계산서'})
           </div>
         </div>
@@ -112,7 +112,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
               픽업
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate">
-              {call.startRegion.name.split(' ')[0]} / ()
+              {call.isShared ? '@' : ''}{call.startRegion.name.split(' ')[0]} / ()
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate pb-0.5">
-              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.startRegion.fullName.split('/').pop()}
+              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.isShared ? '@' : ''}{call.startRegion.fullName.split('/').pop()}
             </div>
           </div>
 

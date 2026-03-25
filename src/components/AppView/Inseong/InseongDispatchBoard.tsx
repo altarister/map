@@ -113,7 +113,26 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
         )}
         {calls.map((call, idx) => {
           const isSelected = selectedCallId === call.id;
-          const bgColor = isSelected ? 'bg-[#c9d3f8]' : (idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]');
+          
+          let bgColor = idx % 2 === 0 ? 'bg-white' : 'bg-[#fcfcfa]';
+          let isExpressTheme = false;
+
+          // 우선순위 1: 급송 (노란 바탕, 빨간 글씨)
+          if (call.isExpress) {
+            bgColor = 'bg-[#ffeb3b]';
+            isExpressTheme = true;
+          } 
+          // 우선순위 2: 계산서 (파란(Cyan) 바탕)
+          else if (call.billingType === '계산서') {
+            bgColor = 'bg-[#80deea]'; 
+          }
+
+          if (isSelected) {
+            bgColor = 'bg-[#c9d3f8]';
+          }
+
+          // 헬퍼: 급송이면 텍스트 컬러 강제 덮어쓰기
+          const cxText = (defaultColor: string) => isExpressTheme ? 'text-red-600' : defaultColor;
 
           if (activeTab === 'CONFIRMED') {
             return (
@@ -127,16 +146,16 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
                     완료
                   </div>
                 </div>
-                <div className="w-[35%] font-bold text-gray-900 text-[15px] truncate px-1 text-center tracking-tighter">
+                <div className={`w-[35%] font-bold text-[15px] truncate px-1 text-center tracking-tighter ${cxText('text-gray-900')}`}>
                   {call.companyName || '태양메디스'}
                 </div>
-                <div className="w-[15%] font-bold text-black text-[14px] text-center tracking-tighter pr-2">
+                <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pr-2 ${cxText('text-black')}`}>
                   {call.pickupTime || '12:19'}
                 </div>
-                <div className="w-[15%] font-bold text-black text-[14px] text-center tracking-tighter pl-2 border-l border-gray-200">
+                <div className={`w-[15%] font-bold text-[14px] text-center tracking-tighter pl-2 border-l border-gray-200 ${cxText('text-black')}`}>
                   {call.deliveryTime || '15:46'}
                 </div>
-                <div className="w-[20%] font-bold text-gray-900 text-[14px] truncate pl-2 pr-2 text-right">
+                <div className={`w-[20%] font-bold text-[14px] truncate pl-2 pr-2 text-right ${cxText('text-gray-900')}`}>
                   {call.targetRegion.name}
                 </div>
               </div>
@@ -150,8 +169,8 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
               onClick={() => handleRowClick(call)}
             >
               {/* 거리 (상단: 공차거리, 하단: 운행거리) */}
-              <div className="w-[12%] py-1 flex flex-col justify-center px-1 border-r border-gray-200 font-bold text-[13px] leading-[1.1]">
-                <span className="text-[12px] text-gray-600 tracking-tighter">
+              <div className={`w-[12%] py-1 flex flex-col justify-center px-1 border-r border-gray-200 font-bold text-[13px] leading-[1.1] ${cxText('text-black')}`}>
+                <span className={`text-[12px] tracking-tighter ${cxText('text-gray-600')}`}>
                   {call.pickupDistanceKm?.toFixed(1) || '0.0'}
                 </span>
                 <span>{call.distanceKm.toFixed(1)}</span>
@@ -160,26 +179,25 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
               {/* 출발지 */}
               <div className="w-[30%] px-1 py-1 flex flex-col justify-center border-r border-gray-200 truncate leading-tight">
                 <div className="flex items-start">
-                  <span className="text-gray-500 text-[11px] mt-0.5">{`@`}</span>
-                  <span className="font-bold ml-0.5 text-[14px] whitespace-normal line-clamp-2 leading-tight">
+                  {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
+                  <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
                     {call.startRegion.name.split(' ')[0]}
                   </span>
                 </div>
               </div>
               
               {/* 도착지 */}
-              <div className="w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight">
-                {/* [TEST CODE] 개발 확인용: 정답(violation === undefined)인 경우 목적지를 붉은색으로 표시. 나중에 텍스트 색상을 기본(#0052a3)으로 복구할 것 */}
-                <span className={`whitespace-normal line-clamp-2 ${call.violation === undefined ? 'text-red-600' : ''}`}>{call.targetRegion.name}</span>
+              <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
+                <span className={`whitespace-normal line-clamp-2`}>{call.targetRegion.name}</span>
               </div>
               
               {/* 차종 */}
-              <div className="w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold">
+              <div className={`w-[10%] flex justify-center items-center border-r border-gray-200 text-[13px] font-bold ${cxText(call.violation === undefined ? 'text-red-600' : 'text-gray-900')}`}>
                 {call.vehicleType || '오토'}
               </div>
               
               {/* 요금 */}
-              <div className="w-[10%] flex justify-center items-center font-bold text-[14px]">
+              <div className={`w-[10%] flex justify-center items-center font-bold text-[14px] ${cxText('text-black')}`}>
                 {formatFare(call.fare)}
               </div>
             </div>
