@@ -61,11 +61,22 @@ export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
         </div>
         <div className="flex justify-between text-[14px]">
           <span className="text-gray-600 font-semibold">📍 최단 이동거리</span>
-          <span className="font-bold text-gray-900">{result.idealDistanceKm} km</span>
+          <span className="font-bold text-gray-900">{result.idealDistanceKm.toFixed(1)} km</span>
+        </div>
+        <div className={`flex justify-between text-[14px] ${
+          result.detourRate < 30 ? 'text-blue-600' : result.detourRate < 50 ? 'text-orange-500' : 'text-red-500'
+        }`}>
+          <span className="font-bold">🧭 경로 우회율</span>
+          <span className="font-bold">
+            {result.detourRate.toFixed(1)}% 
+            <span className="text-[11px] ml-1 text-gray-500 font-normal">
+              ({result.detourDistanceKm.toFixed(1)}km 이탈)
+            </span>
+          </span>
         </div>
         <div className={`flex justify-between text-[14px] ${theme.text}`}>
           <span className="font-bold">⚡ km당 수익률</span>
-          <span className="font-extrabold text-[16px]">{result.profitPerKm.toLocaleString()}원/km</span>
+          <span className="font-extrabold text-[16px]">{Math.floor(result.profitPerKm).toLocaleString()}원/km</span>
         </div>
       </div>
 

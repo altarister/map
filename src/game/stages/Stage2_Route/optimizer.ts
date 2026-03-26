@@ -13,6 +13,9 @@ export interface RouteOptimizationResult {
   idealDistanceKm: number;
   totalFare: number;
   profitPerKm: number;
+  maxDirectDistanceKm: number; // 기사 위치 ~ 가장 먼 하차지 직접 연결 거리 (메인 축)
+  detourDistanceKm: number;    // 합짐으로 인해 늘어난 거리
+  detourRate: number;          // 우회율 (%)
   rank: 'S' | 'A' | 'B' | 'C' | 'F';
   feedback: string;
   orderedPoints: RoutePoint[]; // 최적 방문 순서 (렌더링용 다각형 애니메이션 라인)
@@ -122,12 +125,21 @@ export class RouteOptimizer {
 
     const profitPerKm = minDistance > 0 ? callFareSum / minDistance : 0;
     
+    // ================= 우회율 (Detour Rate) 산출 =================
+    // 1. 메인 축(Main Axis) 구하기: 현재 위치에서 가장 멀리 있는 "하차지" 
+    const dropoffDistances = calls.flatMap(c => c.dropoffs.map(d => getDistance(startPoint, d)));
+    const maxDirectDistanceKm = dropoffDistances.length > 0 ? Math.max(...dropoffDistances) : 0;
+    
+    // 2. 우회 거리 & 우회율 (단, 하차지가 나와 아예 같은 곳이어서 maxDirect=0 인 예외 방어)
+    const detourDistanceKm = Math.max(0, minDistance - maxDirectDistanceKm);
+    const detourRate = maxDirectDistanceKm > 0 ? (detourDistanceKm / maxDirectDistanceKm) * 100 : 0;
+
     let rank: RouteOptimizationResult['rank'] = 'C';
     let feedback = "";
 
     if (profitPerKm >= RANK_THRESHOLDS.S) {
       rank = 'S';
-      feedback = "합짐의 마술사! km당 4,000원 이상의 환상적인 운임을 기록했습니다.";
+      feedback = "합짐의 마술사! km당 최상의 운임을 기록했습니다.";
     } else if (profitPerKm >= RANK_THRESHOLDS.A) {
       rank = 'A';
       feedback = "훌륭한 동선 기획입니다. 빈차 운행이 거의 없네요.";
@@ -139,13 +151,16 @@ export class RouteOptimizer {
       feedback = "배보다 배꼽이 큽니다! 짐을 싣지 않고 뛰는 구간이 너무 깁니다.";
     } else {
       rank = 'F';
-      feedback = "최악의 동선입니다. 기름값이 더 나오겠습니다! 역방향 콜이 섞여있습니다.";
+      feedback = "최악의 동선입니다. 기름값이 더 나오겠습니다! 역방향 콜이 섞여 있습니다.";
     }
 
     return {
-      idealDistanceKm: Number(minDistance.toFixed(1)),
+      idealDistanceKm: minDistance,
       totalFare: callFareSum,
-      profitPerKm: Math.floor(profitPerKm),
+      profitPerKm,
+      maxDirectDistanceKm,
+      detourDistanceKm,
+      detourRate,
       rank,
       feedback,
       orderedPoints
