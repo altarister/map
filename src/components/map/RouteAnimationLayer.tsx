@@ -68,28 +68,35 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
           }}
         />
         {/* 각 경유지 마커 */}
-        {routeResult.orderedPoints.map((pt: RoutePoint, idx: number) => {
-          const p = projection(pt.centroid);
-          if (!p) return null;
-          
-          let labelText = '';
-          if (pt.type === 'START') {
-            labelText = `출발지(${pt.name})`;
-          } else if (pt.type === 'PICKUP') {
-            labelText = `상차${pt.waypointIndex || 1}(${pt.name})`;
-          } else if (pt.type === 'DROPOFF') {
-            labelText = `하차${pt.waypointIndex || 1}(${pt.name})`;
-          }
+        {(() => {
+          let pickupCount = 0;
+          let dropoffCount = 0;
 
-          return (
-            <g key={`point-${idx}`}>
-              <circle cx={p[0]} cy={p[1]} r={idx === 0 ? 8 : 5} fill={pt.type === 'DROPOFF' ? '#10b981' : (idx === 0 ? '#ef4444' : '#4f46e5')} stroke="#fff" strokeWidth={2} />
-              <text x={p[0] + 10} y={p[1] + 4} fill={pt.type === 'DROPOFF' ? '#047857' : (idx === 0 ? '#ef4444' : '#4f46e5')} fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-                {labelText}
-              </text>
-            </g>
-          );
-        })}
+          return routeResult.orderedPoints.map((pt: RoutePoint, idx: number) => {
+            const p = projection(pt.centroid);
+            if (!p) return null;
+            
+            let labelText = '';
+            if (pt.type === 'START') {
+              labelText = `출발지(${pt.name})`;
+            } else if (pt.type === 'PICKUP') {
+              pickupCount++;
+              labelText = `상차${pickupCount}(${pt.name})`;
+            } else if (pt.type === 'DROPOFF') {
+              dropoffCount++;
+              labelText = `하차${dropoffCount}(${pt.name})`;
+            }
+
+            return (
+              <g key={`point-${idx}`}>
+                <circle cx={p[0]} cy={p[1]} r={idx === 0 ? 8 : 5} fill={pt.type === 'DROPOFF' ? '#10b981' : (idx === 0 ? '#ef4444' : '#4f46e5')} stroke="#fff" strokeWidth={2} />
+                <text x={p[0] + 10} y={p[1] + 4} fill={pt.type === 'DROPOFF' ? '#047857' : (idx === 0 ? '#ef4444' : '#4f46e5')} fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+                  {labelText}
+                </text>
+              </g>
+            );
+          });
+        })()}
       </g>
     );
   }
