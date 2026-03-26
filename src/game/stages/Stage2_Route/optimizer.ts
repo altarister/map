@@ -3,13 +3,19 @@ import type { CallItem, LocationPoint } from '../../core/types';
 import { calculateDistanceKm } from '../../../utils/geo';
 import { RANK_THRESHOLDS } from './constants';
 
+export interface RoutePoint extends LocationPoint {
+  type: 'START' | 'PICKUP' | 'DROPOFF';
+  callId?: string;
+  waypointIndex?: number; // 콜 내 상/하차 순번 (예: 하차1, 하차2 -> 1, 2)
+}
+
 export interface RouteOptimizationResult {
   idealDistanceKm: number;
   totalFare: number;
   profitPerKm: number;
   rank: 'S' | 'A' | 'B' | 'C' | 'F';
   feedback: string;
-  orderedPoints: LocationPoint[]; // 최적 방문 순서 (렌더링용 다각형 애니메이션 라인)
+  orderedPoints: RoutePoint[]; // 최적 방문 순서 (렌더링용 다각형 애니메이션 라인)
 }
 
 export class RouteOptimizer {
@@ -27,6 +33,7 @@ export class RouteOptimizer {
       id: string; // 고유 ID (call.id + _pickup_ + idx)
       callId: string;
       type: 'PICKUP' | 'DROPOFF';
+      waypointIndex: number;
       point: LocationPoint;
     }> = [];
 
@@ -36,10 +43,10 @@ export class RouteOptimizer {
     calls.forEach(call => {
       callRequirements[call.id] = { totalPickups: call.pickups.length };
       call.pickups.forEach((p, idx) => {
-        nodes.push({ id: `${call.id}_P_${idx}`, callId: call.id, type: 'PICKUP', point: p });
+        nodes.push({ id: `${call.id}_P_${idx}`, callId: call.id, type: 'PICKUP', waypointIndex: idx + 1, point: p });
       });
       call.dropoffs.forEach((d, idx) => {
-        nodes.push({ id: `${call.id}_D_${idx}`, callId: call.id, type: 'DROPOFF', point: d });
+        nodes.push({ id: `${call.id}_D_${idx}`, callId: call.id, type: 'DROPOFF', waypointIndex: idx + 1, point: d });
       });
     });
 
@@ -59,11 +66,12 @@ export class RouteOptimizer {
       return calculateDistanceKm(p1.centroid, p2.centroid);
     };
 
-    const startPoint: LocationPoint = {
+    const startPoint: RoutePoint = {
       code: startLocation.code,
       name: startLocation.name,
       fullName: startLocation.name,
-      centroid: startLocation.center as [number, number]
+      centroid: startLocation.center as [number, number],
+      type: 'START'
     };
 
     // TSP DFS 탐색 (백트래킹)
@@ -104,7 +112,12 @@ export class RouteOptimizer {
     dfs(0, startPoint, 0);
 
     // 최적 경로 구성
-    const orderedPoints = bestPathIndices.map(idx => nodes[idx].point);
+    const orderedPoints: RoutePoint[] = bestPathIndices.map(idx => ({
+      ...nodes[idx].point,
+      type: nodes[idx].type,
+      callId: nodes[idx].callId,
+      waypointIndex: nodes[idx].waypointIndex,
+    }));
     orderedPoints.unshift(startPoint); // 궤적의 시작은 현재 위치
 
     const profitPerKm = minDistance > 0 ? callFareSum / minDistance : 0;

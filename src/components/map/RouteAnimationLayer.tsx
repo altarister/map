@@ -4,8 +4,9 @@ import { useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useDispatchContext } from '../../contexts/DispatchContext';
-import type { CallFilterQuestion, CallItem, LocationPoint } from '../../game/core/types';
+import type { CallFilterQuestion, CallItem } from '../../game/core/types';
 import { RouteOptimizer } from '../../game/stages/Stage2_Route/optimizer';
+import type { RoutePoint } from '../../game/stages/Stage2_Route/optimizer';
 
 interface RouteAnimationLayerProps {
   projection: GeoProjection;
@@ -18,8 +19,9 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
 
   // [Hooks 규칙 준수] useMemo는 조건부 블록 바깥(컴포넌트 최상단)에서 호출해야 합니다
   const routeResult = useMemo(() => {
-    if (!currentLocation || confirmedCalls.length === 0) return null;
-    const feature = (fullMapData || []).find((f: any) => f.properties?.code === currentLocation.code);
+    if (!currentLocation || confirmedCalls.length === 0 || !fullMapData) return null;
+    const features = fullMapData.features || [];
+    const feature = features.find((f: any) => f.properties?.code === currentLocation.code);
     const centroid: [number, number] = feature ? d3Geo.geoCentroid(feature) : [0, 0];
     return RouteOptimizer.analyzeBatch(confirmedCalls, { ...currentLocation, center: centroid });
   }, [confirmedCalls, currentLocation, fullMapData]);
@@ -60,14 +62,24 @@ export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) =>
           }}
         />
         {/* 각 경유지 마커 */}
-        {routeResult.orderedPoints.map((pt: LocationPoint, idx: number) => {
+        {routeResult.orderedPoints.map((pt: RoutePoint, idx: number) => {
           const p = projection(pt.centroid);
           if (!p) return null;
+          
+          let labelText = '';
+          if (pt.type === 'START') {
+            labelText = `출발지(${pt.name})`;
+          } else if (pt.type === 'PICKUP') {
+            labelText = `상차${pt.waypointIndex || 1}(${pt.name})`;
+          } else if (pt.type === 'DROPOFF') {
+            labelText = `하차${pt.waypointIndex || 1}(${pt.name})`;
+          }
+
           return (
             <g key={`point-${idx}`}>
-              <circle cx={p[0]} cy={p[1]} r={idx === 0 ? 8 : 5} fill={idx === 0 ? '#ef4444' : '#4f46e5'} stroke="#fff" strokeWidth={2} />
-              <text x={p[0] + 10} y={p[1] + 4} fill={idx === 0 ? '#ef4444' : '#4f46e5'} fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
-                {idx === 0 ? `START(${pt.name})` : `경유${idx}(${pt.name})`}
+              <circle cx={p[0]} cy={p[1]} r={idx === 0 ? 8 : 5} fill={pt.type === 'DROPOFF' ? '#10b981' : (idx === 0 ? '#ef4444' : '#4f46e5')} stroke="#fff" strokeWidth={2} />
+              <text x={p[0] + 10} y={p[1] + 4} fill={pt.type === 'DROPOFF' ? '#047857' : (idx === 0 ? '#ef4444' : '#4f46e5')} fontSize={12} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>
+                {labelText}
               </text>
             </g>
           );
