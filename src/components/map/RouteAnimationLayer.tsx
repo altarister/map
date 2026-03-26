@@ -1,5 +1,4 @@
 import type { GeoProjection } from 'd3-geo';
-import * as d3Geo from 'd3-geo';
 import { useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -13,18 +12,25 @@ interface RouteAnimationLayerProps {
 }
 
 export const RouteAnimationLayer = ({ projection }: RouteAnimationLayerProps) => {
-  const { currentStage, gameState, currentQuestion, lastFeedback, currentLocation, fullMapData } = useGame();
+  const { currentStage, gameState, currentQuestion, lastFeedback } = useGame();
   const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls, activeTab } = useDispatchContext();
   const { theme } = useSettings();
 
   // [Hooks 규칙 준수] useMemo는 조건부 블록 바깥(컴포넌트 최상단)에서 호출해야 합니다
   const routeResult = useMemo(() => {
-    if (!currentLocation || confirmedCalls.length === 0 || !fullMapData) return null;
-    const features = fullMapData.features || [];
-    const feature = features.find((f: any) => f.properties?.code === currentLocation.code);
-    const centroid: [number, number] = feature ? d3Geo.geoCentroid(feature) : [0, 0];
-    return RouteOptimizer.analyzeBatch(confirmedCalls, { ...currentLocation, center: centroid });
-  }, [confirmedCalls, currentLocation, fullMapData]);
+    // Stage2 전용: 문제 데이터 내의 driverLocation에 기사의 정확한 현위치(centroid 포함)가 들어있음
+    const callFilterQuestion = currentQuestion as CallFilterQuestion;
+    const driverLoc = callFilterQuestion?.driverLocation;
+
+    if (!driverLoc || confirmedCalls.length === 0) return null;
+    
+    // startLocation을 driverLoc의 데이터로 구성
+    return RouteOptimizer.analyzeBatch(confirmedCalls, { 
+      code: driverLoc.code, 
+      name: driverLoc.name, 
+      center: driverLoc.centroid 
+    });
+  }, [confirmedCalls, currentQuestion]);
 
   if (currentStage !== 2 || (gameState !== 'PLAYING' && gameState !== 'RESULT')) return null;
   if (!currentQuestion || currentQuestion.type !== 'CALL_FILTER') return null;

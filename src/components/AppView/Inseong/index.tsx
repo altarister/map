@@ -6,13 +6,12 @@ import { InseongDispatchBoard } from './InseongDispatchBoard';
 import { InseongSetupScreen } from './InseongSetupScreen';
 import { InseongCallDetailScreen } from './InseongCallDetailScreen';
 import { InseongOngoingDetailScreen } from './InseongOngoingDetailScreen';
-import { Stage2ResultModal } from './Stage2ResultModal';
 import type { CallItem } from '../../../game/core/types';
 import { BATCH_TARGET_COUNT } from '../../../game/stages/Stage2_Route/constants';
 
 export const InseongApp = () => {
   const { 
-    gameState, lastFeedback, setLastFeedback, endGame, resetGame, startGame,
+    gameState, lastFeedback, setLastFeedback, endGame,
     fullMapData, currentLocation, targetDestination, maxPickupDistanceKm, minFare, currentStage 
   } = useGame();
 
@@ -161,26 +160,6 @@ export const InseongApp = () => {
     );
   }
 
-  // 합짐 정산 결과 뷰
-  if (gameState === 'RESULT' && currentStage === 2) {
-    return (
-      <Stage2ResultModal 
-        confirmedCalls={confirmedCalls}
-        currentLocation={currentLocation}
-        fullMapData={fullMapData}
-        onRetry={() => {
-          setConfirmedCalls([]);
-          resetGame();
-          startGame({}, true);
-        }}
-        onExit={() => {
-          setConfirmedCalls([]);
-          resetGame();
-        }}
-      />
-    );
-  }
-
-  // 그 외 에러/대기 상태 보호
+  // 그 외 상태에서는 빈 화면 처리
   return null;
 };

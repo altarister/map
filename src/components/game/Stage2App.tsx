@@ -2,25 +2,26 @@ import { InseongApp } from '../AppView/Inseong';
 import { Stage2ResultModal } from '../AppView/Inseong/Stage2ResultModal';
 import { useGame } from '../../contexts/GameContext';
 import { useDispatchContext } from '../../contexts/DispatchContext';
-import { useGeoContext } from '../../contexts/GeoDataContext';
+import type { CallFilterQuestion } from '../../game/core/types';
 
 export const Stage2App = () => {
-  const { gameState, currentLocation, resetGame, startGame } = useGame();
+  const { gameState, currentQuestion, resetGame, startGame } = useGame();
   const { confirmedCalls, setConfirmedCalls } = useDispatchContext();
-  const { fullMapData } = useGeoContext();
   
   // 현재는 인성콜 UI만 연동하지만, 추후 24시콜 등 앱 타입에 따라 분기 가능
   // const appType = 'INSEONG';
 
   // RESULT (정산) 화면 - 기존 인성앱(좌측 상단) 위치에 렌더링하여 우측 지도 시야 확보
   if (gameState === 'RESULT') {
+    const callFilterQuestion = currentQuestion as CallFilterQuestion;
+    const driverLocation = callFilterQuestion?.driverLocation;
+
     return (
       <div className="absolute inset-0 pointer-events-none z-[60]">
         <div className="pointer-events-auto absolute top-16 left-6 w-[380px] h-[620px] max-h-[calc(100vh-120px)] shadow-[0_15px_50px_rgba(0,0,0,0.6)] rounded-xl overflow-hidden border border-gray-400 bg-white flex flex-col">
           <Stage2ResultModal 
             confirmedCalls={confirmedCalls}
-            currentLocation={currentLocation}
-            fullMapData={fullMapData}
+            driverLocation={driverLocation}
             onRetry={() => {
               setConfirmedCalls([]);
               resetGame();

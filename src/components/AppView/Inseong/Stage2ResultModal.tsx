@@ -2,30 +2,28 @@ import React, { useMemo } from 'react';
 import type { CallItem } from '../../../game/core/types';
 import { RouteOptimizer } from '../../../game/stages/Stage2_Route/optimizer';
 import { formatRegionName } from '../../../utils/format';
-import * as d3Geo from 'd3-geo';
 
 interface Stage2ResultModalProps {
   confirmedCalls: CallItem[];
-  currentLocation: { code: string; name: string } | null;
-  fullMapData: any;
+  driverLocation?: { code: string; name: string; centroid: [number, number] };
   onRetry: () => void;
   onExit: () => void;
 }
 
 export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
   confirmedCalls,
-  currentLocation,
-  fullMapData,
+  driverLocation,
   onRetry,
   onExit
 }) => {
   const result = useMemo(() => {
-    if (!currentLocation || !fullMapData) return null;
-    const features = fullMapData.features || [];
-    const feature = features.find((f: any) => f.properties?.code === currentLocation.code);
-    const centroid: [number, number] = feature ? d3Geo.geoCentroid(feature) : [0, 0];
-    return RouteOptimizer.analyzeBatch(confirmedCalls, { ...currentLocation, center: centroid });
-  }, [confirmedCalls, currentLocation, fullMapData]);
+    if (!driverLocation) return null;
+    return RouteOptimizer.analyzeBatch(confirmedCalls, { 
+      code: driverLocation.code, 
+      name: driverLocation.name, 
+      center: driverLocation.centroid 
+    });
+  }, [confirmedCalls, driverLocation]);
 
   if (!result) return null;
 
