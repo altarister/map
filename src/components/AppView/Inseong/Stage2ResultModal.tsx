@@ -40,7 +40,7 @@ export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
   const theme = rankTheme[result.rank] || rankTheme['C'];
 
   return (
-    <div className="relative w-[380px] sm:w-[420px] max-w-[95vw] max-h-[85vh] flex flex-col bg-[#eef1f6] font-sans text-black select-none tracking-tight rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-gray-300 overflow-hidden mx-auto">
+    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans text-black select-none tracking-tight">
       
       {/* 상단: 랭크 + 피드백 */}
       <div className={`${theme.bg} border-b-2 ${theme.border} px-3 py-3 flex items-center gap-3`}>

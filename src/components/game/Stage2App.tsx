@@ -12,11 +12,11 @@ export const Stage2App = () => {
   // 현재는 인성콜 UI만 연동하지만, 추후 24시콜 등 앱 타입에 따라 분기 가능
   // const appType = 'INSEONG';
 
-  // RESULT (정산) 화면 - 풀스크린 모달 형태 (지도 위에 오버레이)
+  // RESULT (정산) 화면 - 기존 인성앱(좌측 상단) 위치에 렌더링하여 우측 지도 시야 확보
   if (gameState === 'RESULT') {
     return (
-      <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 pointer-events-none">
-        <div className="pointer-events-auto">
+      <div className="absolute inset-0 pointer-events-none z-[60]">
+        <div className="pointer-events-auto absolute top-16 left-6 w-[380px] h-[620px] max-h-[calc(100vh-120px)] shadow-[0_15px_50px_rgba(0,0,0,0.6)] rounded-xl overflow-hidden border border-gray-400 bg-white flex flex-col">
           <Stage2ResultModal 
             confirmedCalls={confirmedCalls}
             currentLocation={currentLocation}
