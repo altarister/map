@@ -68,7 +68,7 @@ export interface CallItem {
   status?: string;          // 상태 (신규, 배차, 픽업, 완료, 등)
   isShared?: boolean;       // 공유 오더 여부 (출발지에 @ 표시)
   isExpress?: boolean;      // 급송 여부 (노란 바탕, 붉은 글씨, 합짐 불가)
-  paymentType?: '신용' | '선불' | '착불' | '월결';     // 결제 방식
+  paymentType?: '신용' | '선불' | '착불' | '카드';     // 결제 방식 (신용/카드는 가상계좌(적립금) 차감, 선불/착불은 현금수수)
   billingType?: '계산서' | '인수증' | '무과세';        // 증빙 방식 (계산서는 파란 바탕)
   vehicleType?: string;     // 다, 라, 카, 마 (오토방/카고)
   itemDescription?: string; // 박스 1개, 서류 등
