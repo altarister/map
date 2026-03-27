@@ -45,5 +45,5 @@ export const VEHICLE_OPTIONS = ['오', '다', '라', '1t'];
 export const ITEM_OPTIONS = ['박스 1개', '서류봉투', '쇼핑백 2개', '소형 가전', '샘플 박스', '마대 1개'];
 export const CATEGORY_OPTIONS = ['보통', '보통', '예약'];
 export const COMPANY_OPTIONS = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
-export const PAYMENT_OPTIONS: Array<'신용' | '선불' | '착불' | '월결'> = ['신용', '선불', '착불', '월결'];
+export const PAYMENT_OPTIONS: Array<'신용' | '선불' | '착불' | '카드'> = ['신용', '선불', '착불', '카드'];
 export const BILLING_OPTIONS: Array<'계산서' | '인수증' | '무과세'> = ['계산서', '인수증', '무과세'];
