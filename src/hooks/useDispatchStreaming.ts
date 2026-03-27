@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { CallItem } from '../game/core/types';
 import { generateSingleCall } from '../game/stages/Stage2_Route/generator';
+import { 
+  INITIAL_CALL_COUNT, PROB_CORRECT_ANSWER, MIN_CALL_DELAY_MS, MAX_CALL_DELAY_MS 
+} from '../game/stages/Stage2_Route/constants';
 
 interface UseDispatchStreamingProps {
   gameState: string;
@@ -54,60 +57,49 @@ export const useDispatchStreaming = ({
 
   useEffect(() => {
     if (gameState === 'PLAYING' && currentStage === 2 && !isSettingsOpen && !isTimerPaused) {
-      const CALL_BATCH_COUNT = 5;
-      const CALL_BASE_INTERVAL_MS = 10000; // 10초 상수
-      const CYCLE_DURATION_MS = CALL_BATCH_COUNT * CALL_BASE_INTERVAL_MS;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let isScheduling = true;
 
-      let timeoutIds: ReturnType<typeof setTimeout>[] = [];
-      let cycleInterval: ReturnType<typeof setInterval>;
+      const scheduleNextCall = () => {
+        if (!isScheduling) return;
+        
+        const nextDelay = Math.random() * (MAX_CALL_DELAY_MS - MIN_CALL_DELAY_MS) + MIN_CALL_DELAY_MS;
 
-      const scheduleCalls = () => {
-        // 50초(CYCLE_DURATION_MS) 사이클 내의 랜덤한 5가지 시점 계산
-        const delays = Array.from({ length: CALL_BATCH_COUNT }, () => Math.random() * CYCLE_DURATION_MS);
+        timeoutId = setTimeout(() => {
+          const cfg = configRef.current;
 
-        delays.forEach(delay => {
-          const tid = setTimeout(() => {
-            const { 
-              fullMapData: latestMapData, 
-              currentLocation: latestLoc, 
-              targetDestination: latestDest, 
-              maxPickupDistanceKm: latestDist, 
-              minFare: latestFare, 
-              appendCall: latestAppend 
-            } = configRef.current;
-
-            // 방어코드
-            if (!latestMapData || latestMapData.length === 0) return;
-
+          // 방어코드
+          if (cfg.fullMapData && cfg.fullMapData.length > 0) {
             const newCall = generateSingleCall(
               {
-                mapData: latestMapData,
-                currentLocCode: latestLoc?.code,
-                maxPickupDistanceKm: latestDist,
-                minFare: latestFare,
+                mapData: cfg.fullMapData,
+                currentLocCode: cfg.currentLocation?.code,
+                maxPickupDistanceKm: cfg.maxPickupDistanceKm,
+                minFare: cfg.minFare,
                 difficulty: 'NORMAL'
               },
-              latestDest?.code || 'ALL',
+              cfg.targetDestination?.code || 'ALL',
               undefined,
-              0.2 // 정답 배차 20% 확률
+              PROB_CORRECT_ANSWER
             );
 
-            latestAppend(newCall);
-          }, delay);
-          timeoutIds.push(tid);
-        });
+            cfg.appendCall(newCall);
+          }
+          
+          // 재귀적 다음 호출 예약
+          scheduleNextCall();
+        }, nextDelay);
       };
 
-
       // 초기 진입 시 즉시 4개의 콜을 생성 (유일한 콜 생성 소스)
-      // Strict Mode에서 컴포넌트 마운트가 2번 일어나도 seededStageRef 값은 유지되므로 중복 생성 완벽 방어
+      // Strict Mode에서 컴포넌트 마운트가 2번 일어나도 seededStageRef 값이 유지되므로 중복 완벽 방어
       if (seededStageRef.current !== currentStage) {
         const cfg = configRef.current;
         if (cfg.fullMapData && cfg.fullMapData.length > 0) {
-          for (let i = 0; i < 4; i++) {
+          for (let i = 0; i < INITIAL_CALL_COUNT; i++) {
             const call = generateSingleCall(
               { mapData: cfg.fullMapData, currentLocCode: cfg.currentLocation?.code, maxPickupDistanceKm: cfg.maxPickupDistanceKm, minFare: cfg.minFare, difficulty: 'NORMAL' },
-              cfg.targetDestination?.code || 'ALL', undefined, 0.2
+              cfg.targetDestination?.code || 'ALL', undefined, PROB_CORRECT_ANSWER
             );
             cfg.appendCall(call);
           }
@@ -115,20 +107,13 @@ export const useDispatchStreaming = ({
         }
       }
 
-      // 첫 번째 스트리밍 사이클 즉시 실행 (0~50초 사이 랜덤 딜레이로 5개 점진적 추가)
-      scheduleCalls();
-
-      // 이후 50초마다 사이클 반복
-      cycleInterval = setInterval(() => {
-        timeoutIds.forEach(clearTimeout);
-        timeoutIds = [];
-        scheduleCalls();
-      }, CYCLE_DURATION_MS);
+      // 첫 스트리밍 사이클 즉시 시작
+      scheduleNextCall();
 
       // 클린업 함수: 타이머를 일시정지(모달 오픈 등)하거나 게임이 끝날 때만 초기화
       return () => {
-        clearInterval(cycleInterval);
-        timeoutIds.forEach(clearTimeout);
+        isScheduling = false;
+        if (timeoutId) clearTimeout(timeoutId);
       };
     }
     // 의존성 배열에서 설정값 관련 프롭스 모두 제거. (설정값이 바뀌어도 타이머 리셋 안됨)

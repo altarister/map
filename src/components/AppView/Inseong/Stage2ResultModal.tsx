@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect } from 'react';
 import type { CallItem } from '../../../game/core/types';
-import { RouteOptimizer } from '../../../game/stages/Stage2_Route/optimizer';
 import { formatRegionName } from '../../../utils/format';
+import { useDispatchContext } from '../../../contexts/DispatchContext';
 
 interface Stage2ResultModalProps {
   confirmedCalls: CallItem[];
@@ -16,14 +16,14 @@ export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
   onRetry,
   onExit
 }) => {
-  const result = useMemo(() => {
-    if (!driverLocation) return null;
-    return RouteOptimizer.analyzeBatch(confirmedCalls, { 
-      code: driverLocation.code, 
-      name: driverLocation.name, 
-      center: driverLocation.centroid 
-    });
-  }, [confirmedCalls, driverLocation]);
+  const { routeResult: result, calculateRouteResult } = useDispatchContext();
+
+  useEffect(() => {
+    if (driverLocation) {
+      // 컴포넌트 진입 시 전역 상태에 계산 요청 (내부 방어 코드로 최초 1회만 Fetch)
+      calculateRouteResult(driverLocation);
+    }
+  }, [driverLocation, calculateRouteResult]);
 
   if (!result) return null;
 
@@ -79,6 +79,20 @@ export const Stage2ResultModal: React.FC<Stage2ResultModalProps> = ({
           <span className="font-extrabold text-[16px]">{Math.floor(result.profitPerKm).toLocaleString()}원/km</span>
         </div>
       </div>
+
+      {/* 통과 경로 안내 (OSRM Road Names) */}
+      {result.roadNames && result.roadNames.length > 0 && (
+        <div className="bg-yellow-50 px-3 py-2 border-b border-gray-300 flex flex-col gap-1.5 shadow-inner">
+          <span className="text-[12px] font-extrabold text-[#0052a3]">🛣️ 주요 통과 도로</span>
+          <div className="flex flex-wrap gap-1">
+            {result.roadNames.map((name, i) => (
+               <span key={i} className="text-[10px] bg-white border border-gray-300 px-1.5 py-0.5 rounded text-gray-700 shadow-sm font-bold tracking-tight">
+                 {name}
+               </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 개별 콜 평가 리스트 */}
       <div className="flex bg-[#455a64] text-white text-[12px] font-bold py-1 px-2 border-b border-gray-500">

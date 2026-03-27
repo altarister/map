@@ -9,7 +9,9 @@ interface BoardProps {
   activeTab: 'ALL' | 'CONFIRMED';
   onTabSelect: (tab: 'ALL' | 'CONFIRMED') => void;
   onCallClick: (call: CallItem) => void;
+  onStartClick: () => void;
   onSettingsClick: () => void;
+  onMenuClick: () => void;
   isTimerPaused: boolean;
   onToggleTimer: () => void;
   batchTarget: number;
@@ -129,12 +131,14 @@ const CallRow = React.memo(({
 
 export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect, 
   onCallClick,
+  onStartClick,
   onSettingsClick,
+  onMenuClick,
   isTimerPaused,
   onToggleTimer,
   batchTarget
 }: BoardProps) => {
-  const { gameState, currentQuestion, maxPickupDistanceKm } = useGame();
+  const { gameState, currentQuestion, maxPickupDistanceKm, endGame } = useGame();
   const { selectedCallId, isGpsOn, setIsGpsOn, streamingCalls } = useDispatchContext();
 
   if ((gameState !== 'PLAYING' && gameState !== 'RESULT') || !currentQuestion || currentQuestion.type !== 'CALL_FILTER') {
@@ -256,12 +260,28 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab,  onTabSelect,
 
 
       <div className="flex bg-[#0052a3] text-white text-[15px] font-bold border-b-2 border-slate-500 cursor-pointer">
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">xxx</div>
+        <div 
+          className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300 hover:bg-blue-800 transition-colors"
+          onClick={onStartClick}
+        >시작</div>
         <div 
           className="flex-1 py-1.5 text-center text-white font-extrabold hover:bg-blue-800 transition-colors"
           onClick={onSettingsClick}
         >설정</div>
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">xxx</div>
+        <div 
+          className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300 hover:bg-blue-800 transition-colors"
+          onClick={onMenuClick}
+        >메뉴</div>
+        <div 
+          className={`flex-1 py-1.5 text-center transition-colors select-none ${confirmedCalls.length > 0 ? 'bg-orange-600 text-white font-extrabold cursor-pointer hover:bg-orange-700' : 'bg-[#0052a3] text-gray-300 cursor-not-allowed'}`}
+          onClick={() => {
+            if (confirmedCalls.length > 0) {
+              endGame();
+            }
+          }}
+        >
+          {confirmedCalls.length > 0 ? `정산 (${confirmedCalls.length}콜)` : '정산'}
+        </div>
       </div>
     </div>
 

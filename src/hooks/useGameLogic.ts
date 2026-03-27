@@ -93,7 +93,8 @@ export const useGameLogic = (
       targetDestCode: filters?.targetDestCode ?? targetDestination?.code,
       currentLocCode: filters?.currentLocCode ?? currentLocation?.code,
       maxPickupDistanceKm: filters?.maxPickupDistanceKm ?? maxPickupDistanceKm,
-      minFare: filters?.minFare ?? minFare
+      minFare: filters?.minFare ?? minFare,
+      autoDispatchFilter: filters?.autoDispatchFilter
     });
 
     setCurrentQuestion(question);

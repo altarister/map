@@ -42,14 +42,14 @@ export const InseongSetupScreen = ({ onClose }: Props) => {
     localStorage.setItem('STAGE2_AUTO_DISPATCH', JSON.stringify(filter));
 
     // 실제로는 keywords 파싱해서 targetDestCode 찾거나, 단순히 필터 객체를 컨텍스트에 넘겨야 함.
-    // 임시로 startGame에 넘기기 (이전 호환성)
     startGame({
       currentLocCode: currentLocation?.code,
       currentLocName: currentLocation?.name,
-      targetDestCode: 'ALL', // 일단 키워드 방식이므로 전체 코드로
+      targetDestCode: 'ALL', // 임시 호환성값
       targetDestName: '사용자 지정 키워드',
       maxPickupDistanceKm: filter.pickupRadiusKm,
-      minFare: filter.minFare
+      minFare: filter.minFare,
+      autoDispatchFilter: filter // 텍스트 필터 및 기타 옵션을 generator 로 넘김
     }, true);
 
     if (onClose) onClose();

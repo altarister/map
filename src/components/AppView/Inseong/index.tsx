@@ -4,6 +4,8 @@ import { useDispatchContext } from '../../../contexts/DispatchContext';
 import { useDispatchStreaming } from '../../../hooks/useDispatchStreaming';
 import { InseongDispatchBoard } from './InseongDispatchBoard';
 import { InseongSetupScreen } from './InseongSetupScreen';
+import { InseongSettingsPopup } from './InseongSettingsPopup';
+import { InseongDropdownMenu } from './InseongDropdownMenu';
 import { InseongCallDetailScreen } from './InseongCallDetailScreen';
 import { InseongOngoingDetailScreen } from './InseongOngoingDetailScreen';
 import type { CallItem } from '../../../game/core/types';
@@ -30,21 +32,21 @@ export const InseongApp = () => {
   // 클릭해서 상세보기로 진입한 콜 (아직 수락/채점 전)
   const [selectedCall, setSelectedCall] = useState<CallItem | null>(null);
 
-  // 설정 모달 열림 여부
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  type PopupType = 'SETUP' | 'SETTINGS' | 'MENU' | null;
+  const [activePopup, setActivePopup] = useState<PopupType>(null);
 
   // 진행 상태가 바뀌거나 모달을 닫을 때 등 상태 초기화
   useEffect(() => {
     if (gameState !== 'PLAYING') {
       setSelectedCall(null);
       if (setSelectedCallId) setSelectedCallId(null);
-      setIsSettingsOpen(false); // 타 모드 이동 시 모달 초기화
+      setActivePopup(null); // 타 모드 이동 시 모달 초기화
       if (setLastFeedback) setLastFeedback(null);
     } else {
-      // 2단계 최초 배차 시 (로컬 스토리지에 설정값이 없으면) 자동으로 설정 모달 노출
+      // 2단계 최초 배차 시 (로컬 스토리지에 설정값이 없으면) 자동으로 필터 셋업 모달 노출
       const saved = localStorage.getItem('STAGE2_SETTINGS');
       if (!saved) {
-        setIsSettingsOpen(true);
+        setActivePopup('SETTINGS');
       }
     }
   }, [gameState, setLastFeedback, setSelectedCallId]);
@@ -52,7 +54,7 @@ export const InseongApp = () => {
   useDispatchStreaming({
     gameState,
     currentStage,
-    isSettingsOpen,
+    isSettingsOpen: activePopup !== null,
     isTimerPaused,
     fullMapData,
     currentLocation,
@@ -146,15 +148,25 @@ export const InseongApp = () => {
           activeTab={activeTab}
           onTabSelect={setActiveTab}
           onCallClick={handleCallClick}
-          onSettingsClick={() => setIsSettingsOpen(true)}
+          onStartClick={() => setActivePopup('SETUP')}
+          onSettingsClick={() => setActivePopup('SETTINGS')}
+          onMenuClick={() => setActivePopup('MENU')}
           isTimerPaused={isTimerPaused}
           onToggleTimer={() => setIsTimerPaused(!isTimerPaused)}
           batchTarget={BATCH_TARGET_COUNT}
         />
       )}  
-        {/* 자동배차 설정 모달 (기존 SetupScreen 재활용) */}
-        {isSettingsOpen && (
-          <InseongSetupScreen onClose={() => setIsSettingsOpen(false)} />
+        {/* 자동배차 설정 모달 (사제 매크로 UI) */}
+        {activePopup === 'SETUP' && (
+          <InseongSetupScreen onClose={() => setActivePopup(null)} />
+        )}
+        {/* 오더 리스트 필터 모달 (공식 맵 설정 UI) */}
+        {activePopup === 'SETTINGS' && (
+          <InseongSettingsPopup onClose={() => setActivePopup(null)} />
+        )}
+        {/* 하단 드롭다운 메뉴 레이어 */}
+        {activePopup === 'MENU' && (
+          <InseongDropdownMenu onClose={() => setActivePopup(null)} />
         )}
       </div>
     );

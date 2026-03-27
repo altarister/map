@@ -7,7 +7,7 @@ import { useMapContext } from './MapContext'; // Added import
 import { useSettings } from './SettingsContext';
 
 import type { GameState, GameScore, AnswerFeedback } from '../types/game';
-import type { GameQuestion, UserInput } from '../game/core/types';
+import type { GameQuestion, UserInput, AutoDispatchFilter } from '../game/core/types';
 import type { SelectionLevel } from '../types/region';
 
 interface GameContextType {
@@ -29,6 +29,7 @@ interface GameContextType {
     currentLocName?: string;
     maxPickupDistanceKm?: number;
     minFare?: number;
+    autoDispatchFilter?: AutoDispatchFilter;
   }, forceRestart?: boolean) => void;
   endGame: () => void;
   checkAnswer: (input: UserInput) => void;
@@ -166,6 +167,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentLocName?: string;
     maxPickupDistanceKm?: number;
     minFare?: number;
+    autoDispatchFilter?: AutoDispatchFilter; // 추가
   }, forceRestart = false) => {
     if (gameState === 'PLAYING' && !forceRestart) return;
     if (!fullMapData) return;
@@ -200,7 +202,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       targetDestCode: effectiveOptions?.targetDestCode,
       currentLocCode: effectiveOptions?.currentLocCode,
       maxPickupDistanceKm: effectiveOptions?.maxPickupDistanceKm,
-      minFare: effectiveOptions?.minFare
+      minFare: effectiveOptions?.minFare,
+      autoDispatchFilter: effectiveOptions?.autoDispatchFilter
     };
 
     if (overrideRegions) {

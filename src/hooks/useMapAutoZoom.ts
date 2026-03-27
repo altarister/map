@@ -139,8 +139,16 @@ export function useMapAutoZoom({
     const codesToFocus = focusCodesString.split(',');
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     
-    // 타겟 지역 필터링
-    const targetFeatures = md.features.filter(f => codesToFocus.includes(f.properties.code));
+    // 타겟 지역 필터링 (와일드카드 '*' 지원: 예 '41*' -> 경기도 전체, '41610*' -> 광주시 전체)
+    const targetFeatures = md.features.filter(f => {
+      const featureCode = String(f.properties.code);
+      return codesToFocus.some(code => {
+        if (code.endsWith('*')) {
+          return featureCode.startsWith(code.slice(0, -1));
+        }
+        return featureCode === code;
+      });
+    });
     if (targetFeatures.length === 0) return;
 
     for (const feature of targetFeatures) {

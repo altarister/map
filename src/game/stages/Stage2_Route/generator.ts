@@ -2,13 +2,21 @@ import { calculateDistanceKm } from '../../../utils/geo';
 import { geoCentroid } from 'd3-geo';
 import type { StageContext, CallFilterQuestion, CallItem } from '../../core/types';
 import type { RegionFeature } from '../../../types/geo';
+import { 
+  DEFAULT_MAX_PICKUP_DISTANCE_KM, DEFAULT_MIN_FARE, PROB_CORRECT_ANSWER, PROB_BAD_FARE_TRAP,
+  BASE_FARE, FARE_PER_KM, PERFECT_FARE_MIN_EXTRA, PERFECT_FARE_RANDOM_EXTRA,
+  FAST_FARE_TRAP_MIN_RATIO, FAST_FARE_TRAP_MAX_RATIO,
+  PROB_SHARED_ORDER, PROB_EXPRESS_ORDER, PROB_MULTI_STOP, PROB_MULTI_PICKUP, PROB_MULTI_DROPOFF_EXTRA,
+  WORK_HOUR_START, WORK_HOUR_END,
+  VEHICLE_OPTIONS, ITEM_OPTIONS, CATEGORY_OPTIONS, COMPANY_OPTIONS, PAYMENT_OPTIONS, BILLING_OPTIONS
+} from './constants';
 
 export const generateCallBatch = (
   ctx: StageContext,
   targetDestCode: string, // 예: "41610" (경기 광주시)
   currentStartCode?: string // 현재 하차한 위치 (꼬리물기용)
 ): CallFilterQuestion => {
-  const { mapData, currentLocCode, maxPickupDistanceKm = 15 } = ctx;
+  const { mapData, currentLocCode, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM } = ctx;
 
   const { driverFeature, driverCentroid } = getMapContext(
     mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
@@ -23,12 +31,13 @@ export const generateCallBatch = (
     driverLocation: {
       code: driverFeature.properties.code,
       name: driverFeature.properties.name,
+      fullName: driverFeature.properties.name,
       centroid: driverCentroid
     }
   };
 };
 
-function getMapContext(mapData: RegionFeature[], targetDestCode: string, locTarget?: string, maxPickupDistanceKm: number = 15) {
+function getMapContext(mapData: RegionFeature[], targetDestCode: string, locTarget?: string, maxPickupDistanceKm: number = DEFAULT_MAX_PICKUP_DISTANCE_KM) {
   // 1. 기사의 현위치 설정 (currentLocCode로 시작하는 지역 중 랜덤, 없으면 전체 랜덤)
   let driverFeature = mapData.find(f => f.properties.code === locTarget);
   
@@ -70,9 +79,9 @@ export const generateSingleCall = (
   ctx: StageContext,
   targetDestCode: string,
   currentStartCode?: string,
-  isCorrectProb: number = 0.2
+  isCorrectProb: number = PROB_CORRECT_ANSWER
 ): CallItem => {
-  const { mapData, currentLocCode, maxPickupDistanceKm = 15, minFare = 30000 } = ctx;
+  const { mapData, currentLocCode, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM, minFare = DEFAULT_MIN_FARE } = ctx;
 
   const { driverCentroid, matchDestGroup, wrongDestGroup, validPickups } = getMapContext(
     mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
@@ -87,8 +96,8 @@ export const generateSingleCall = (
   if (isAnswer) {
     return createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT', validPickups, destGroup);
   } else {
-    // 오답 콜 중 50%는 요금 미달 똥콜, 50%는 역방향
-    const trapType = Math.random() < 0.5 ? 'BAD_FARE' : 'PERFECT';
+    // 오답 콜 중 지정 확률로 요금 미달 똥콜
+    const trapType = Math.random() < PROB_BAD_FARE_TRAP ? 'BAD_FARE' : 'PERFECT';
     const isMatchingRoute = trapType === 'BAD_FARE'; // 똥콜은 방향은 맞게 할 수 있음
     
     // 만약 똥콜이면 하차지는 matchDestGroup에서 고름 (방향 일치)
@@ -124,14 +133,14 @@ function createCallItem(
   const pickupDistanceKm = calculateDistanceKm(driverCentroid, pickupCentroid);
   const distanceKm = calculateDistanceKm(pickupCentroid, destCentroid);
 
-  let fare = 10000 + (distanceKm * 1500) + (Math.random() * 5000);
+  let fare = BASE_FARE + (distanceKm * FARE_PER_KM) + (Math.random() * PERFECT_FARE_RANDOM_EXTRA);
 
   if (trapType === 'PERFECT') {
-    // 요금 통과 (최소 요금보다 무조건 3000원 이상 많게)
-    fare = Math.max(fare, minFare + 3000 + (Math.random() * 5000));
+    // 요금 통과 (최소 요금보다 무조건 추가금 이상 많게)
+    fare = Math.max(fare, minFare + PERFECT_FARE_MIN_EXTRA + (Math.random() * PERFECT_FARE_RANDOM_EXTRA));
   } else if (trapType === 'BAD_FARE') {
-    // 똥콜 (최소 요금의 60~90% 수준으로 확정)
-    fare = minFare * (0.6 + Math.random() * 0.3);
+    // 똥콜 (최소 요금의 비율 수준으로 확정)
+    fare = minFare * (FAST_FARE_TRAP_MIN_RATIO + Math.random() * (FAST_FARE_TRAP_MAX_RATIO - FAST_FARE_TRAP_MIN_RATIO));
   }
 
   const finalFare = Math.floor(fare / 1000) * 1000;
@@ -144,38 +153,31 @@ function createCallItem(
   }
 
   // 확률 기반 신규 속성 부여
-  const isShared = Math.random() < 0.3; // 30% 공유 오더
-  const isExpress = Math.random() < 0.15; // 15% 급송 오더 (고단가/합짐불가)
+  const isShared = Math.random() < PROB_SHARED_ORDER;
+  const isExpress = Math.random() < PROB_EXPRESS_ORDER;
 
-  const paymentTypes: Array<'신용' | '선불' | '착불' | '월결'> = ['신용', '선불', '착불', '월결'];
-  const randomPaymentType = paymentTypes[Math.floor(Math.random() * paymentTypes.length)];
-
-  const billingTypes: Array<'계산서' | '인수증' | '무과세'> = ['계산서', '인수증', '무과세'];
-  const randomBillingType = billingTypes[Math.floor(Math.random() * billingTypes.length)];
+  const randomPaymentType = PAYMENT_OPTIONS[Math.floor(Math.random() * PAYMENT_OPTIONS.length)];
+  const randomBillingType = BILLING_OPTIONS[Math.floor(Math.random() * BILLING_OPTIONS.length)];
 
   const randomStatus = '신규'; // 기본값 (추후 고도화 가능)
 
-  const vehicleOptions = ['오', '다', '라', '1t'];
-  const randomVehicle = vehicleOptions[Math.floor(Math.random() * vehicleOptions.length)];
-
-  const itemOptions = ['박스 1개', '서류봉투', '쇼핑백 2개', '소형 가전', '샘플 박스', '마대 1개'];
-  const randomItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
+  const randomVehicle = VEHICLE_OPTIONS[Math.floor(Math.random() * VEHICLE_OPTIONS.length)];
+  const randomItem = ITEM_OPTIONS[Math.floor(Math.random() * ITEM_OPTIONS.length)];
 
   // 급송 팩터가 뽑혔다면 무조건 확정 급송, 아니면 대개 보통
-  const categoryOptions = ['보통', '보통', '예약'];
-  const randomCategory = isExpress ? '급송' : categoryOptions[Math.floor(Math.random() * categoryOptions.length)];
+  const randomCategory = isExpress ? '급송' : CATEGORY_OPTIONS[Math.floor(Math.random() * CATEGORY_OPTIONS.length)];
 
-  // 경유콜 팩터 (25% 확률)
-  const isMultiStop = Math.random() < 0.25;
+  // 경유콜 팩터
+  const isMultiStop = Math.random() < PROB_MULTI_STOP;
   let extraPickupCount = 0;
   let extraDropoffCount = 0;
 
   if (isMultiStop) {
-    // 경유콜이면 30% 확률로 상차 2곳, 70% 확률로 하차 2~3곳
-    if (Math.random() < 0.3) {
+    // 경유콜이면 상하차 확률 분배
+    if (Math.random() < PROB_MULTI_PICKUP) {
       extraPickupCount = 1;
     } else {
-      extraDropoffCount = Math.random() < 0.7 ? 1 : 2;
+      extraDropoffCount = Math.random() < (1 - PROB_MULTI_DROPOFF_EXTRA) ? 1 : 2;
     }
   }
 
@@ -240,10 +242,9 @@ function createCallItem(
     }
   }
 
-  const companyOptions = ['태양메디스', '엠케이미디어', '씨엠파크-백암', '하나로유통', '부일물산', '한국부품', 'LG로지스'];
-  const randomCompany = companyOptions[Math.floor(Math.random() * companyOptions.length)];
+  const randomCompany = COMPANY_OPTIONS[Math.floor(Math.random() * COMPANY_OPTIONS.length)];
 
-  const pHour = Math.floor(Math.random() * 8) + 8; // 08 ~ 15
+  const pHour = Math.floor(Math.random() * (WORK_HOUR_END - WORK_HOUR_START)) + WORK_HOUR_START;
   const pMin = Math.floor(Math.random() * 60);
   const dHour = pHour + Math.floor(Math.random() * 3) + 1;
   const dMin = Math.floor(Math.random() * 60);

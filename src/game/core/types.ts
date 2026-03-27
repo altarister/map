@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import type { ReactNode } from 'react';
 import type { RegionFeature } from '../../types/geo';
 import type { Difficulty, AnswerFeedback } from '../../types/game';
+import type { RegionIntel } from '../../types/intel';
 
 // 1. 문제 (Question) 타입 정의 (확장형 유니언 타입)
 export type QuestionType = 'LOCATE_SINGLE' | 'LOCATE_PAIR' | 'ESTIMATE_DIST' | 'ESTIMATE_TIME' | 'PROFIT_ANALYSIS' | 'CALL_FILTER';
@@ -51,12 +51,12 @@ export interface EstimateDistanceQuestion extends BaseQuestion {
 
 // 2단계: 콜 필터링 (배차 잡기)
 
-// 상/하차지 개별 포인트 타입
 export interface LocationPoint {
   code: string;
   name: string;
   fullName: string;
   centroid: [number, number];
+  intel?: RegionIntel; // OSRM 휴리스틱 연산용
 }
 
 export interface CallItem {
@@ -84,11 +84,7 @@ export interface CallItem {
 export interface CallFilterQuestion extends BaseQuestion {
   type: 'CALL_FILTER';
   calls: CallItem[];
-  driverLocation?: {
-    code: string;
-    name: string;
-    centroid: [number, number];
-  };
+  driverLocation?: LocationPoint;
 }
 
 // 모든 문제 타입을 포함하는 유니언
@@ -118,6 +114,7 @@ export interface StageContext {
   currentLocCode?: string;
   maxPickupDistanceKm?: number;
   minFare?: number;
+  autoDispatchFilter?: AutoDispatchFilter;
 }
 
 export interface StageUnlockCondition {

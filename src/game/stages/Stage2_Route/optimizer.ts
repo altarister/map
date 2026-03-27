@@ -1,6 +1,7 @@
 // src/game/stages/Stage2_Route/optimizer.ts
 import type { CallItem, LocationPoint } from '../../core/types';
 import { calculateDistanceKm } from '../../../utils/geo';
+import { fetchRealWorldRoute } from '../../../utils/osrm';
 import { RANK_THRESHOLDS } from './constants';
 
 export interface RoutePoint extends LocationPoint {
@@ -19,6 +20,11 @@ export interface RouteOptimizationResult {
   rank: 'S' | 'A' | 'B' | 'C' | 'F';
   feedback: string;
   orderedPoints: RoutePoint[]; // 최적 방문 순서 (렌더링용 다각형 애니메이션 라인)
+  
+  // Real Routing 고도화 속성
+  realGeometry?: [number, number][]; // OSRM 도로 궤적 (LineString coordinates)
+  isHeuristicRoute?: boolean;        // API 실패로 휴리스틱 거리 보정이 들어갔는지 여부
+  roadNames?: string[];              // 통과하는 주요 도로명 텍스트 배열
 }
 
 export class RouteOptimizer {
@@ -28,9 +34,9 @@ export class RouteOptimizer {
    * 
    * @param calls 유저가 확정한 배차(합짐) 목록
    * @param startLocation 유저의 현재 거점(시작점)
-   * @returns RouteOptimizationResult - 종합 분석 결과 및 랭크
+   * @returns Promise<RouteOptimizationResult> - OSRM 통신이 포함된 종합 분석 결과 및 랭크
    */
-  static analyzeBatch(calls: CallItem[], startLocation: { code: string; name: string; center?: [number, number] }): RouteOptimizationResult {
+  static async analyzeBatch(calls: CallItem[], startLocation: { code: string; name: string; center?: [number, number] }): Promise<RouteOptimizationResult> {
     // 1. 모든 노드 추출
     const nodes: Array<{
       id: string; // 고유 ID (call.id + _pickup_ + idx)
@@ -123,7 +129,11 @@ export class RouteOptimizer {
     }));
     orderedPoints.unshift(startPoint); // 궤적의 시작은 현재 위치
 
-    const profitPerKm = minDistance > 0 ? callFareSum / minDistance : 0;
+    // --- Phase 10: 외부 라우팅 API(또는 휴리스틱 폴백)를 호출하여 진짜 거리 확보 ---
+    const realRoute = await fetchRealWorldRoute(orderedPoints);
+    const finalDistanceKm = realRoute ? realRoute.totalDistanceKm : minDistance;
+
+    const profitPerKm = finalDistanceKm > 0 ? callFareSum / finalDistanceKm : 0;
     
     // ================= 우회율 (Detour Rate) 산출 =================
     // 1. 메인 축(Main Axis) 구하기: 현재 위치에서 가장 멀리 있는 "하차지" 
@@ -131,7 +141,7 @@ export class RouteOptimizer {
     const maxDirectDistanceKm = dropoffDistances.length > 0 ? Math.max(...dropoffDistances) : 0;
     
     // 2. 우회 거리 & 우회율 (단, 하차지가 나와 아예 같은 곳이어서 maxDirect=0 인 예외 방어)
-    const detourDistanceKm = Math.max(0, minDistance - maxDirectDistanceKm);
+    const detourDistanceKm = Math.max(0, finalDistanceKm - maxDirectDistanceKm);
     const detourRate = maxDirectDistanceKm > 0 ? (detourDistanceKm / maxDirectDistanceKm) * 100 : 0;
 
     let rank: RouteOptimizationResult['rank'] = 'C';
@@ -155,7 +165,7 @@ export class RouteOptimizer {
     }
 
     return {
-      idealDistanceKm: minDistance,
+      idealDistanceKm: finalDistanceKm, // 기존 minDistance(직선거리)를 real distance로 교체
       totalFare: callFareSum,
       profitPerKm,
       maxDirectDistanceKm,
@@ -163,7 +173,10 @@ export class RouteOptimizer {
       detourRate,
       rank,
       feedback,
-      orderedPoints
+      orderedPoints,
+      realGeometry: realRoute ? realRoute.coordinates : undefined,
+      isHeuristicRoute: !realRoute, // realRoute가 없으면(null) 렌더링 생략 플래그 켜기
+      roadNames: realRoute ? realRoute.roadNames : [],
     };
   }
 }
