@@ -16,11 +16,39 @@ import { AdSlot } from './components/ui/AdSlot';
 
 import { useState } from 'react';
 import { LoadingScreen } from './components/layout/LoadingScreen';
+import type { ViewportPadding } from './types/game';
 
 function GameContent() {
   const { gameState, setGameState, currentStage } = useGame();
   const { viewOptions } = useSettings();
   const [hasStarted, setHasStarted] = useState(false);
+
+  // 현재 화면에 띄워진 UI 패널(광고, 인성앱, 헤더 등)을 피해 지도의 실질적 중앙을 잡기 위한 여백 계산
+  const getMapPadding = (): ViewportPadding => {
+    // TopBar(64) + 기본 여백(16)
+    let padding: ViewportPadding = { top: 80, right: 16, bottom: 16, left: 16 };
+
+    // 게임 전반적인 상태가 LOBBY가 아닌 실제 진입 상태일 때
+    if (hasStarted) {
+      // 1. 우측 광고 슬롯 (현재 300px + 여백)
+      if (viewOptions.showAd) {
+        padding.right += 320;
+      }
+
+      // 2. 좌측 패널들 (스테이지별)
+      if (currentStage === 2 && (gameState === 'PLAYING' || gameState === 'SET_DESTINATION')) {
+        // 인성 앱 크기(380) + 여백
+        padding.left += 400;
+      }
+
+      // 3. 상단 액션바 (스테이지 1)
+      if (currentStage === 1 && gameState === 'PLAYING') {
+        padding.top += 120;
+      }
+    }
+
+    return padding;
+  };
 
   return (
     <div className="relative w-full h-full flex items-center justify-center pt-16">
@@ -35,7 +63,7 @@ function GameContent() {
 
       {/* Map (배경) - 항상 렌더링 (로딩 중에는 Map 내부에서 Loading 텍스트 렌더링됨) */}
       <div className="absolute inset-0 w-full h-full">
-        <Map />
+        <Map padding={getMapPadding()} />
       </div>
 
       {/* State별 UI Overlay (게임 시작 후에만 표시) */}
@@ -52,7 +80,7 @@ function GameContent() {
           {/* 우측 전역 광고 슬롯 (Google AdSense 삽입 예정) */}
           {viewOptions.showAd && (
             <div className="absolute top-20 right-4 z-[35]">
-                <AdSlot width={300} height={250} />
+              <AdSlot width={300} height={250} />
             </div>
           )}
 

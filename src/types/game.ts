@@ -29,3 +29,10 @@ export interface AnswerFeedback {
   message?: string;          // 유저에게 보여줄 메시지 (예: 똥콜 사유)
   callData?: any;            // Stage 2 오더 상세 정보 보존용 (CallItem 타입 대신 any 사용으로 의존성 순환 방지)
 }
+
+export interface ViewportPadding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}

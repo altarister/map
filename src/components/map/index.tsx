@@ -26,9 +26,14 @@ import { log } from '../../lib/debug';
 
 
 import { MAP_THEME_COLORS } from '../../styles/themes';
+import type { ViewportPadding } from '../../types/game';
 
 
-export const Map = () => {
+interface MapProps {
+  padding?: ViewportPadding;
+}
+
+export const Map = ({ padding = { top: 0, right: 0, bottom: 0, left: 0 } }: MapProps = {}) => {
   // ── Context & Settings ──────────────────────────────────────────────────────
   const {
     gameState,
@@ -173,18 +178,18 @@ export const Map = () => {
 
       if (selectionLevel === 'CITY') {
         const groupCode = code;
-        
+
         // 거대 도시 예외 처리 판단 (3단계 일반구 포함 여부)
-        const hasSubDistricts = rawCityData?.features.some((f: any) => 
-          f.properties.code.startsWith(groupCode.substring(0, 4)) && 
-          f.properties.code.length === 5 && 
+        const hasSubDistricts = rawCityData?.features.some((f: any) =>
+          f.properties.code.startsWith(groupCode.substring(0, 4)) &&
+          f.properties.code.length === 5 &&
           !f.properties.code.endsWith('0')
         );
 
         if (hasSubDistricts && groupCode.endsWith('0')) {
-            setCurrentFocusCode(groupCode);
-            setSelectionLevel('DISTRICT');
-            return;
+          setCurrentFocusCode(groupCode);
+          setSelectionLevel('DISTRICT');
+          return;
         }
 
         // 일반 시/군이거나 일반구가 없는 구 -> 바로 PLAYING (4단계)
@@ -212,7 +217,7 @@ export const Map = () => {
               maxPickupDistanceKm: parsed.maxPickupDistanceKm ?? 10,
               minFare: parsed.minFare ?? 30000
             };
-          } catch(e) {}
+          } catch (e) { }
         }
 
         startGame({
@@ -254,7 +259,7 @@ export const Map = () => {
               maxPickupDistanceKm: parsed.maxPickupDistanceKm ?? 10,
               minFare: parsed.minFare ?? 30000
             };
-          } catch(e) {}
+          } catch (e) { }
         }
 
         startGame({
@@ -296,6 +301,7 @@ export const Map = () => {
       <MapZoomDispatcher
         width={width}
         height={height}
+        padding={padding}
         zoomTo={zoomTo}
         mapData={mapData}
         pathGenerator={pathGenerator}
@@ -418,10 +424,10 @@ export const Map = () => {
                   d={pathGenerator(feature) || ''}
                   fill={getFillColor(feature, true)}
                   fillOpacity={0.5}
-                  // stroke={getStrokeColor(hoveredRegion, true)}
-                  // strokeWidth={1.5 / zoomTransform.k}
-                  // className="transition-all duration-200"
-                  // style={{ mixBlendMode: 'multiply' }}
+                // stroke={getStrokeColor(hoveredRegion, true)}
+                // strokeWidth={1.5 / zoomTransform.k}
+                // className="transition-all duration-200"
+                // style={{ mixBlendMode: 'multiply' }}
                 />
               ) : null;
             })()}
@@ -431,11 +437,11 @@ export const Map = () => {
               <path
                 d={pathGenerator(featuresToRender.find((f: any) => f.properties.code === lastFeedback.regionCode) as any) || ''}
                 fill="none"
-                // fill="none"
-                // stroke={lastFeedback.isCorrect ? '#4ade80' : '#f87171'}
-                // strokeWidth={3 / zoomTransform.k}
-                // className="animate-pulse"
-                // style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}
+              // fill="none"
+              // stroke={lastFeedback.isCorrect ? '#4ade80' : '#f87171'}
+              // strokeWidth={3 / zoomTransform.k}
+              // className="animate-pulse"
+              // style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}
               />
             )}
           </g>
@@ -443,54 +449,54 @@ export const Map = () => {
           <g id="layer-5-text-labels" data-layer-id="svg-text-labels">
             {/* 라벨: gRef 내부. CSS scale(k)로 위치 보정, font-size=14/k로 크기 상쇄.
                 setTransform이 매 zoom 프레임 호출되므로 k값이 항상 최신 → 스냅 없음. */}
-          {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
-            <>
-              {!showDistrictLabels && labelsToRender.map((feature: any) => (
-                <RegionLabel
-                  key={`label-city-${feature.properties.code}`}
-                  feature={feature}
-                  projection={projection}
-                  transform={zoomTransform}
-                  answeredRegions={answeredRegions}
-                  lastFeedback={lastFeedback}
-                  gameState={gameState}
-                  fontScale={gameState === 'REGION_SELECT' ? 0.9 : 1.5}
-                  baseArea={featureAreas[feature.properties.code] || 0}
-                />
-              ))}
+            {(gameState === 'PLAYING' || gameState === 'REGION_SELECT') && layerVisibility.labels && (
+              <>
+                {!showDistrictLabels && labelsToRender.map((feature: any) => (
+                  <RegionLabel
+                    key={`label-city-${feature.properties.code}`}
+                    feature={feature}
+                    projection={projection}
+                    transform={zoomTransform}
+                    answeredRegions={answeredRegions}
+                    lastFeedback={lastFeedback}
+                    gameState={gameState}
+                    fontScale={gameState === 'REGION_SELECT' ? 0.9 : 1.5}
+                    baseArea={featureAreas[feature.properties.code] || 0}
+                  />
+                ))}
 
-              {/* Watermark Labels (EMD level labels) */}
-              {highlightRegions && highlightRegions.length > 0 && highlightRegions.map((feature: any) => (
-                <RegionLabel
-                  key={`label-watermark-${feature.properties.code}`}
-                  feature={feature}
-                  projection={projection}
-                  transform={zoomTransform}
-                  answeredRegions={answeredRegions}
-                  lastFeedback={lastFeedback}
-                  gameState={gameState}
-                  fontScale={1.5}  // 거대한 워터마크 크기 (기존 2.5에서 축소)
-                  baseArea={featureAreas[feature.properties.code] || 0}
-                  isWatermark={true}
-                />
-              ))}
+                {/* Watermark Labels (EMD level labels) */}
+                {highlightRegions && highlightRegions.length > 0 && highlightRegions.map((feature: any) => (
+                  <RegionLabel
+                    key={`label-watermark-${feature.properties.code}`}
+                    feature={feature}
+                    projection={projection}
+                    transform={zoomTransform}
+                    answeredRegions={answeredRegions}
+                    lastFeedback={lastFeedback}
+                    gameState={gameState}
+                    fontScale={1.5}  // 거대한 워터마크 크기 (기존 2.5에서 축소)
+                    baseArea={featureAreas[feature.properties.code] || 0}
+                    isWatermark={true}
+                  />
+                ))}
 
-              {/* District (Ri-level) Labels */}
-              {showDistrictLabels && featuresToRender.map((feature: any) => (
-                <RegionLabel
-                  key={`label-district-${feature.properties.code}`}
-                  feature={feature}
-                  projection={projection}
-                  transform={zoomTransform}
-                  answeredRegions={answeredRegions}
-                  lastFeedback={lastFeedback}
-                  gameState={gameState}
-                  fontScale={1.0}
-                  baseArea={featureAreas[feature.properties.code] || 0}
-                />
-              ))}
-            </>
-          )}
+                {/* District (Ri-level) Labels */}
+                {showDistrictLabels && featuresToRender.map((feature: any) => (
+                  <RegionLabel
+                    key={`label-district-${feature.properties.code}`}
+                    feature={feature}
+                    projection={projection}
+                    transform={zoomTransform}
+                    answeredRegions={answeredRegions}
+                    lastFeedback={lastFeedback}
+                    gameState={gameState}
+                    fontScale={1.0}
+                    baseArea={featureAreas[feature.properties.code] || 0}
+                  />
+                ))}
+              </>
+            )}
           </g>
         </g>
       </svg>
@@ -534,9 +540,9 @@ export const Map = () => {
       {/* 2단계 전용: 현위치 선택 모드 안내 문구 */}
       {gameState === 'REGION_SELECT' && currentStage === 2 && (
         <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-40 glass-panel border-purple-500/50 text-white px-6 py-3 rounded-2xl shadow-2xl flex flex-col items-center animate-in slide-in-from-top-4 duration-500">
-           <span className="text-purple-400 font-bold mb-1">[ 2단계: 실전 배차 필터링 ]</span>
-           <span className="text-sm font-mono opacity-90">현재 위치(거점) 지정을 위해 행정구역을 터치하세요.</span>
-           <span className="text-[10px] text-gray-400 mt-1">터치한 지역을 중심으로 반경 내 배차 리스트가 생성됩니다.</span>
+          <span className="text-purple-400 font-bold mb-1">[ 2단계: 실전 배차 필터링 ]</span>
+          <span className="text-sm font-mono opacity-90">현재 위치(거점) 지정을 위해 행정구역을 터치하세요.</span>
+          <span className="text-[10px] text-gray-400 mt-1">터치한 지역을 중심으로 반경 내 배차 리스트가 생성됩니다.</span>
         </div>
       )}
 

@@ -4,7 +4,7 @@ import { useDispatchContext } from '../../contexts/DispatchContext';
 import { useMapAutoZoom } from '../../hooks/useMapAutoZoom';
 
 export const MapZoomDispatcher = ({
-  width, height, zoomTo, mapData, pathGenerator, cityData, level1Data, selectedChapter
+  width, height, padding, zoomTo, mapData, pathGenerator, cityData, level1Data, selectedChapter
 }: any) => {
   const { gameState, currentStage, currentQuestion, selectionLevel, currentFocusCode } = useGame();
   const { selectedCallId, isGpsOn, confirmedCalls, streamingCalls, activeTab, routeResult } = useDispatchContext();
@@ -17,7 +17,7 @@ export const MapZoomDispatcher = ({
     // 6. 정산완료 페이지 (RESULT)
     if (gameState === 'RESULT') {
       if (routeResult?.orderedPoints) {
-         return routeResult.orderedPoints.map(p => p.code);
+        return routeResult.orderedPoints.map(p => p.code);
       }
       return undefined;
     }
@@ -38,16 +38,16 @@ export const MapZoomDispatcher = ({
             ];
           }
         }
-        
+
         // 4. 완료탭 (목록 진입 시) -> 전체 확정콜 통합 경로
         if (routeResult?.orderedPoints) {
-           return routeResult.orderedPoints.map(p => p.code);
+          return routeResult.orderedPoints.map(p => p.code);
         }
-        
+
         const confirmedCodes = confirmedCalls.flatMap(c => [...c.pickups.map(p => p.code), ...c.dropoffs.map(d => d.code)]);
         return [
-           ...(driverCode ? [driverCode] : []),
-           ...confirmedCodes
+          ...(driverCode ? [driverCode] : []),
+          ...confirmedCodes
         ];
       }
 
@@ -91,6 +91,7 @@ export const MapZoomDispatcher = ({
     selectedChapter,
     width,
     height,
+    viewportPadding: padding,
     zoomTo,
     mapData,
     pathGenerator,

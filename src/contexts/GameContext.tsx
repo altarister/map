@@ -18,12 +18,12 @@ interface GameContextType {
   score: GameScore;
   startTime: number | null;
   endTime: number | null;
-  startGame: (options?: { 
-    chapterCode?: string; 
-    overrideRegions?: any[]; 
-    highlightRegions?: any[]; 
-    isBasicMode?: boolean; 
-    targetDestCode?: string; 
+  startGame: (options?: {
+    chapterCode?: string;
+    overrideRegions?: any[];
+    highlightRegions?: any[];
+    isBasicMode?: boolean;
+    targetDestCode?: string;
     targetDestName?: string;
     currentLocCode?: string;
     currentLocName?: string;
@@ -59,6 +59,8 @@ interface GameContextType {
   minFare: number;
   setMinFare: (fare: number) => void;
   fullMapData: any | null;
+  isEssentialMode: boolean;
+  toggleEssentialMode: (essential: boolean) => void;
 }
 
 // 빈 배열 상수를 외부에 정의하여 참조 안정성 확보
@@ -131,7 +133,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     answeredRegions,
     levelState,
     isHintActive,
-    setHintActive
+    setHintActive,
+    isEssentialMode,
+    toggleEssentialMode
   } = useGameLogic(
     filteredMapData?.features || EMPTY_REGIONS,
     difficulty,
@@ -156,12 +160,12 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [gameState, fullMapData, filteredMapData, setFilteredMapData, setSelectedChapter]);
 
   // Start Game with Chapter Code or Options
-  const startGame = useCallback((options?: { 
-    chapterCode?: string; 
-    overrideRegions?: any[]; 
-    highlightRegions?: any[]; 
-    isBasicMode?: boolean; 
-    targetDestCode?: string; 
+  const startGame = useCallback((options?: {
+    chapterCode?: string;
+    overrideRegions?: any[];
+    highlightRegions?: any[];
+    isBasicMode?: boolean;
+    targetDestCode?: string;
     targetDestName?: string;
     currentLocCode?: string;
     currentLocName?: string;
@@ -284,7 +288,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMaxPickupDistanceKm,
     minFare,
     setMinFare,
-    fullMapData: fullMapData?.features || []
+    fullMapData: fullMapData?.features || [],
+    isEssentialMode,
+    toggleEssentialMode
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, endGame, checkAnswer, resetGameWithDepth,
     lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
@@ -294,7 +300,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setMaxPickupDistanceKm,
     minFare,
     setMinFare,
-    fullMapData
+    fullMapData,
+    isEssentialMode,
+    toggleEssentialMode
   ]);
 
   return (

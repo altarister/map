@@ -24,6 +24,8 @@ interface UseGameLogicReturn {
   levelState: any;
   isHintActive: boolean;
   setHintActive: (active: boolean) => void;
+  isEssentialMode: boolean;
+  toggleEssentialMode: (essential: boolean) => void;
 }
 
 export const useGameLogic = (
@@ -44,10 +46,14 @@ export const useGameLogic = (
 
   // ✅ 1DAL Trainer Spaced Repetition Queue 도입
   const [questionQueue, setQuestionQueue] = useState<RegionFeature[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState<number>(0); // 전체 문제 수 상태 추가
+  const [hiddenQueue, setHiddenQueue] = useState<RegionFeature[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
 
   // ✅ 힌트 모드 추가
   const [isHintActive, setHintActive] = useState<boolean>(false);
+
+  // ✅ 필수/모두 모드 토글
+  const [isEssentialMode, setIsEssentialMode] = useState<boolean>(false);
 
   // 레벨별 내부 상태 (예: 2단계에서 첫 번째 클릭 후 상태)
   const [levelState, setLevelState] = useState<any>(null);
@@ -134,12 +140,25 @@ export const useGameLogic = (
 
     // 배열 랜덤 셔플
     const shuffledQueue = uniqueFeatures.sort(() => Math.random() - 0.5);
-    setTotalQuestions(shuffledQueue.length);
-    setQuestionQueue(shuffledQueue);
+
+    // 만약 시작할 때 필수 모드가 켜져있다면 (이론상 초기화되지만 방어코드)
+    const initialQueue = isEssentialMode ? shuffledQueue.filter(q => {
+      const intel = q.properties.intel;
+      return intel && (intel.importance >= 3 || ['최상', '상', '중'].includes(intel.orderVolume));
+    }) : shuffledQueue;
+
+    const initialHidden = isEssentialMode ? shuffledQueue.filter(q => {
+      const intel = q.properties.intel;
+      return !(intel && (intel.importance >= 3 || ['최상', '상', '중'].includes(intel.orderVolume)));
+    }) : [];
+
+    setTotalQuestions(initialQueue.length);
+    setQuestionQueue(initialQueue);
+    setHiddenQueue(initialHidden);
 
     // ✅ FIX: 초기 큐를 바로 다음 문제 출제에 전달 (mapData도 함께 전달) + filters 비동기 동기화
-    setNextQuestion(shuffledQueue, targetRegions, filters);
-  }, [regions, setNextQuestion, targetDestination, currentLocation, maxPickupDistanceKm, minFare]);
+    setNextQuestion(initialQueue, targetRegions, filters);
+  }, [regions, setNextQuestion, targetDestination, currentLocation, maxPickupDistanceKm, minFare, isEssentialMode]);
 
   // 레벨 변경 시 게임 초기화 (Lifecycle Management)
   useEffect(() => {
@@ -153,6 +172,8 @@ export const useGameLogic = (
     setLevelState(null);
     setStartTime(null);
     setEndTime(null);
+    setIsEssentialMode(false);
+    setHiddenQueue([]);
 
     // ✅ BUG-001 FIX: 자동 게임 시작 제거
     // 사용자가 START 버튼을 명시적으로 클릭해야만 게임이 시작되도록 변경
@@ -183,7 +204,7 @@ export const useGameLogic = (
       // 피드백 처리
       if (result.feedback) {
         setLastFeedback(result.feedback);
-        
+
         // 기존 3초 자동 닫힘 타이머 제거
       }
 
@@ -302,7 +323,51 @@ export const useGameLogic = (
     setLevelState(null);
     setStartTime(null);
     setEndTime(null);
+    setIsEssentialMode(false);
+    setHiddenQueue([]);
   }, []);
+
+  // 필수 모드 토글 로직
+  const toggleEssentialMode = useCallback((essential: boolean) => {
+    if (gameState !== 'PLAYING') return;
+    if (essential === isEssentialMode) return;
+
+    if (essential) {
+      // 모두 -> 필수
+      const important: RegionFeature[] = [];
+      const hidden: RegionFeature[] = [...hiddenQueue];
+
+      questionQueue.forEach((q) => {
+        const intel = q.properties.intel;
+        const isImportant = intel && (
+          intel.importance >= 3 ||
+          ['최상', '상', '중'].includes(intel.orderVolume)
+        );
+
+        if (isImportant) {
+          important.push(q);
+        } else {
+          hidden.push(q);
+        }
+      });
+
+      setQuestionQueue(important);
+      setHiddenQueue(hidden);
+      setTotalQuestions(score.correct + score.incorrect + important.length);
+      setIsEssentialMode(true);
+      setNextQuestion(important);
+    } else {
+      // 필수 -> 모두
+      // 현재 큐 바로 뒤에 숨겨뒀던 문제들을 이어붙임
+      const combined = [...questionQueue, ...hiddenQueue];
+      setQuestionQueue(combined);
+      setHiddenQueue([]);
+      setTotalQuestions(score.correct + score.incorrect + combined.length);
+      setIsEssentialMode(false);
+      // 만약 큐가 비어있어서 끝난 줄 알았는데 살려냈다면 다시 출제
+      setNextQuestion(combined);
+    }
+  }, [gameState, isEssentialMode, questionQueue, hiddenQueue, score, setNextQuestion]);
 
   // ... appendCall removed ...
   return {
@@ -323,6 +388,8 @@ export const useGameLogic = (
     endTime,
     levelState,
     isHintActive,
-    setHintActive
+    setHintActive,
+    isEssentialMode,
+    toggleEssentialMode
   };
 };
