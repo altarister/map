@@ -46,6 +46,7 @@ interface GameContextType {
   currentStage: number;
   isBasicMode: boolean;
   highlightRegions: any[];
+  setHighlightRegions: (regions: any[]) => void;
   selectionLevel: SelectionLevel;
   setSelectionLevel: (level: SelectionLevel) => void;
   currentFocusCode: string | null;
@@ -276,6 +277,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     currentStage,
     isBasicMode,
     highlightRegions,
+    setHighlightRegions,
     selectionLevel,
     setSelectionLevel,
     currentFocusCode,
@@ -293,7 +295,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     toggleEssentialMode
   }), [
     gameState, setGameState, currentQuestion, totalQuestions, score, startTime, endTime, startGame, endGame, checkAnswer, resetGameWithDepth,
-    lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions,
+    lastFeedback, setLastFeedback, answeredRegions, levelState, isHintActive, setHintActive, currentStage, isBasicMode, highlightRegions, setHighlightRegions,
     skipQuestion, selectionLevel, currentFocusCode, replayGame, backToRegionSelect, targetDestination, setTargetDestination, currentLocation,
     setCurrentLocation,
     maxPickupDistanceKm,

@@ -1,7 +1,8 @@
 import type { GameQuestion, UserInput } from '../../game/core/types';
 import { useGame } from '../../contexts/GameContext';
 import { useGeoContext } from '../../contexts/GeoDataContext';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { RegionCheatSheet } from './RegionCheatSheet';
 
 
 const getQuestionText = (question: GameQuestion): string => {
@@ -16,11 +17,11 @@ const getQuestionText = (question: GameQuestion): string => {
             return '알 수 없는 문제';
     }
 };
-
 export const Stage1ActionBar = () => {
     const { gameState, currentQuestion, lastFeedback, isHintActive, setHintActive, checkAnswer, levelState, skipQuestion, score, totalQuestions, isEssentialMode, toggleEssentialMode } = useGame();
 
     const { filteredMapData: geoData } = useGeoContext();
+    const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
 
     // 타겟 지역의 인텔 정보 유추 (early return 전에 선언해야 Rules of Hooks 준수)
@@ -87,13 +88,22 @@ export const Stage1ActionBar = () => {
                                 필수
                             </button>
                         </div>
-                        <button
-                            onClick={handleAutoCorrect}
-                            className="px-2 py-0.5 text-xs font-bold rounded transition-colors bg-green-500/20 text-green-400 hover:bg-green-500/40"
-                            title="정답 자동 처리"
-                        >
-                            ✓ 정답
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsCheatSheetOpen(!isCheatSheetOpen)}
+                                className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${isCheatSheetOpen ? 'bg-yellow-500/30 text-yellow-300' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/40'}`}
+                                title="지역 암기장 열기"
+                            >
+                                💡 암기장
+                            </button>
+                            <button
+                                onClick={handleAutoCorrect}
+                                className="px-2 py-0.5 text-xs font-bold rounded transition-colors bg-green-500/20 text-green-400 hover:bg-green-500/40"
+                                title="정답 자동 처리"
+                            >
+                                ✓ 정답
+                            </button>
+                        </div>
                     </div>
 
                     {/* 본문: 문제 텍스트 + 인텔 + 점수 + 버튼 */}
@@ -115,8 +125,8 @@ export const Stage1ActionBar = () => {
                                             ))}
                                         </div>
                                         <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${targetIntel.orderVolume.includes('상') ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                                : targetIntel.orderVolume.includes('중') ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
-                                                    : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                            : targetIntel.orderVolume.includes('중') ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                                                : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
                                             }`}>오더 {targetIntel.orderVolume}</div>
                                     </div>
 
@@ -215,6 +225,9 @@ export const Stage1ActionBar = () => {
                 </div>
 
             </div>
+
+            {/* 암기장 UI: 버튼으로 토글 */}
+            {isCheatSheetOpen && <RegionCheatSheet onClose={() => setIsCheatSheetOpen(false)} />}
         </>
     );
 };

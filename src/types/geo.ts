@@ -21,7 +21,17 @@ export interface RegionProperties {
 }
 
 export type RegionFeature = Feature<Geometry, RegionProperties>;
-export type RegionCollection = FeatureCollection<Geometry, RegionProperties>;
+export interface RegionCollection extends FeatureCollection<Geometry, RegionProperties> {
+  metadata?: {
+    mnemonics?: {
+      id: string;
+      title: string;
+      keywords: string[];
+      regionCodes: string[];
+      description: string;
+    }[];
+  };
+}
 
 // Road data (TopoJSON에서 변환된 GeoJSON — 별도 properties 없음)
 export type RoadFeature = Feature<Geometry>;

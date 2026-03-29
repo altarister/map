@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "predev": "node scripts/merge_intel_to_geo.js",
-    "dev": "vite",
+    "dev": "vite --host",
     "prebuild": "node scripts/merge_intel_to_geo.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

@@ -28,11 +28,18 @@ async function run() {
   console.log('🚀 [GeoJSON-Intel Build] 데이터 매핑 스크립트 시작');
 
   const intelDB = {};
-  
+  const globalMnemonics = [];
+
   try {
     const intelFiles = await collectJsonFiles(INTEL_DIR);
     for (const filePath of intelFiles) {
       const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+      if (data._meta && data._meta.mnemonics) {
+        globalMnemonics.push(...data._meta.mnemonics);
+        delete data._meta;
+      }
+
       Object.assign(intelDB, data);
       const rel = path.relative(INTEL_DIR, filePath);
       console.log(`✅ Loaded Intel Data: ${rel} (${Object.keys(data).length} regions)`);
@@ -80,11 +87,11 @@ async function run() {
     console.log(`🧹 [Clean] 10자리 '리' 단위 조각 필터링 완료: ${originalCount}개 -> ${geoJson.features.length}개로 압축됨`);
 
     let matchCount = 0;
-    
+
     geoJson.features = geoJson.features.map(feature => {
       const code = feature.properties.code;
       if (!code) return feature;
-      
+
       const prefix8 = code.substring(0, 8);
       const prefix7 = code.substring(0, 7);
       const prefix6 = code.substring(0, 6);
@@ -107,6 +114,11 @@ async function run() {
 
     // public/mapData 폴더가 없을 수도 있으니 미리 생성
     await fs.mkdir(path.dirname(OUTPUT_MAP_PATH), { recursive: true });
+
+    geoJson.metadata = {
+      mnemonics: globalMnemonics
+    };
+
     await fs.writeFile(OUTPUT_MAP_PATH, JSON.stringify(geoJson));
     console.log(`🎉 [Success] GeoJSON 매핑 완료! (매칭된 인텔 구역 수: ${matchCount}개 / 맵의 전체 구역: ${geoJson.features.length})`);
     console.log(`📂 Saved to: ${OUTPUT_MAP_PATH}`);

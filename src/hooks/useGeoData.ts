@@ -36,7 +36,7 @@ export const useGeoData = () => {
   const [roadData, setRoadData] = useState<RoadCollection | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0); 
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const useGeoData = () => {
       try {
         log.data("[useGeoData] Starting data load (Optimized Architecture & Recovered mapping logic)...");
         setLoading(true);
-        setProgress(10); 
+        setProgress(10);
 
         // 1. Fetch Resources
         const fetchLevel1 = fetch(DATA_URL_LEVEL1);
@@ -56,7 +56,7 @@ export const useGeoData = () => {
         const [
           response1, response2Raw, response2Merged, response3
         ] = await Promise.all([fetchLevel1, fetchLevel2Raw, fetchLevel2Merged, fetchLevel3]);
-        setProgress(40); 
+        setProgress(40);
 
         if (!response1.ok) throw new Error(`Failed to load Level 1: ${response1.statusText}`);
         if (!response2Raw.ok) throw new Error(`Failed to load Level 2 Raw: ${response2Raw.statusText}`);
@@ -67,7 +67,7 @@ export const useGeoData = () => {
         const level2Raw = await response2Raw.json();
         const level2Merged = await response2Merged.json();
         const level3 = await response3.json();
-        setProgress(50); 
+        setProgress(50);
 
         // ==========================================================
         // [원인 5 해결] Level 1 (광역 자치단체) 하드코딩 호환성 처리
@@ -79,7 +79,7 @@ export const useGeoData = () => {
         filteredLevel1.forEach((f: RegionFeature) => {
           // 통계청 원본의 경기도 코드는 '31'이지만, 기존 게임 로직(Map.tsx 등)이 VWorld 코드 '41'을 기대하므로 강제 치환
           if (f.properties.code === '31') {
-            f.properties.code = '41'; 
+            f.properties.code = '41';
           }
           f.properties.centroid = geoCentroid(f);
         });
@@ -147,7 +147,7 @@ export const useGeoData = () => {
           // 부모 맵(parentMap) 수집
           if (f.properties.code && f.properties.name) {
             parentMap.set(f.properties.code, f.properties.name);
-            
+
             // 대도시의 하위 '구' 인지 확인 (코드 5번째 자리가 0이 아님)
             const isGu = f.properties.code.length === 5 && !f.properties.code.endsWith('0');
             if (isGu) {
@@ -221,8 +221,8 @@ export const useGeoData = () => {
         setLevel1Data({ type: 'FeatureCollection', features: filteredLevel1 } as RegionCollection);
         setCityData({ type: 'FeatureCollection', features: finalCityFeatures } as RegionCollection);
         // 원본 구(Gu)가 살아있는 RAW 데이터를 별도 저장 (3단계 View용)
-        setRawCityData({ type: 'FeatureCollection', features: filteredCityRaw } as RegionCollection); 
-        setData({ type: 'FeatureCollection', features: filteredLevel3 } as RegionCollection);
+        setRawCityData({ type: 'FeatureCollection', features: filteredCityRaw } as RegionCollection);
+        setData({ type: 'FeatureCollection', features: filteredLevel3, metadata: level3.metadata } as RegionCollection);
 
         // 6. Process Roads
         const responseRoads = await fetchRoads;
@@ -234,7 +234,7 @@ export const useGeoData = () => {
           console.warn("[useGeoData] Failed to load roads", responseRoads.statusText);
         }
 
-        setProgress(100); 
+        setProgress(100);
         log.data(`[useGeoData] Successfully recovered all relations & initialized.`);
 
       } catch (err) {

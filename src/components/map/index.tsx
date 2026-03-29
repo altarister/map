@@ -406,10 +406,10 @@ export const Map = ({ padding = { top: 0, right: 0, bottom: 0, left: 0 } }: MapP
                 <path
                   key={`highlight-${region.properties.code}`}
                   d={pathGenerator(region) || ''}
-                  fill="none"
-                  stroke={theme === 'tactical' ? '#444' : '#94a3b8'}
-                  strokeWidth={2.8 / zoomTransform.k}
-                  strokeOpacity={0.9}
+                  fill="rgba(59, 130, 246, 0.4)"
+                  stroke="#3b82f6"
+                  strokeWidth={3 / zoomTransform.k}
+                  strokeOpacity={1.0}
                 />
               ))}
             </g>
