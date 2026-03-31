@@ -12,6 +12,7 @@ import { TopBar } from './components/layout/TopBar';
 import { Stage1ActionBar } from './components/game/Stage1ActionBar';
 import { Stage2App } from './components/game/Stage2App';
 import { AdSlot } from './components/ui/AdSlot';
+import { StandaloneInseongView } from './components/game/StandaloneInseongView';
 
 
 import { useState } from 'react';
@@ -110,16 +111,22 @@ function GameContent() {
 }
 
 function App() {
+  const isStandalone = new URLSearchParams(window.location.search).get('mode') === 'standalone';
+
   return (
     <SettingsProvider>
       <GeoDataProvider>
         <MapProvider>
           <GameProvider>
             <DispatchProvider>
-              <div className="w-full h-screen bg-slate-100 flex flex-col">
-                <TopBar />
-                <GameContent />
-              </div>
+              {isStandalone ? (
+                <StandaloneInseongView />
+              ) : (
+                <div className="w-full h-screen bg-slate-100 flex flex-col">
+                  <TopBar />
+                  <GameContent />
+                </div>
+              )}
             </DispatchProvider>
           </GameProvider>
         </MapProvider>
