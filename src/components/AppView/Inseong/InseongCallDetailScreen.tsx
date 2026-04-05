@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import type { CallItem } from '../../../game/core/types';
 import type { AnswerFeedback } from '../../../types/game';
 import { formatRegionName, formatRegionFullName } from '../../../utils/format';
@@ -18,6 +19,40 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
   const distPickup = call.pickupDistanceKm?.toFixed(1) || '0.0';
   const distDelivery = call.distanceKm.toFixed(1);
 
+  // 확정(10) 카운트다운 타이머
+  const [countdown, setCountdown] = useState(10);
+  const [isCountdownActive, setIsCountdownActive] = useState(false);
+
+  const handleConfirm = useCallback(() => {
+    if (onAccept) onAccept(call);
+  }, [onAccept, call]);
+
+  // 카운트다운 시작
+  const startCountdown = useCallback(() => {
+    setCountdown(10);
+    setIsCountdownActive(true);
+  }, []);
+
+  // 카운트다운 로직
+  useEffect(() => {
+    if (!isCountdownActive) return;
+    if (countdown <= 0) {
+      setIsCountdownActive(false);
+      // 타임아웃 시 자동으로 확정 처리
+      handleConfirm();
+      return;
+    }
+    const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [isCountdownActive, countdown, handleConfirm]);
+
+  // 컴포넌트 마운트 시 자동으로 카운트다운 시작
+  useEffect(() => {
+    if (!isConfirmed) {
+      startCountdown();
+    }
+  }, [isConfirmed, startCountdown]);
+
   return (
     <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans text-black select-none tracking-tight">
       
@@ -30,11 +65,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
           <div className="w-[42px] h-[32px] bg-[#8bc34a] rounded shadow-sm border border-[#689f38] flex justify-center items-center">
              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56M15.78 14.16l-2.03 2.03C10.63 14.6 8.4 12.38 6.8 9.24l2.03-2.03M4.61 8.62C4.24 7.51 4.04 6.32 4.04 5.09M20.01 15.38c.55 0 1 .45 1 1v3.58c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1H7.6c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57M15.78 14.16c.39.39.39 1.02 0 1.41M6.8 9.24c-.39-.39-1.02-.39-1.41 0" stroke="white" strokeWidth="2" fill="none"/></svg>
           </div>
-          {isConfirmed ? (
-            <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-500 rounded shadow-sm border border-gray-400">완료건</button>
-          ) : (
-            <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-800 rounded shadow-sm border border-gray-400">완료</button>
-          )}
+          <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-800 rounded shadow-sm border border-gray-400">전표</button>
         </div>
       </div>
 
@@ -51,25 +82,25 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         <div className="flex justify-between items-center px-4 py-3 border-b border-[#aed581]/40">
           <div className="flex gap-8 text-[15px] font-bold text-gray-800 tracking-tight">
             <span>상태 : <span className={`ml-1 ${call.isExpress ? 'text-red-600' : 'text-gray-900'}`}>{isConfirmed ? '완료' : (call.status || '배차')}</span></span>
-            <span>물품 : <span className="text-gray-900 ml-1">{call.itemDescription || ''}</span></span>
+            <span>물품 : <span className="text-gray-900 ml-1">{call.itemDescription || '--'}</span></span>
           </div>
-          <button onClick={onClose} className="px-5 py-2 bg-white border border-gray-300 font-bold text-[14px] rounded shadow-sm text-gray-600 active:bg-gray-100">
-            취소
-          </button>
         </div>
 
-        {/* 3. Vehicle & Freight Fee */}
-        <div className="flex px-4 py-4 border-b border-[#aed581]/40">
+        {/* 3. Vehicle & Freight Fee (2-row layout) */}
+        <div className="flex flex-col px-4 py-3 border-b border-[#aed581]/40">
           <div className="flex gap-6 text-[15px] font-bold text-gray-800 tracking-tight">
-            <span>차량 : <span className="text-gray-900 ml-1">{call.vehicleType || '트럭-1.4t'}</span></span>
-            <span>탁송료 : <span className="text-gray-900 ml-1">0</span></span>
+            <span>차량 : <span className="text-gray-900 ml-1">{call.vehicleType || '다'}</span></span>
+            <span className="ml-auto">탁송료 : <span className="text-gray-900 ml-1">{call.freightFee ?? ''}</span></span>
+          </div>
+          <div className="flex mt-1">
+            <span className="ml-auto text-[14px] font-bold text-red-500">수수료 : 23%</span>
           </div>
         </div>
 
         {/* 4. Fare */}
         <div className="flex px-4 py-4 border-b border-[#aed581]/40">
           <div className={`font-extrabold text-[22px] tracking-tighter ${call.isExpress ? 'text-red-600' : 'text-[#d32f2f]'}`}>
-            요금 : {fareFormatted}({call.paymentType || '신용'})({call.billingType || '계산서'})
+            요금 : {fareFormatted}({call.paymentType || '신용'})
           </div>
         </div>
         
@@ -77,19 +108,16 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         <div className="flex px-4 py-4 border-b border-[#aed581]/40 mb-2">
           <div className="flex gap-10 text-[15px] font-bold text-gray-800 tracking-tight">
             <span>구분 : <span className="text-gray-900 ml-1">편도</span></span>
-            <span>형태 : <span className="text-gray-900 ml-1">{call.callCategory || '보통'}</span></span>
+            <span>형태 : <span className="text-gray-900 ml-1">{call.callCategory || '예약'}</span></span>
           </div>
         </div>
 
         {/* 6. Details & Distances Box */}
         <div className="flex px-3 gap-2 h-[100px] mb-2">
-          {/* Left buttons */}
+          {/* Left button - only 적요상세 */}
           <div className="flex flex-col gap-1.5 w-[90px] shrink-0">
             <button className="flex-1 bg-white border border-gray-300 flex items-center justify-center font-bold text-[14px] text-gray-800 shadow-sm active:bg-gray-50">
               적요상세
-            </button>
-            <button className="flex-1 bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-800 shadow-sm active:bg-gray-50">
-              인수증 전송
             </button>
           </div>
           {/* Right Dark Box */}
@@ -132,11 +160,8 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               도착지
             </div>
-            <div className="w-[55px] bg-[#fb8c00] text-gray-800 flex items-center justify-center font-bold text-[14px] shadow-sm shrink-0">
-              서명
-            </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm overflow-hidden whitespace-normal line-clamp-2 leading-tight py-1">
-              {call.dropoffs[0].fullName} / 최우선주임님
+              [착]{call.dropoffs[0].fullName} / {call.recipientName || ''}
             </div>
           </div>
 
@@ -144,7 +169,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
       </div>
 
-      {/* 8. Bottom Action Bar (Floating) */}
+      {/* 8. Bottom Action Bar */}
       <div className="h-[65px] bg-[#263238] px-2 flex gap-2 items-center justify-between border-t border-gray-800 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
         
         {isConfirmed ? (
@@ -157,17 +182,27 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         ) : (
           <>
             <button 
-              onClick={() => onAccept?.(call)}
-              className="flex-1 h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95 transition-transform"
+              onClick={handleConfirm}
+              className="h-12 px-6 flex items-center justify-center font-extrabold text-[16px] rounded-sm shadow-sm bg-[#26a69a] text-white border border-[#00897b] active:scale-95 transition-transform"
             >
-              🚛 탁송 (장부에 담기)
+              확정({countdown})
             </button>
 
             <button 
-              onClick={onClose}
-              className="w-[100px] h-12 bg-white text-gray-800 font-extrabold text-base rounded-sm shadow-sm border border-gray-400 active:scale-95 transition-transform"
+              onClick={() => {
+                setIsCountdownActive(false);
+                onClose();
+              }}
+              className="h-12 px-6 flex items-center justify-center font-extrabold text-base rounded-sm shadow-sm bg-white text-gray-800 border border-gray-400 active:scale-95 transition-transform"
             >
               취소
+            </button>
+
+            <button 
+              onClick={handleConfirm}
+              className="flex-1 h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95 transition-transform"
+            >
+              탁송
             </button>
           </>
         )}

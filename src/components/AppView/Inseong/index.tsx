@@ -95,10 +95,8 @@ export const InseongApp = () => {
       if (prev.find((c: CallItem) => c.id === call.id)) return prev;
       return [...prev, call];
     });
-    // 3. 상세 닫기 + 신규 탭 유지 + 지도 리셋(선택 해제)
-    handleCloseDetail();
-    setSelectedCallId(null);
-    setActiveTab('ALL');
+    // 3. selectedCall 유지 → 라우팅 로직이 자동으로 OngoingDetailScreen 렌더링
+    if (setSelectedCallId) setSelectedCallId(call.id);
   };
 
   // 배송 완료 처리 (내 장부에서 제거)

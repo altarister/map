@@ -26,6 +26,8 @@ export interface CallItem {
     pickupTime?: string;      // 픽업 시간 (HH:MM)
     deliveryTime?: string;    // 예상 하차 시간 (HH:MM)
     fare: number;
+    freightFee?: number;       // 탁송료 (0 또는 금액)
+    recipientName?: string;    // 수신인 이름 (도착지 표시용)
     isMatchingRoute: boolean; // 유저 목표와 일치하는가?
     violation?: 'BAD_FARE' | 'WRONG_DEST';
 }
