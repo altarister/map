@@ -21,7 +21,9 @@ export function StandaloneInseongView() {
             // Timeout ensures that useGameLogic's internal [currentStage] useEffect runs 
             // and resets states first, before we forcefully inject the PLAYING state.
             setTimeout(() => {
-                setTargetDestination({ code: 'SIM', name: '시뮬레이션 구동' });
+                // 경기도 광주시(41610)를 기본 거점 및 목표 하차 방향으로 설정
+                setCurrentLocation({ code: '41610', name: '광주시' });
+                setTargetDestination({ code: '41610', name: '광주시' });
                 setGameState('PLAYING');
                 startGame({}, true);
             }, 50);
@@ -66,7 +68,7 @@ export function StandaloneInseongView() {
     }
 
     return (
-        <div className="w-full h-screen bg-[#111] overflow-hidden relative font-sans text-black" id="standalone-root">
+        <div className="w-full h-dvh bg-[#111] overflow-hidden relative font-sans text-black" id="standalone-root">
             <InseongApp />
         </div>
     );

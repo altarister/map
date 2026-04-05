@@ -38,8 +38,8 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
     if (!isCountdownActive) return;
     if (countdown <= 0) {
       setIsCountdownActive(false);
-      // 타임아웃 시 자동으로 확정 처리
-      handleConfirm();
+      // 타임아웃 시 자동으로 취소 처리 (콜 소멸)
+      onClose();
       return;
     }
     const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);

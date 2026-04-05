@@ -15,6 +15,7 @@ interface BoardProps {
   isTimerPaused: boolean;
   onToggleTimer: () => void;
   batchTarget: number;
+  isFetchingOrder?: boolean;
 }
 
 // 요금 포맷 헬퍼 (예: 35000 -> "35")
@@ -136,7 +137,8 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
   onMenuClick,
   isTimerPaused,
   onToggleTimer,
-  batchTarget
+  batchTarget,
+  isFetchingOrder
 }: BoardProps) => {
   const { gameState, currentQuestion, maxPickupDistanceKm, endGame } = useGame();
   const { selectedCallId, isGpsOn, setIsGpsOn, streamingCalls } = useDispatchContext();
@@ -217,13 +219,19 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
       )}
 
       {/* 리스트 본문 */}
-      {/* 리스트 본문 */}
-      <div className="flex flex-col overflow-y-auto flex-1 bg-white">
+      <div className="relative flex flex-col overflow-y-auto flex-1 bg-white">
         {calls.length === 0 && (
           <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-[15px]">
             {activeTab === 'CONFIRMED' ? '아직 확정(배차 수락)된 오더가 없습니다.' : '대기 중인 오더가 없습니다.'}
           </div>
         )}
+        
+        {isFetchingOrder && activeTab === 'ALL' && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60 px-4 py-2 rounded-md shadow-lg z-20 pointer-events-none">
+            <span className="text-white font-bold text-[14px]">오더 조회 중 입니다...</span>
+          </div>
+        )}
+
         {calls.map((call, idx) => (
           <CallRow
             key={call.id}

@@ -16,6 +16,7 @@ interface UseDispatchStreamingProps {
   maxPickupDistanceKm: number;
   minFare: number;
   appendCall: (call: CallItem) => void;
+  setIsFetchingOrder: (fetching: boolean) => void;
 }
 
 export const useDispatchStreaming = ({
@@ -28,7 +29,8 @@ export const useDispatchStreaming = ({
   targetDestination,
   maxPickupDistanceKm,
   minFare,
-  appendCall
+  appendCall,
+  setIsFetchingOrder
 }: UseDispatchStreamingProps) => {
 
   const configRef = useRef({
@@ -37,7 +39,8 @@ export const useDispatchStreaming = ({
     targetDestination,
     maxPickupDistanceKm,
     minFare,
-    appendCall
+    appendCall,
+    setIsFetchingOrder
   });
 
   // 어떤 스테이지의 초기 콜을 배포했는지 기억 (React Strict Mode 완벽 방어)
@@ -51,12 +54,14 @@ export const useDispatchStreaming = ({
       targetDestination,
       maxPickupDistanceKm,
       minFare,
-      appendCall
+      appendCall,
+      setIsFetchingOrder
     };
-  }, [fullMapData, currentLocation, targetDestination, maxPickupDistanceKm, minFare, appendCall]);
+  }, [fullMapData, currentLocation, targetDestination, maxPickupDistanceKm, minFare, appendCall, setIsFetchingOrder]);
 
   useEffect(() => {
     if (gameState === 'PLAYING' && currentStage === 2 && !isSettingsOpen && !isTimerPaused) {
+      /*
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
       let isScheduling = true;
 
@@ -90,6 +95,36 @@ export const useDispatchStreaming = ({
           scheduleNextCall();
         }, nextDelay);
       };
+      */
+
+      // 5초마다 1개씩 추가되도록 변경 (랜덤 로직 대신 고정 시간 간격)
+      let innerTimeoutId: ReturnType<typeof setTimeout> | null = null;
+      const intervalId = setInterval(() => {
+        const cfg = configRef.current;
+        
+        // 추가하기 0.5초 전에 '조회 중...' 표시
+        cfg.setIsFetchingOrder(true);
+        
+        innerTimeoutId = setTimeout(() => {
+          if (cfg.fullMapData && cfg.fullMapData.length > 0) {
+            const newCall = generateSingleCall(
+              {
+                mapData: cfg.fullMapData,
+                currentLocCode: cfg.currentLocation?.code,
+                maxPickupDistanceKm: cfg.maxPickupDistanceKm,
+                minFare: cfg.minFare,
+                difficulty: 'NORMAL'
+              },
+              cfg.targetDestination?.code || 'ALL',
+              undefined,
+              PROB_CORRECT_ANSWER
+            );
+            cfg.appendCall(newCall);
+          }
+          // 추가 완료 후 표시 제거
+          cfg.setIsFetchingOrder(false);
+        }, 500);
+      }, 5000);
 
       // 초기 진입 시 즉시 4개의 콜을 생성 (유일한 콜 생성 소스)
       // Strict Mode에서 컴포넌트 마운트가 2번 일어나도 seededStageRef 값이 유지되므로 중복 완벽 방어
@@ -108,12 +143,14 @@ export const useDispatchStreaming = ({
       }
 
       // 첫 스트리밍 사이클 즉시 시작
-      scheduleNextCall();
+      // scheduleNextCall();
 
-      // 클린업 함수: 타이머를 일시정지(모달 오픈 등)하거나 게임이 끝날 때만 초기화
+      // 클린업 함수: 인터벌 + 내부 타이머 모두 정리
       return () => {
-        isScheduling = false;
-        if (timeoutId) clearTimeout(timeoutId);
+        clearInterval(intervalId);
+        if (innerTimeoutId) clearTimeout(innerTimeoutId);
+        // 조회 중 상태도 초기화
+        configRef.current.setIsFetchingOrder(false);
       };
     }
     // 의존성 배열에서 설정값 관련 프롭스 모두 제거. (설정값이 바뀌어도 타이머 리셋 안됨)

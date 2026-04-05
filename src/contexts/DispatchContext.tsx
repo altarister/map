@@ -20,6 +20,8 @@ interface DispatchContextType {
   activeTab: 'ALL' | 'CONFIRMED';
   setActiveTab: (tab: 'ALL' | 'CONFIRMED') => void;
   appendCall: (call: CallItem) => void;
+  isFetchingOrder: boolean;
+  setIsFetchingOrder: (fetching: boolean) => void;
   // OSRM 분석 결과 캐싱 (중복 API 통신 방지용)
   routeResult: RouteOptimizationResult | null;
   calculateRouteResult: (driverLocation: { code: string; name: string; centroid: [number, number] }) => void;
@@ -36,6 +38,7 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
   const [isGpsOn, setIsGpsOn] = useState(false);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [activeTab, setActiveTab] = useState<'ALL' | 'CONFIRMED'>('ALL');
+  const [isFetchingOrder, setIsFetchingOrder] = useState(false);
   const [routeResult, setRouteResult] = useState<RouteOptimizationResult | null>(null);
   const [selectedCallRoute, setSelectedCallRoute] = useState<RouteGeometry | null>(null);
   
@@ -181,6 +184,8 @@ export const DispatchProvider = ({ children }: { children: ReactNode }) => {
       setIsGpsOn,
       isTimerPaused,
       setIsTimerPaused,
+      isFetchingOrder,
+      setIsFetchingOrder,
       activeTab,
       setActiveTab,
       appendCall,
