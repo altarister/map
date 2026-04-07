@@ -7,7 +7,7 @@ import { InseongApp } from '../AppView/Inseong/index';
 export function StandaloneInseongView() {
     const { gameState, setGameState, startGame, fullMapData, setCurrentLocation, setTargetDestination, currentStage } = useGame();
     const { setCurrentStage } = useSettings();
-    const { appendCall } = useDispatchContext();
+    const { appendCall, setConfirmedCalls, setStreamingCalls } = useDispatchContext();
 
     // 1. Initialize Simulation State
     useEffect(() => {
@@ -21,6 +21,10 @@ export function StandaloneInseongView() {
             // Timeout ensures that useGameLogic's internal [currentStage] useEffect runs 
             // and resets states first, before we forcefully inject the PLAYING state.
             setTimeout(() => {
+                // 게임 재시작 시 잔여 콜 초기화 (무한 루프 방지)
+                if (setConfirmedCalls) setConfirmedCalls([]);
+                if (setStreamingCalls) setStreamingCalls([]);
+                
                 // 경기도 광주시(41610)를 기본 거점 및 목표 하차 방향으로 설정
                 setCurrentLocation({ code: '41610', name: '광주시' });
                 setTargetDestination({ code: '41610', name: '광주시' });

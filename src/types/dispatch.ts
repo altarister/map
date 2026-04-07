@@ -8,10 +8,27 @@ export interface LocationPoint {
     intel?: RegionIntel; // OSRM 휴리스틱 연산용
 }
 
+// [신규] 출발지/도착지 팝업에서 긁어올 상세 정보 (운행일지 및 리뷰 작성용)
+// 인성앱 "출발지 상세" / "도착지 상세" 팝업 기준 1:1 매핑
+export interface LocationDetailInfo {
+    customerName?: string;    // [고객] 상호/고객명 (예: "*레드캠프", "SK스토아 홈쇼핑(5층하차")
+    department?: string;      // [부서] 부서명 (예: "정실장님", 빈 값일 경우 "*")
+    contactName?: string;     // [담당] 담당자명 (예: "정종혁차장")
+    mileage?: number;         // [마일리지] 마일리지 포인트 (예: 0)
+    phone1?: string;          // [전화1] 대표 연락처 (예: "010-2228-4991")
+    phone2?: string;          // [전화2] 보조 연락처 (예: "031-267-1224", 빈 값일 경우 "*")
+    region?: string;          // [출발/도착] 광역 지역명 (예: "경기 화성시", "서울 마포구")
+    addressDetail?: string;   // [위치] 상세 주소+건물명 (예: "경기 화성시 안녕동 158-95(경기 화성시 안녕남로119번길 25)")
+    requestedTime?: string;   // 상차/하차 예약 시간 (확정 페이지에서 파싱, 예: "13:53")
+    memo?: string;            // 현장 전달사항 (적요 등에서 추출)
+}
+
 export interface CallItem {
     id: string; // 고유 ID (UI 렌더링 키값 등)
     pickups: LocationPoint[];   // 상차지 배열 (1개 이상)
     dropoffs: LocationPoint[];  // 하차지 배열 (1개 이상)
+    pickupDetails?: LocationDetailInfo[];  // [추가] 출발지 상세 정보 목록 (팝업 파싱)
+    dropoffDetails?: LocationDetailInfo[]; // [추가] 도착지 상세 정보 목록 (팝업 파싱)
     pickupDistanceKm?: number;
     distanceKm: number;
     status?: string;          // 상태 (신규, 배차, 픽업, 완료, 등)

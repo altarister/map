@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import type { CallItem } from '../../../game/core/types';
 import type { AnswerFeedback } from '../../../types/game';
+import type { LocationDetailInfo } from '../../../types/dispatch';
 import { formatRegionName, formatRegionFullName } from '../../../utils/format';
+import { InseongLocationDetailScreen } from './InseongLocationDetailScreen';
+import { getNextPickupDetail, getNextDropoffDetail } from './mockLocationDetails';
 
 
 interface Props {
@@ -10,9 +14,12 @@ interface Props {
   onClose: () => void;
   onAccept?: (call: CallItem) => void;
   onConfirm?: (call: CallItem) => void;
+  onCancel?: (call: CallItem) => void;
 }
 
-export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) => {
+export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel }: Props) => {
+  // 출발지/도착지 상세 팝업 상태
+  const [locationPopup, setLocationPopup] = useState<{ type: 'PICKUP' | 'DROPOFF'; detail: LocationDetailInfo } | null>(null);
   const fareFormatted = call.fare.toLocaleString();
   const distPickup = call.pickupDistanceKm?.toFixed(1) || '0.0';
   const distDelivery = call.distanceKm.toFixed(1);
@@ -42,7 +49,10 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
             <span>상태 : <span className="text-gray-900 ml-1">{call.status || '배송'}</span></span>
             <span>물품 : <span className="text-gray-900 ml-1">{call.itemDescription || '--'}</span></span>
           </div>
-          <button onClick={onClose} className="px-5 py-2 bg-white border border-gray-300 font-bold text-[14px] rounded shadow-sm text-gray-600 active:bg-gray-100">
+          <button onClick={() => {
+            if (onCancel) onCancel(call);
+            else onClose();
+          }} className="px-5 py-2 bg-white border border-gray-300 font-bold text-[14px] rounded shadow-sm text-gray-600 active:bg-gray-100">
             취소
           </button>
         </div>
@@ -108,7 +118,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[42px]">
+          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail() })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               출발지
             </div>
@@ -120,7 +130,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[56px]">
+          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail() })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               도착지
             </div>
@@ -135,6 +145,15 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm }: Props) 
         </div>
 
       </div>
+
+      {/* 출발지/도착지 상세 팝업 오버레이 */}
+      {locationPopup && (
+        <InseongLocationDetailScreen
+          type={locationPopup.type}
+          detail={locationPopup.detail}
+          onClose={() => setLocationPopup(null)}
+        />
+      )}
 
       {/* 8. Bottom Action Bar (Ongoing Mode) */}
       <div className="h-[65px] bg-[#263238] px-2 flex gap-2 items-center justify-between border-t border-gray-800 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">

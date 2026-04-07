@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CallItem } from '../../../game/core/types';
 import type { AnswerFeedback } from '../../../types/game';
+import type { LocationDetailInfo } from '../../../types/dispatch';
 import { formatRegionName, formatRegionFullName } from '../../../utils/format';
+import { InseongLocationDetailScreen } from './InseongLocationDetailScreen';
+import { getNextPickupDetail, getNextDropoffDetail } from './mockLocationDetails';
 
 interface Props {
   call: CallItem;
@@ -13,6 +16,9 @@ interface Props {
 
 export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, onAccept }: Props) => {
   const isEvaluated = feedback !== undefined && feedback !== null;
+
+  // 출발지/도착지 상세 팝업 상태
+  const [locationPopup, setLocationPopup] = useState<{ type: 'PICKUP' | 'DROPOFF'; detail: LocationDetailInfo } | null>(null);
   const isCorrect = feedback?.isCorrect;
 
   const fareFormatted = call.fare.toLocaleString();
@@ -144,7 +150,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[42px]">
+          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail() })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               출발지
             </div>
@@ -156,7 +162,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[56px]">
+          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail() })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               도착지
             </div>
@@ -168,6 +174,15 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         </div>
 
       </div>
+
+      {/* 출발지/도착지 상세 팝업 오버레이 */}
+      {locationPopup && (
+        <InseongLocationDetailScreen
+          type={locationPopup.type}
+          detail={locationPopup.detail}
+          onClose={() => setLocationPopup(null)}
+        />
+      )}
 
       {/* 8. Bottom Action Bar */}
       <div className="h-[65px] bg-[#263238] px-2 flex gap-2 items-center justify-between border-t border-gray-800 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">

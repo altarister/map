@@ -100,6 +100,12 @@ export const InseongApp = () => {
     if (setSelectedCallId) setSelectedCallId(call.id);
   };
 
+  // 배차 취소 처리 (내 장부에서 제거)
+  const handleCancelCall = (call: CallItem) => {
+    setConfirmedCalls((prev: CallItem[]) => prev.filter((c: CallItem) => c.id !== call.id));
+    handleCloseDetail();
+  };
+
   // 배송 완료 처리 (내 장부에서 제거)
   const handleCompleteDelivery = (call: CallItem) => {
     setConfirmedCalls((prev: CallItem[]) => prev.filter((c: CallItem) => c.id !== call.id));
@@ -122,6 +128,7 @@ export const InseongApp = () => {
             call={displayCall}
             onClose={handleCloseDetail}
             onConfirm={handleCompleteDelivery}
+            onCancel={handleCancelCall} // [Fix] 취소 처리 추가
           />
         );
       }
