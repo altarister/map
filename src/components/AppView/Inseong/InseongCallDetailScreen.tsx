@@ -61,7 +61,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans text-black select-none tracking-tight">
-      
+
       {/* 1. Top Header */}
       <div className="bg-[#455a64] text-white flex justify-between items-center px-2 py-1.5 shrink-0 border-b border-gray-600 z-10">
         <div className="flex items-center">
@@ -69,7 +69,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-[42px] h-[32px] bg-[#8bc34a] rounded shadow-sm border border-[#689f38] flex justify-center items-center">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56M15.78 14.16l-2.03 2.03C10.63 14.6 8.4 12.38 6.8 9.24l2.03-2.03M4.61 8.62C4.24 7.51 4.04 6.32 4.04 5.09M20.01 15.38c.55 0 1 .45 1 1v3.58c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1H7.6c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57M15.78 14.16c.39.39.39 1.02 0 1.41M6.8 9.24c-.39-.39-1.02-.39-1.41 0" stroke="white" strokeWidth="2" fill="none"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56M15.78 14.16l-2.03 2.03C10.63 14.6 8.4 12.38 6.8 9.24l2.03-2.03M4.61 8.62C4.24 7.51 4.04 6.32 4.04 5.09M20.01 15.38c.55 0 1 .45 1 1v3.58c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1H7.6c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57M15.78 14.16c.39.39.39 1.02 0 1.41M6.8 9.24c-.39-.39-1.02-.39-1.41 0" stroke="white" strokeWidth="2" fill="none" /></svg>
           </div>
           <button className="h-[32px] px-4 font-bold text-[14px] bg-[#e0e0e0] text-gray-800 rounded shadow-sm border border-gray-400">전표</button>
         </div>
@@ -83,7 +83,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
       {/* Info Area Base - Pale Green Background like screenshot */}
       <div className="flex-1 overflow-y-auto bg-[#e8f5e9]">
-        
+
         {/* 2. Status & Item */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-[#aed581]/40">
           <div className="flex gap-8 text-[15px] font-bold text-gray-800 tracking-tight">
@@ -109,7 +109,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
             요금 : {fareFormatted}({call.paymentType || '신용'})
           </div>
         </div>
-        
+
         {/* 5. Category & Type */}
         <div className="flex px-4 py-4 border-b border-[#aed581]/40 mb-2">
           <div className="flex gap-10 text-[15px] font-bold text-gray-800 tracking-tight">
@@ -137,7 +137,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
         {/* 7. Addresses */}
         <div className="flex flex-col gap-2 p-3 pb-8">
-          
+
           <div className="flex items-stretch gap-1 h-[42px]">
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               의뢰지
@@ -150,7 +150,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail() })}>
+          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail(call.pickups[0].fullName) })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               출발지
             </div>
@@ -158,16 +158,16 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate pb-0.5">
-              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.isShared ? '@' : ''}{formatRegionFullName(call.pickups[0].fullName)}
+              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.isShared ? '@' : ''}{call.pickupDetails?.[0]?.region || formatRegionFullName(call.pickups[0].fullName)}
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail() })}>
+          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail(call.dropoffs[0].fullName) })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               도착지
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm overflow-hidden whitespace-normal line-clamp-2 leading-tight py-1">
-              [착]{call.dropoffs[0].fullName} / {call.recipientName || ''}
+              [착]{call.dropoffDetails?.[0]?.region || call.dropoffs[0].fullName} / {call.recipientName || ''}
             </div>
           </div>
 
@@ -186,9 +186,9 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
 
       {/* 8. Bottom Action Bar */}
       <div className="h-[65px] bg-[#263238] px-2 flex gap-2 items-center justify-between border-t border-gray-800 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-        
+
         {isConfirmed ? (
-          <button 
+          <button
             onClick={onClose}
             className="flex-1 h-12 bg-[#26a69a] text-white font-extrabold text-lg rounded-sm shadow-sm border border-[#00897b] active:scale-95 transition-transform"
           >
@@ -196,14 +196,14 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
           </button>
         ) : (
           <>
-            <button 
+            <button
               onClick={handleConfirm}
               className="h-12 px-6 flex items-center justify-center font-extrabold text-[16px] rounded-sm shadow-sm bg-[#26a69a] text-white border border-[#00897b] active:scale-95 transition-transform"
             >
               확정({countdown})
             </button>
 
-            <button 
+            <button
               onClick={() => {
                 setIsCountdownActive(false);
                 onClose();
@@ -213,7 +213,7 @@ export const InseongCallDetailScreen = ({ call, feedback, isConfirmed, onClose, 
               취소
             </button>
 
-            <button 
+            <button
               onClick={handleConfirm}
               className="flex-1 h-12 flex items-center justify-center font-extrabold text-xl rounded-sm shadow-sm bg-[#ffb300] text-gray-800 border-2 border-orange-400 active:scale-95 transition-transform"
             >

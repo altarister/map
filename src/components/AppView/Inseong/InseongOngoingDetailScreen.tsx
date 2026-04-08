@@ -118,7 +118,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel 
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail() })}>
+          <div className="flex items-stretch gap-1 h-[42px] cursor-pointer" onClick={() => setLocationPopup({ type: 'PICKUP', detail: call.pickupDetails?.[0] || getNextPickupDetail(call.pickups[0].fullName) })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               출발지
             </div>
@@ -126,11 +126,11 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm truncate pb-0.5">
-              {call.companyName || '태양메디스'} / {call.pickupTime} / {formatRegionFullName(call.pickups[0].fullName)}
+              {call.companyName || '태양메디스'} / {call.pickupTime} / {call.pickupDetails?.[0]?.region || formatRegionFullName(call.pickups[0].fullName)}
             </div>
           </div>
 
-          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail() })}>
+          <div className="flex items-stretch gap-1 h-[56px] cursor-pointer" onClick={() => setLocationPopup({ type: 'DROPOFF', detail: call.dropoffDetails?.[0] || getNextDropoffDetail(call.dropoffs[0].fullName) })}>
             <div className="w-[65px] bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-600 shadow-sm shrink-0">
               도착지
             </div>
@@ -138,7 +138,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel 
               서명
             </div>
             <div className="flex-1 bg-white border border-gray-300 flex items-center px-2 font-bold text-[15px] text-gray-900 shadow-sm overflow-hidden whitespace-normal line-clamp-2 leading-tight py-1">
-              {call.dropoffs[0].fullName} / {call.recipientName || ''}
+              {call.dropoffDetails?.[0]?.region || call.dropoffs[0].fullName} / {call.recipientName || ''}
             </div>
           </div>
 
