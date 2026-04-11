@@ -4,7 +4,7 @@ import type { AnswerFeedback } from '../../../types/game';
 import type { LocationDetailInfo } from '../../../types/dispatch';
 import { formatRegionName, formatRegionFullName } from '../../../utils/format';
 import { InseongLocationDetailScreen } from './InseongLocationDetailScreen';
-import { getNextPickupDetail, getNextDropoffDetail } from './mockLocationDetails';
+import { getNextPickupDetail, getNextDropoffDetail } from '../../../data/mockLocationDetails';
 
 
 interface Props {

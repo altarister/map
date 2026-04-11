@@ -1,5 +1,5 @@
-import type { LocationDetailInfo } from '../../../types/dispatch';
-import mockDataRaw from '../../../data/mockLocationData.json';
+import type { LocationDetailInfo } from '../types/dispatch';
+import mockDataRaw from './mockLocationData.json';
 
 // 100개의 리얼 주소 데이터 연동
 const MOCK_LOCATION_DETAILS = mockDataRaw as LocationDetailInfo[];

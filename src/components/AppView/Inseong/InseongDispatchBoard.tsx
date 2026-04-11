@@ -90,31 +90,31 @@ const CallRow = React.memo(({
   }
 
   return (
-    <div
+    <div id={`call-row-${call.id}`}
       className={`flex border-b border-gray-300 hover:bg-[#c9d3f8] cursor-pointer ${bgColor} active:bg-[#a9bdf8]`}
       onClick={() => onRowClick(call)}
     >
       {/* 거리 (상단: 공차거리, 하단: 운행거리) */}
       <div className={`w-[12%] py-1 flex flex-col justify-center px-1 border-r border-gray-200 font-bold text-[13px] leading-[1.1] ${cxText('text-black')}`}>
-        <span className={`text-[12px] tracking-tighter ${cxText('text-gray-600')}`}>
+        <div className={`text-[12px] tracking-tighter ${cxText('text-gray-600')}`}>
           {call.pickupDistanceKm?.toFixed(1) || '0.0'}
-        </span>
-        <span>{call.distanceKm.toFixed(1)}</span>
+        </div>
+        <div>{call.distanceKm.toFixed(1)}</div>
       </div>
 
       {/* 출발지 */}
       <div className="w-[30%] px-1 py-1 flex flex-col justify-center border-r border-gray-200 truncate leading-tight">
         <div className="flex items-start">
-          {call.isShared && <span className={`text-[14px] font-bold ${cxText('text-black')}`}>@</span>}
-          <span className={`font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
+          {call.isShared && <div className={`inline text-[14px] font-bold ${cxText('text-black')}`}>@</div>}
+          <div className={`inline font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
             {call.pickupDetails?.[0]?.region || formatRegionName(call.pickups[0].name)}{call.violation === undefined ? '' : '-'}
-          </span>
+          </div>
         </div>
       </div>
 
       {/* 도착지 */}
       <div className={`w-[38%] px-1 flex flex-col justify-center border-r border-gray-200 font-bold text-[14px] leading-tight ${cxText('text-black')}`}>
-        <span className={`whitespace-normal line-clamp-2`}>{call.dropoffDetails?.[0]?.region || call.dropoffs[0].name}</span>
+        <div className={`whitespace-normal line-clamp-2`}>{call.dropoffDetails?.[0]?.region || call.dropoffs[0].name}</div>
       </div>
 
       {/* 차종 */}
@@ -225,7 +225,7 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
             {activeTab === 'CONFIRMED' ? '아직 확정(배차 수락)된 오더가 없습니다.' : '대기 중인 오더가 없습니다.'}
           </div>
         )}
-        
+
         {isFetchingOrder && activeTab === 'ALL' && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60 px-4 py-2 rounded-md shadow-lg z-20 pointer-events-none">
             <span className="text-white font-bold text-[14px]">오더 조회 중 입니다...</span>

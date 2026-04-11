@@ -2,7 +2,7 @@ import { calculateDistanceKm } from '../../../utils/geo';
 import { geoCentroid } from 'd3-geo';
 import type { StageContext, CallFilterQuestion, CallItem } from '../../core/types';
 import type { RegionFeature } from '../../../types/geo';
-import { getNextPickupDetail, getNextDropoffDetail } from '../../../components/AppView/Inseong/mockLocationDetails';
+import { getNextPickupDetail, getNextDropoffDetail } from '../../../data/mockLocationDetails';
 import { 
   DEFAULT_MAX_PICKUP_DISTANCE_KM, DEFAULT_MIN_FARE, PROB_CORRECT_ANSWER, PROB_BAD_FARE_TRAP,
   BASE_FARE, FARE_PER_KM, PERFECT_FARE_MIN_EXTRA, PERFECT_FARE_RANDOM_EXTRA,
