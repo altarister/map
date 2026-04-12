@@ -4,8 +4,7 @@ import mockDataRaw from './mockLocationData.json';
 // 100개의 리얼 주소 데이터 연동
 const MOCK_LOCATION_DETAILS = mockDataRaw as LocationDetailInfo[];
 
-// 순차적으로 꺼내 쓰기 위한 인덱스 카운터
-let pickupIdx = 0;
+// 순차적으로 꺼내 쓰기 위한 인덱스 카운터 (하차지 전용)
 let dropoffIdx = 50; // 도착지는 배열 중간부터 시작하여 다양성 확보
 
 /**
@@ -34,22 +33,23 @@ const findMatchingDetail = (regionHint: string | undefined, isDropdown: boolean)
         dropoffIdx++;
         return detail;
       } else {
-        const detail = exactMatches[pickupIdx % exactMatches.length];
-        pickupIdx++;
-        return detail;
+        // 상차지: 한 회사에서 여러 곳으로 물자를 보내는 건 자연스러운 일이므로
+        // 매칭된 풀 안에서 랜덤으로 중복 허용하여 추출
+        return exactMatches[Math.floor(Math.random() * exactMatches.length)];
       }
     }
   }
 
-  // 매칭되는 지역이 아예 없으면 (예: 제주도, 부산 등 풀에 적은 곳) 그냥 순차적으로 꺼냄
+  // 매칭되는 시/군이 없으면 → 경기도 데이터 풀 내에서 랜덤 추출 (서울/부산 등 혼입 방지)
+  const gyeonggiPool = MOCK_LOCATION_DETAILS.filter(m => (m.addressDetail || '').includes('경기'));
+  const fallbackPool = gyeonggiPool.length > 0 ? gyeonggiPool : MOCK_LOCATION_DETAILS;
+
   if (isDropdown) {
-    const detail = MOCK_LOCATION_DETAILS[dropoffIdx % MOCK_LOCATION_DETAILS.length];
+    const detail = fallbackPool[dropoffIdx % fallbackPool.length];
     dropoffIdx++;
     return detail;
   } else {
-    const detail = MOCK_LOCATION_DETAILS[pickupIdx % MOCK_LOCATION_DETAILS.length];
-    pickupIdx++;
-    return detail;
+    return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
   }
 };
 

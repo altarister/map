@@ -26,10 +26,10 @@ export function StandaloneInseongView() {
                 if (setStreamingCalls) setStreamingCalls([]);
 
                 // [Standalone 테스트용 샌드박스 설정]
-                // 지리적 탐색은 광주시(41610) 기준으로 하되, 표기는 '광주 초월'로 고정
-                // 목적지는 무작위 전국 단위('ALL')로 흩뿌림
-                setCurrentLocation({ code: '41610', name: '광주 초월' });
-                setTargetDestination({ code: 'ALL', name: '전국(무작위)' });
+                // 지리적 탐색은 광주시(41610) 기준으로 하되, 표기는 '경기 광주'로 고정
+                // 목적지는 '경기도(41)' 전체로 던져서, 매크로가 파주시 콜을 제대로 솎아내는지 테스트함
+                setCurrentLocation({ code: '41610', name: '경기 광주' });
+                setTargetDestination({ code: '41', name: '경기도(무작위)' });
                 setGameState('PLAYING');
                 startGame({}, true);
             }, 50);
