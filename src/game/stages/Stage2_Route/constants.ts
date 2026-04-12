@@ -36,7 +36,7 @@ export const PROB_MULTI_DROPOFF_EXTRA = 0.3; // 하차가 여러 곳일 때 3곳
 // ======= 콜 발생 스케줄링 간격 설정 =======
 export const MIN_CALL_DELAY_MS = 3000; // 새로운 콜이 발생하는 최소 대기 시간 (5초)
 export const MAX_CALL_DELAY_MS = 8000; // 새로운 콜이 발생하는 최대 대기 시간 (10초)
-export const INITIAL_CALL_COUNT = 4; // 시작 시 즉시 깔아주는 호출 개수
+export const INITIAL_CALL_COUNT = 1; // 시작 시 즉시 깔아주는 호출 개수
 
 // ======= 모의 오더 메타데이터 옵션 풀 =======
 export const WORK_HOUR_START = 8;

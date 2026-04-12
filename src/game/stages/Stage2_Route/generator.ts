@@ -144,6 +144,7 @@ function createCallItem(
     fare = minFare * (FAST_FARE_TRAP_MIN_RATIO + Math.random() * (FAST_FARE_TRAP_MAX_RATIO - FAST_FARE_TRAP_MIN_RATIO));
   }
 
+  // 요금은 1000원 단위로 끊어서 다채로운 요금 생성
   const finalFare = Math.floor(fare / 1000) * 1000;
 
   let violation: 'BAD_FARE' | 'WRONG_DEST' | undefined = undefined;

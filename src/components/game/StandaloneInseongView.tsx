@@ -24,10 +24,12 @@ export function StandaloneInseongView() {
                 // 게임 재시작 시 잔여 콜 초기화 (무한 루프 방지)
                 if (setConfirmedCalls) setConfirmedCalls([]);
                 if (setStreamingCalls) setStreamingCalls([]);
-                
-                // 경기도 광주시(41610)를 기본 거점 및 목표 하차 방향으로 설정
-                setCurrentLocation({ code: '41610', name: '광주시' });
-                setTargetDestination({ code: '41610', name: '광주시' });
+
+                // [Standalone 테스트용 샌드박스 설정]
+                // 지리적 탐색은 광주시(41610) 기준으로 하되, 표기는 '광주 초월'로 고정
+                // 목적지는 무작위 전국 단위('ALL')로 흩뿌림
+                setCurrentLocation({ code: '41610', name: '광주 초월' });
+                setTargetDestination({ code: 'ALL', name: '전국(무작위)' });
                 setGameState('PLAYING');
                 startGame({}, true);
             }, 50);
@@ -73,7 +75,7 @@ export function StandaloneInseongView() {
 
     return (
         <div className="w-full h-dvh bg-[#111] overflow-hidden relative font-sans text-black" id="standalone-root">
-            <InseongApp />
+            <InseongApp simulationConfig={{ intervalMs: 5000, initialCount: 0 }} />
         </div>
     );
 }

@@ -14,10 +14,16 @@ let dropoffIdx = 50; // 도착지는 배열 중간부터 시작하여 다양성 
  */
 const findMatchingDetail = (regionHint: string | undefined, isDropdown: boolean): LocationDetailInfo => {
   if (regionHint) {
-    // 예: "경기도 성남시 분당구" -> "경기 성남시" 형태 추출 (앞 2어절)
-    // 약간의 텍스트 보정 (경기도 -> 경기, 서울특별시 -> 서울 등)
+    // 예: "경기 / 광주시 / 초월읍" 형태에서 "경기 광주시" 추출
     let normalizedHint = regionHint.replace('경기도', '경기').replace('서울특별시', '서울').replace('인천광역시', '인천');
-    const cityMatch = normalizedHint.split(' ').slice(0, 2).join(' '); // "경기 성남시"
+    // 엔진 포맷이 ' / ' 구분자를 쓸 수 있으므로 슬래시가 있으면 슬래시 기준, 없으면 공백 기준으로 처리
+    let cityMatch = '';
+    if (normalizedHint.includes('/')) {
+      const codeParts = normalizedHint.split('/').map(v => v.trim());
+      cityMatch = codeParts.slice(0, 2).join(' '); // "경기 광주시"
+    } else {
+      cityMatch = normalizedHint.split(' ').slice(0, 2).join(' '); // "경기 성남시"
+    }
     
     // 100개의 실제 주소 중, 해당 "시/군/구"가 일치하는 주소 필터링
     const exactMatches = MOCK_LOCATION_DETAILS.filter(m => (m.region || '').includes(cityMatch) || (m.addressDetail || '').includes(cityMatch));

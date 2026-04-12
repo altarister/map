@@ -11,7 +11,14 @@ import { InseongOngoingDetailScreen } from './InseongOngoingDetailScreen';
 import type { CallItem } from '../../../game/core/types';
 import { BATCH_TARGET_COUNT } from '../../../game/stages/Stage2_Route/constants';
 
-export const InseongApp = () => {
+interface InseongAppProps {
+  simulationConfig?: {
+    intervalMs: number;
+    initialCount: number;
+  };
+}
+
+export const InseongApp = ({ simulationConfig }: InseongAppProps = {}) => {
   const { 
     gameState, lastFeedback, setLastFeedback, endGame,
     fullMapData, currentLocation, targetDestination, maxPickupDistanceKm, minFare, currentStage 
@@ -62,7 +69,9 @@ export const InseongApp = () => {
     maxPickupDistanceKm,
     minFare,
     appendCall,
-    setIsFetchingOrder
+    setIsFetchingOrder,
+    intervalMs: simulationConfig?.intervalMs,
+    initialCount: simulationConfig?.initialCount
   });
 
   // ========== [Advanced Routing] 합짐 트리거 ==========

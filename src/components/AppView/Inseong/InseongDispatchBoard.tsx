@@ -18,10 +18,9 @@ interface BoardProps {
   isFetchingOrder?: boolean;
 }
 
-// 요금 포맷 헬퍼 (예: 35000 -> "35")
+// 요금 포맷 헬퍼 (예: 30000 -> "3.0")
 const formatFare = (fare: number) => {
-  const adjusted = Math.round(fare / 1000);
-  return adjusted.toString();
+  return (fare / 10000).toFixed(1);
 };
 
 // 불필요한 리렌더링 방지를 위해 React.memo 적용된 행 컴포넌트
