@@ -178,30 +178,34 @@ def main():
         props = f["properties"]
         emd_lookup[props.get("emd_cd", "")] = props.get("emd_kor_nm", "")
     
-    # Process Dongs: "동"으로 끝나는 법정동만 Terminal Node로 취급
+    # Process Dongs: 읍/면을 제외한 모든 법정동을 Terminal Node로 취급
+    # 서울에는 "~가"(영등포동1가 등), "~로"(세종로) 등 "동"으로 안 끝나는 법정동이 138개 존재
     for f in all_dongs:
         props = f["properties"]
         name = props.get("emd_kor_nm", "")
         code = props.get("emd_cd", "")
         
-        if name.endswith("동"):
-            sig_code = code[:5] if len(code) >= 5 else ""
-            region_prefix = code[:2] if len(code) >= 2 else ""
-            fallback_name = REGION_NAMES.get(region_prefix, "미분류")
-            sig_name = sigg_lookup.get(sig_code, fallback_name)
-            
-            new_props = {
-                "code": code,
-                "name": name,
-                "SIG_KOR_NM": sig_name,
-                "EMD_KOR_NM": name,
-                "_isEmdGroup": True
-            }
-            terminal_features.append({
-                "type": "Feature",
-                "geometry": f["geometry"],
-                "properties": new_props
-            })
+        # 읍/면은 리(Ri)로 세분화되므로 여기서 제외 (별도 처리)
+        if name.endswith("읍") or name.endswith("면"):
+            continue
+        
+        sig_code = code[:5] if len(code) >= 5 else ""
+        region_prefix = code[:2] if len(code) >= 2 else ""
+        fallback_name = REGION_NAMES.get(region_prefix, "미분류")
+        sig_name = sigg_lookup.get(sig_code, fallback_name)
+        
+        new_props = {
+            "code": code,
+            "name": name,
+            "SIG_KOR_NM": sig_name,
+            "EMD_KOR_NM": name,
+            "_isEmdGroup": True
+        }
+        terminal_features.append({
+            "type": "Feature",
+            "geometry": f["geometry"],
+            "properties": new_props
+        })
             
     # Process Ris (경기도 리 단위)
     for f in all_ris:
