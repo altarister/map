@@ -4,15 +4,15 @@ import { log } from '../lib/debug';
 import * as topojson from 'topojson-client';
 import { geoCentroid } from 'd3-geo';
 
-// GeoJSON Data URLs (Optimized Architecture with Fallbacks)
+// GeoJSON Data URLs
 const DATA_URL_LEVEL1 = '/download/skorea-provinces-2018-geo.json'; // 광역 자치단체 (원본 17개)
-const DATA_URL_LEVEL2_RAW = '/download/skorea-municipalities-2018-geo.json'; // 시/군/구 원본 (쪼개진 구 포함, rawCityData용)
-const DATA_URL_LEVEL2_MERGED = '/mapData/korea-municipalities-merged.geojson'; // 시/군/구 통합본 (cityData용 - bake_nationwide_maps.js 로 생성)
-const DATA_URL_LEVEL3 = '/mapData/merged_map.geojson'; // 읍/면/법정동 (Terminal Nodes, Intel merged, 서울·인천 포함)
+const DATA_URL_LEVEL2_RAW = '/download/skorea-municipalities-2018-geo.json'; // TODO: V-World 전환 대상 (게임 모드 rawCityData용, 현재 GitHub 원본 유지)
+const DATA_URL_LEVEL2_MERGED = '/mapData/korea-municipalities-merged.geojson'; // 시/군/구 통합본
+const DATA_URL_LEVEL3 = '/mapData/merged_map.geojson'; // 읍/면/법정동 (V-World 단일 소스: 서울 11 + 인천 28 + 경기 41)
 const DATA_URL_ROADS = '/download/korea-roads-topo.json?v=3'; // TopoJSON Roads
 
-// 현재 서비스(활성화) 중인 광역 코드 (11:서울, 23:인천, 31:경기)
-const ACTIVE_REGION_PREFIXES = ['11', '23', '31', '41'];
+// 현재 서비스(활성화) 중인 광역 코드 (V-World 법정동 기준)
+const ACTIVE_REGION_PREFIXES = ['11', '28', '41']; // 서울, 인천, 경기
 
 /**
  * [정책] 트럭 진입 불가 도서 지역 제외 목록
@@ -20,13 +20,13 @@ const ACTIVE_REGION_PREFIXES = ['11', '23', '31', '41'];
  * 기준: 다리·도로로 육지와 연결되지 않은 도서 행정구역은 제외
  *       다리가 있으면 포함 (예: 강화군 → 강화대교·초지대교, 영종도 → 인천대교)
  *
- * ❌ 제외: 인천 옹진군(23440) — 서해 도서, 배 이외 접근 불가
- * ✅ 포함: 인천 강화군(23430) — 강화대교·초지대교 (트럭 통행 가능)
- * ✅ 포함: 인천 중구(23110)   — 인천대교·영종대교 (공항 방면, 트럭 통행 가능)
+ * ❌ 제외: 인천 옹진군(28720) — 서해 도서, 배 이외 접근 불가
+ * ✅ 포함: 인천 강화군(28710) — 강화대교·초지대교 (트럭 통행 가능)
+ * ✅ 포함: 인천 중구(28110)   — 인천대교·영종대교 (공항 방면, 트럭 통행 가능)
  *
  * 향후 전국 확장 시 도서 지역이 추가되면 여기에 코드만 추가할 것
  */
-const EXCLUDED_ISLAND_CITIES = ['23320']; // 인천 옹진군 (통계청 코드)
+const EXCLUDED_ISLAND_CITIES = ['28720']; // 인천 옹진군 (V-World 법정동 코드)
 
 export const useGeoData = () => {
   const [data, setData] = useState<RegionCollection | null>(null);

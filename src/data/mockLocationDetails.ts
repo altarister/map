@@ -1,7 +1,7 @@
 import type { LocationDetailInfo } from '../types/dispatch';
 import mockDataRaw from './mockLocationData.json';
 
-// 100개의 리얼 주소 데이터 연동
+// 138개의 리얼 주소 데이터 연동 (경기도 중심, 서울/인천/기타 포함)
 const MOCK_LOCATION_DETAILS = mockDataRaw as LocationDetailInfo[];
 
 // 순차적으로 꺼내 쓰기 위한 인덱스 카운터 (하차지 전용)
