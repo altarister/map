@@ -10,6 +10,7 @@ Usage:
     python scripts/generate_bjd_data.py [VWORLD_API_KEY]
     python scripts/generate_bjd_data.py [VWORLD_API_KEY] --regions 11 23 41
 """
+import re
 import urllib.request
 import urllib.parse
 import json
@@ -28,6 +29,10 @@ REGION_NAMES = {
 
 # 기본 대상 지역 (서울 + 인천 + 경기)
 DEFAULT_REGIONS = ['11', '28', '41']
+
+# 번지 단위 법정동 패턴: "영등포동1가", "종로2가", "충정로2가" 등
+# 같은 부모 이름("영등포동", "종로")끼리 Union하여 하나의 폴리곤으로 병합
+GA_PATTERN = re.compile(r'^(.+?)\d+가$')
 
 
 def fetch_layer(vworld_key, layer_name, attr_filter, size=1000):
@@ -178,34 +183,111 @@ def main():
         props = f["properties"]
         emd_lookup[props.get("emd_cd", "")] = props.get("emd_kor_nm", "")
     
-    # Process Dongs: 읍/면을 제외한 모든 법정동을 Terminal Node로 취급
-    # 서울에는 "~가"(영등포동1가 등), "~로"(세종로) 등 "동"으로 안 끝나는 법정동이 138개 존재
+    # Process Dongs: 읍/면 제외, ~가 번지 단위는 부모 단위로 Union 처리
+    # 서울/인천에는 "영등포동1가~8가", "종로1가~6가" 등 번지 단위 법정동이 다수 존재
+    # → 같은 부모 이름 그룹을 하나의 폴리곤으로 병합해 기사가 인식할 수 있는 단위로 통합
+
+    # 1단계: 가 그룹의 부모 이름 목록 사전 구축
+    ga_parents_by_sig = set()  # (sig_code, parent_name)
+    for f in all_dongs:
+        name = f["properties"].get("emd_kor_nm", "")
+        code = f["properties"].get("emd_cd", "")
+        m = GA_PATTERN.match(name)
+        if m:
+            sig_code = code[:5] if len(code) >= 5 else ""
+            ga_parents_by_sig.add((sig_code, m.group(1)))
+
+    # 2단계: 각 법정동을 standalone / ga_group으로 분류
+    ga_groups = {}  # (sig_code, parent_name) → {geometries, rep_code, sig_code, code_prefix}
+    standalone_dongs = []
+
     for f in all_dongs:
         props = f["properties"]
         name = props.get("emd_kor_nm", "")
         code = props.get("emd_cd", "")
-        
-        # 읍/면은 리(Ri)로 세분화되므로 여기서 제외 (별도 처리)
+
         if name.endswith("읍") or name.endswith("면"):
             continue
-        
+
+        sig_code = code[:5] if len(code) >= 5 else ""
+        m = GA_PATTERN.match(name)
+
+        if m:
+            # "영등포동1가" → 가 그룹
+            parent = m.group(1)
+            key = (sig_code, parent)
+        elif (sig_code, name) in ga_parents_by_sig:
+            # "영등포동" 자체도 같은 그룹에 포함하여 함께 Union
+            parent = name
+            key = (sig_code, parent)
+        else:
+            standalone_dongs.append(f)
+            continue
+
+        if key not in ga_groups:
+            ga_groups[key] = {"geometries": [], "sig_code": sig_code, "code_prefix": code[:2], "rep_code": code}
+
+        # 가 없는 순수 동 코드를 대표 코드로 우선 사용 (예: 영등포동 자체의 코드)
+        if not m:
+            ga_groups[key]["rep_code"] = code
+
+        try:
+            geom = shape(f["geometry"])
+            if not geom.is_valid:
+                geom = geom.buffer(0)
+            ga_groups[key]["geometries"].append(geom)
+        except Exception:
+            print(f"Warning: invalid geometry for {name} ({code})")
+
+    # 3단계: standalone 법정동 추가
+    for f in standalone_dongs:
+        props = f["properties"]
+        name = props.get("emd_kor_nm", "")
+        code = props.get("emd_cd", "")
         sig_code = code[:5] if len(code) >= 5 else ""
         region_prefix = code[:2] if len(code) >= 2 else ""
-        fallback_name = REGION_NAMES.get(region_prefix, "미분류")
-        sig_name = sigg_lookup.get(sig_code, fallback_name)
-        
-        new_props = {
-            "code": code,
-            "name": name,
-            "SIG_KOR_NM": sig_name,
-            "EMD_KOR_NM": name,
-            "_isEmdGroup": True
-        }
+        sig_name = sigg_lookup.get(sig_code, REGION_NAMES.get(region_prefix, "미분류"))
+
         terminal_features.append({
             "type": "Feature",
             "geometry": f["geometry"],
-            "properties": new_props
+            "properties": {
+                "code": code,
+                "name": name,
+                "SIG_KOR_NM": sig_name,
+                "EMD_KOR_NM": name,
+                "_isEmdGroup": True
+            }
         })
+
+    # 4단계: ~가 그룹 Union → 단일 폴리곤으로 병합
+    print(f"\n--- Merging {len(ga_groups)} ~가 groups into single polygons ---")
+    merged_ga_count = 0
+    for (sig_code, parent_name), group_info in ga_groups.items():
+        geoms = group_info["geometries"]
+        if not geoms:
+            continue
+        try:
+            merged_geom = unary_union(geoms)
+            region_prefix = group_info["code_prefix"]
+            sig_name = sigg_lookup.get(sig_code, REGION_NAMES.get(region_prefix, "미분류"))
+
+            terminal_features.append({
+                "type": "Feature",
+                "geometry": mapping(merged_geom),
+                "properties": {
+                    "code": group_info["rep_code"],
+                    "name": parent_name,
+                    "SIG_KOR_NM": sig_name,
+                    "EMD_KOR_NM": parent_name,
+                    "_isEmdGroup": True
+                }
+            })
+            merged_ga_count += 1
+        except Exception as e:
+            print(f"Failed to union 가 group {parent_name}: {e}")
+
+    print(f"   → {len(ga_groups)}개 그룹 → {merged_ga_count}개 병합 feature 생성")
             
     # Process Ris (경기도 리 단위)
     for f in all_ris:
