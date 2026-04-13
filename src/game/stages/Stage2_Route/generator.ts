@@ -203,19 +203,14 @@ function createCallItem(
 
   const getFullName = (f: RegionFeature, customName?: string): string => {
     const props = f.properties as any;
-    const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('41') ? '경기' : props.code.startsWith('28') ? '인천' : (props.grandParentName || '경기');
+    const doName = props.code.startsWith('11') ? '서울' : props.code.startsWith('28') ? '인천' : '경기';
     
-    // 만약 customName(예: 포곡읍+왕산리)이 전달되었다면 EMD_KOR_NM 등 대신 customName 사용
+    // 만약 customName(예: 포곡읍+왕산리)이 전달되었다면 EMD_KOR_NM 대신 customName 사용
     if (customName) {
-      if (props.SIG_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${customName}`;
-      return `${doName} / ${props.parentName || ''} / ${customName}`;
+      return `${doName} / ${props.SIG_KOR_NM} / ${customName}`;
     }
 
-    if (props.SIG_KOR_NM) {
-      if (props.EMD_KOR_NM) return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
-      return `${doName} / ${props.SIG_KOR_NM} / ${props.name}`;
-    }
-    return `${doName} / ${props.parentName || ''} / ${props.name}`;
+    return `${doName} / ${props.SIG_KOR_NM} / ${props.EMD_KOR_NM}`;
   };
 
   // LocationPoint 헬퍼
