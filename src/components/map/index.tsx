@@ -179,8 +179,9 @@ export const Map = ({ padding = { top: 0, right: 0, bottom: 0, left: 0 } }: MapP
       if (selectionLevel === 'CITY') {
         const groupCode = code;
 
-        // 거대 도시 예외 처리 판단 (3단계 일반구 포함 여부)
-        const hasSubDistricts = rawCityData?.features.some((f: any) =>
+        // 거대 도시 예외 처리 판단 (경기도 한정: 비자치구 존재 여부 확인)
+        // 서울/인천의 자치구는 0으로 끝나도 비자치구가 아님
+        const hasSubDistricts = groupCode.startsWith('41') && rawCityData?.features.some((f: any) =>
           f.properties.code.startsWith(groupCode.substring(0, 4)) &&
           f.properties.code.length === 5 &&
           !f.properties.code.endsWith('0')

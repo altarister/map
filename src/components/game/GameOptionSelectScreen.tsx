@@ -44,11 +44,10 @@ export const GameOptionSelectScreen = () => {
             // 3단계: 일반구
             if (!rawCityData) return [];
             const prefix = currentFocusCode ? currentFocusCode.substring(0, 4) : '';
-            const filtered = rawCityData.features.filter((f: any) => 
-                f.properties.code.startsWith(prefix) && 
-                f.properties.code.length === 5 && 
-                !f.properties.code.endsWith('0')
-            );
+            const filtered = rawCityData.features.filter((f: any) => {
+                const code = f.properties.code;
+                return code.startsWith(prefix) && code.length === 5 && (!code.endsWith('0') || !code.startsWith('41'));
+            });
             return filtered.map((f: any) => ({ name: f.properties.name, code: f.properties.code })).sort((a, b) => a.name.localeCompare(b.name));
         }
 
@@ -65,7 +64,7 @@ export const GameOptionSelectScreen = () => {
         }
 
         if (selectionLevel === 'CITY') {
-            const hasSubDistricts = rawCityData?.features.some((f: any) => 
+            const hasSubDistricts = item.code.startsWith('41') && rawCityData?.features.some((f: any) => 
                 f.properties.code.startsWith(item.code.substring(0, 4)) && 
                 f.properties.code.length === 5 && 
                 !f.properties.code.endsWith('0')

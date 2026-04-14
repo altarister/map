@@ -39,7 +39,11 @@ export const useMapFeatures = ({
             if (selectionLevel === 'DISTRICT') {
                 if (!currentFocusCode) return rawCityData?.features || [];
                 const prefix = currentFocusCode.substring(0, 4);
-                return rawCityData?.features.filter((f: any) => f.properties.code.startsWith(prefix) && f.properties.code.length === 5 && !f.properties.code.endsWith('0')) || [];
+                // 비자치구 필터는 경기도(41) 한정. 서울/인천 자치구(11110, 28110 등)는 0으로 끝나도 정상 표시
+                return rawCityData?.features.filter((f: any) => {
+                    const code = f.properties.code;
+                    return code.startsWith(prefix) && code.length === 5 && (!code.endsWith('0') || !code.startsWith('41'));
+                }) || [];
             }
         }
         return showTownGeometry ? baseFeatures : filteredCityFeatures;

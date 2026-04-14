@@ -23,6 +23,46 @@ const formatFare = (fare: number) => {
   return (fare / 10000).toFixed(1);
 };
 
+// 시간/조건 접두어 생성 헬퍼
+const formatTimePrefix = (call: CallItem) => {
+  if (call.callCategory === '예약' && call.pickupTime) {
+    const [hStr, mStr] = call.pickupTime.split(':');
+    if (!hStr || !mStr) return null;
+    
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    
+    let timeStr = '';
+    let isTomorrow = false;
+
+    if (h <= 9) {
+      timeStr = `낼${h}시`;
+      isTomorrow = true;
+    } else if (h >= 18) {
+      timeStr = `저녁${h > 12 ? h - 12 : h}시`;
+    } else if (h > 12) {
+      timeStr = `오후${h - 12}시`;
+    } else if (h === 12) {
+      timeStr = `낮12시`;
+    } else {
+      timeStr = `오전${h}시`;
+    }
+
+    if (m > 0 && m !== 30) timeStr += `${m}`;
+    else if (m === 30) timeStr += '반';
+
+    // 내일 예약이거나 오전 일찍이면 강조색(빨강), 그 외는 파랑
+    const colorClass = isTomorrow ? 'text-[#ff3300]' : 'text-[#0052a3]';
+    return <span className={`${colorClass} font-bold mr-0.5 whitespace-nowrap tracking-tighter`}>{timeStr}/</span>;
+  }
+
+  if (call.isExpress) {
+    return <span className="text-[#ff3300] font-bold mr-0.5 whitespace-nowrap tracking-tighter">급송/</span>;
+  }
+  
+  return null;
+};
+
 // 불필요한 리렌더링 방지를 위해 React.memo 적용된 행 컴포넌트
 const CallRow = React.memo(({
   call,
@@ -59,7 +99,7 @@ const CallRow = React.memo(({
   }
 
   // 헬퍼: 급송이면 텍스트 컬러 강제 덮어쓰기
-  const cxText = (defaultColor: string) => isExpressTheme ? 'text-red-600' : defaultColor;
+  const cxText = (defaultColor: string) => isExpressTheme ? 'text-[#ff3300]' : defaultColor;
 
   if (activeTab === 'CONFIRMED') {
     return (
@@ -103,9 +143,10 @@ const CallRow = React.memo(({
 
       {/* 출발지 */}
       <div className="w-[30%] px-1 py-1 flex flex-col justify-center border-r border-gray-200 truncate leading-tight">
-        <div className="flex items-start">
+        <div className="flex items-start whitespace-nowrap overflow-hidden text-clip">
           {call.isShared && <div className={`inline text-[14px] font-bold ${cxText('text-black')}`}>@</div>}
-          <div className={`inline font-bold text-[14px] whitespace-normal line-clamp-2 leading-tight ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
+          <div className={`inline font-bold text-[14px] ${call.isShared ? '' : 'ml-0.5'} ${cxText('text-gray-900')}`}>
+            {formatTimePrefix(call)}
             {call.pickupDetails?.[0]?.region || formatRegionName(call.pickups[0].name)}{call.violation === undefined ? '' : '-'}
           </div>
         </div>
