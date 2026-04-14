@@ -37,60 +37,39 @@
 
 ## 2. 아키텍처 (Architecture)
 
-### 2.1 디렉토리 구조
+### 2.1 주요 디렉토리 및 파일 구조도 (File Structure)
 
-프로젝트는 기능별로 명확하게 분리된 구조를 따릅니다.
+프로젝트는 기능별로 명확하게 분리된 구조를 따르며, 핵심적인 디렉토리 단위별 역할은 다음과 같습니다.
 
-```
-src/
-├── game/               # 🧠 게임 코어 엔진 및 비즈니스 로직
-│   ├── constants/      # 게임 난이도별 점수, 기본 지도 좌표 등 도메인 상수 모음
-│   ├── core/           # 핵심 타입 및 인터페이스 (전략 패턴 베이스)
-│   ├── stages/         # 각 레벨별 실제 구동되는 게임 로직 (Stage1, Stage2...)
-│   └── systems/        # 부가 시스템 (인텔 데이터 파서 등)
-├── components/
-│   ├── map/            # 순수 지도 렌더링 뷰 (Canvas/SVG 레이어 등)
-│   ├── game/           # 게임 플로우 전체 (HUD, 게임 화면, 게임 모달)
-│   │   ├── ActionBar.tsx             # 미션 지령 HUD 패널
-│   │   ├── GameModeSelectScreen.tsx  # 게임 모드 선택 화면
-│   │   ├── GameOptionSelectScreen.tsx# 게임 세부 설정 화면
-│   │   ├── RegionModeSelectPopup.tsx # 지역 선택 팝업
-│   │   └── ResultModal.tsx           # 게임 결과 모달
-│   ├── settings/       # 앱 설정 관련 컴포넌트
-│   │   ├── SettingsModal.tsx         # 테마/난이도 설정 모달
-│   │   └── LayerPanel.tsx            # 지도 레이어 토글 패널 (BottomBar에서 분리)
-│   ├── layout/         # 앱 영구 크롬 (Navigation Shell)
-│   │   ├── TopBar.tsx                # 상단 고정 바 (브랜드, 점수, 액션)
-│   │   ├── BottomBar.tsx             # 하단 고정 바 (줌/스케일/레이어 토글)
-│   │   └── LoadingScreen.tsx         # 초기 로딩 화면
-│   └── ui/             # Button, Modal, AdSlot 등 재사용 기본 컴포넌트
-├── contexts/           # 전역 상태 관리
-│   ├── GameContext.tsx             # 게임 진행 상태, 점수
-│   ├── GeoDataContext.tsx          # 지도 GeoJSON 원본 메모리 적재
-│   ├── MapContext.tsx              # 지도 렌더링 상태 (줌/팬 transform, 레이어 on/off)
-│   ├── SettingsContext.tsx         # 유저 설정 및 환경 설정
-│   └── DispatchContext.tsx         # 배차 스트리밍 특화 전역 상태 관리
-├── hooks/              # 비즈니스 로직 및 D3 제어 (상세 역할은 2.2절 참조)
-│   ├── useGameLogic.ts             # 게임 점수/출제/상태 관리
-│   ├── useDispatchStreaming.ts     # 50초 윈도우 배차 사이클 생성 타이머 로직
-│   ├── useGeoData.ts               # GeoJSON 데이터 로드
-│   ├── useLocalStorage.ts          # 유저 설정/최고 점수 저장
-│   ├── useMapAutoZoom.ts           # 부드러운 자동 스크롤 애니메이션
-│   ├── useMapCrossfadeTransition.ts# 줌 레벨 스위칭 시 깜빡임 방지
-│   ├── useMapDimensions.ts         # 브라우저 리사이즈 반응
-│   ├── useMapFeatures.ts           # 화면 내 보이는 폴리곤 영역 최적화 필터링
-│   ├── useMapGeometry.ts           # 지구 좌표 ↔ 픽셀 좌표 수학적 투영/변환
-│   ├── useMapScale.ts              # 줌 비율에 따른 선 굵기 보정
-│   ├── useMapStyles.ts             # 상태에 따른 지역 색상 칠하기
-│   └── useMapZoom.ts               # D3 줌/팬 동작 및 Canvas transform 제어
-├── services/           # 비즈니스 로직 서비스
-│   └── MasteryStorage.ts # 숙련도 기록 저장
-├── styles/             # 공통 스타일
-├── lib/                # 유틸리티 함수
-└── types/              # 공통 타입 정의
-    ├── game.ts
-    └── geo.ts
-```
+| 디렉토리 / 파일 | 역할 및 담당 업무 | 비고 |
+| :--- | :--- | :--- |
+| **`public/mapData/`** | **최적화된 런타임 지도 데이터** | |
+| ├── `vworld_provinces.geojson` | Level 1: 광역 자치단체 (서울, 인천, 경기) 병합본 | 메뉴용 |
+| ├── `vworld_sig.geojson` | Level 2 (Raw): 대도시 일반구까지 쪼개진 단위 | 코어 연산용 |
+| ├── `vworld_sig_merged.geojson` | Level 2 (Merged): 대도시 일반구를 단일 시로 묶은 단위 | 유저 표시용 |
+| └── `merged_map.geojson` | Level 3: 읍/면/동 퀴즈 타겟 (인텔 데이터 주입본) | 원천 빌드용 |
+| **`scripts/`** | **빌드 타임 스크립트 및 도구** | |
+| └── `build_vworld_levels.cjs` | 지도 데이터 빌드 타임 위상 최적화(SSOT) 스크립트 | Mapshaper 파이프라인 |
+| **`src/game/`** | **게임 코어 엔진 및 비즈니스 로직** | |
+| ├── `constants/` | 게임 난이도별 점수, 기본 지도 좌표 등 도메인 상수 | |
+| ├── `core/` | 핵심 타입 및 구현체 인터페이스 (전략 패턴 베이스) | |
+| ├── `stages/` | 각 레벨별 실제 구동되는 게임 로직 (Stage 1, 2, 3...) | |
+| └── `systems/` | 부가 시스템 (인텔 데이터 파서 등) | |
+| **`src/components/`** | **UI 컴포넌트** | |
+| ├── `map/` | D3 순수 렌더링 지도 뷰 (Canvas/SVG 레이어 등) | |
+| ├── `game/` | 게임 플로우 (HUD, 문제 지시창, 게임 모달) | |
+| ├── `settings/` | 앱 설정 및 디자인 옵션, 레이어 패널 관리 컴포넌트 | |
+| ├── `layout/` | 앱 영구 크롬 (TopBar, BottomBar, Navigation) | |
+| └── `ui/` | Button, Modal 등 공통 저수준 재사용 컴포넌트 | |
+| **`src/contexts/`** | **전역 상태 관리 (React Context API)** | |
+| ├── `GameContext.tsx` | 전반적 게임 스테이지, 단계, 점수 및 선택 지역 제어 | 저빈도 |
+| ├── `GeoDataContext.tsx` | 지도 GeoJSON 및 인텔 정보를 메모리에 적재 | 1회성 |
+| ├── `MapContext.tsx` | 지도 렌더러 상태 (줌/팬 좌표, 레이어 On/Off) | 기하 정보 |
+| ├── `SettingsContext.tsx` | 로컬스토리지 동기화 및 전역 유저 설정 | 저빈도 |
+| └── `DispatchContext.tsx` | 실전 모드의 배차 오더 스트리밍 타이머 루프 전용 | 고빈도 |
+| **`src/hooks/`** | **React Custom Hooks 로직 분리 (2.2절 상세)** | View/Logic 분리 |
+| **`src/services/`** | **외부 인터페이스 서비스 로직** | Mastery 기록 등 |
+| **`src/lib/ & types/`** | 타입스크립트 인터페이스 (geo.ts, game.ts) 및 유틸 함수 | 공통 스펙 |
 
 ### 2.2 Custom Hooks 아키텍처 (`src/hooks/`)
 
@@ -415,49 +394,66 @@ const featuresToRender = showTownGeometry ? features : filteredCityFeatures;
 
 ## 7. 데이터 처리
 
-### 7.1 GeoJSON 로딩 (`useGeoData`)
+### 7.1 GeoJSON 데이터 로딩 및 인메모리 관리 (`useGeoData`)
 
 ```tsx
-const { data: mapData, cityData, loading, error } = useGeoData();
+const { 
+  loading,
+  level1Data, // vworld_provinces.geojson (Level 1)
+  cityData, // vworld_sig_merged.geojson (Level 2 Merged)
+  rawCityData, // vworld_sig.geojson (Level 2 Raw)
+  baseFeatures // merged_map.geojson (Level 3)
+} = useGeoData();
 ```
 
-- **시/군/자치구**: `/data/skorea_municipalities_geo_simple.json` (전국 250개 → 경기도 42개 필터링)
-- **읍/면/법정동**: `/data/skorea_submunicipalities_geo_simple.json` (전국 3504개 → 경기도 563개 필터링)
+- VWORLD API에서 추출한 단일 소스 원본(`merged_map.geojson`)을 빌드 타임 스크립트(`build_vworld_levels.cjs`)가 가공하여 사전에 생성해둔 4개의 최적화된 데이터셋을 런타임에 비동기로 불러와 `GeoDataContext`에 적재합니다.
 
-### 7.2 필터링 로직
+### 7.2 동적 상위/하위 피처 필터링 로직 (`useMapFeatures.ts`)
+
+렌더링 부하를 최소화하기 위해 앱의 현재 상태(`selectionLevel`)와 부모 지역 코드(`prefix`)를 사용하여 보여야 할 타겟 자식 지역만 필터링합니다.
 
 ```tsx
-const gyeonggiCodes = ['41', ...]; // 경기도 시/군 코드
-const filteredCity = level2.features.filter(f =>
-  gyeonggiCodes.includes(f.properties.code)
-);
-```
-
-### 7.3 데이터 스키마 및 그룹핑 (Data Schema & Grouping)
-
-**원본 데이터 (Raw Data)**
-
-`public/data/gyeonggi_bupjeongdong.geojson` 파일의 최소 조각(Terminal Node)은 10자리의 코드를 가진 법정동 또는 법정리입니다.
-
-```typescript
-interface RawRegionProperties {
-  code: string; // 10자리 법정구역 코드 (예: "4161025025" 산이리)
-  name: string; // 지역 이름 (예: "태전동", "산이리")
-  SIG_KOR_NM?: string; // 소속 시군구 (예: "경기도")
-  EMD_KOR_NM?: string; // 소속 읍면동 (예: "초월읍") - 단, VWORLD 리 데이터에는 이 필드가 완벽하지 않음
+// 예: 현재 진입한 지역이 '경기도(41)'일 때 소속 시/군만 필터링
+if (selectionLevel === 'CITY') {
+    const prefix = currentFocusCode.substring(0, 2);
+    // 41로 시작하는 도/시/군 폴리곤만 반환
+    return cityData?.features.filter((f: any) => f.properties.code.startsWith(prefix)) || [];
 }
 ```
 
-**동적 가상 객체 생성 (Dynamic Grouping)**
+### 7.3 데이터 스키마 및 구현 명세 (Data Schema)
 
-"기본 훈련" 모드 등에서는 리(Ri) 단위가 아닌 읍/면/동 덩어리로 출제해야 합니다. 이를 위해 `useGeoData` 로드 시점에 앞 **8자리 코드(읍/면/동 수준)**를 기준으로 여러 리 폴리곤을 묶어 하나의 논리적 덩어리(Virtual Polygon)로 취급하는 그룹핑 로직을 수행합니다.
+앱에서 활용하는 지리 데이터는 철저하게 `public/mapData`와 `public/download` 두 가지 폴더로 격리되어 관리됩니다. 이외의 위치(예: `scripts/data/`)에 존재하는 파일들은 게임 빌드 타임에만 사용될 뿐 런타임 클라이언트에 직접 호출되지 않습니다.
 
-- **코드 구조:**
-  - `41` (시도 - 경기도)
-  - `610` (시군구 - 광주시)
-  - `250` (읍면동 - 초월읍)
-  - `25` (리 - 산이리)
-- **그룹핑 기준:** `feature.properties.code.substring(0, 8)` 이 같은 것들은 하나의 `EupMyeon` 그룹으로 관리합니다.
+#### [1] `public/mapData/` (행정구역 Polygon 데이터)
+
+이 폴더의 데이터들은 모두 `geojson` 포맷을 따르며, D3.js가 시/도, 시/군/구, 읍/면/동의 경계를 그리는 핵심 Bounding Box 역할을 합니다. 모든 렌더링의 기초가 되며 `useGeoData` 훅을 통해 앱 구동 시 In-Memory에 적재됩니다.
+
+**공통 피처 스키마 (Feature Properties):**
+```typescript
+interface RegionProperties {
+  code: string; // 행정구역 코드 (예: "41111105" 장안구 파장동, "41" 경기도)
+  name: string; // 단일 지역 이름 (예: "파장동", "경기도")
+  SIG_KOR_NM?: string; // 소속 부모 시군구명 (예: "수원시 장안구"). Level 3(읍면동)에만 존재
+  intel?: TacticalIntel; // 추가 부여된 실전 플레이 인텔 정보 (Level 3 전용)
+  centroid?: [number, number]; // 빌드 스크립트에서 자동 계산/삽입된 중심 좌표 [lon, lat]
+}
+```
+
+| 파일명 | 기능 및 구현 방식 |
+| :--- | :--- |
+| `merged_map.geojson` | **구현**: VWORLD 오픈 API 읍/면/동 Shapefile 기반의 단일 원천 데이터(SSOT). `scripts/merge_intel_to_geo.js` 스크립트를 통해 `intel` 속성이 주입되어 있습니다. 게임의 퀴즈 정답 검증, 클릭 인터랙션 및 최종 렌더링에 사용되는 가장 말단 단위(Level 3) 데이터입니다. |
+| `vworld_sig.geojson` | **구현**: 빌드 파이프라인(`build_vworld_levels.cjs`)이 `merged_map`의 읍/면/동 폴리곤을 부모 시군구(5~6자리 코드) 기준으로 `turf.union` 병합하여 생성합니다. 대도시(예: 용인시 처인구, 기흥구)가 분리되어 있는 순정 BBox 모음이며, 주로 지도 BBox 계산 등 코어 연산에 사용됩니다. |
+| `vworld_sig_merged.geojson` | **구현**: 위 스크립트 실행 시, 대도시 일반구 코드를 예외 처리하여 하나의 "시" 단위(예: 용인시 전체) 폴리곤으로 완전 병합한 데이터입니다. 초기 화면에서 유저 상식에 맞는 UI 화면(시 단위 선택)을 제공하기 위해 사용됩니다. |
+| `vworld_provinces.geojson` | **구현**: 빌드 파이프라인에서 코드 앞 2자리를 기준으로 병합하여 17개 시/도(Level 1) 폴리곤으로 파생시킵니다. 앱 최초 진입 시 도/광역시 단위의 거시적 메뉴를 렌더링합니다. |
+
+#### [2] `public/download/` (부가 지리 정보 데이터)
+
+행정구역 바운더리가 아닌 도로, 하천 등 추가적인 "지도 꾸미기 및 기능성 데이터"가 저장되는 폴더입니다. 데이터 용량의 한계상 압축 효율이 좋은 `topojson` 포맷을 활용합니다.
+
+| 파일명 | 기능 및 구현 방식 | 스키마 구조 |
+| :--- | :--- | :--- |
+| `korea-roads-topo.json` | **구현**: OpenStreetMap(Overpass API)에서 고속/간선/일반 도로망을 추출해 `scripts/fetch_roads.js`로 생성합니다. 이 데이터는 렌더링 부하가 엄청나기 때문에 SVG 레이어 대신 Canvas 5겹 레이어(`RoadLayer.tsx`)를 사용한 **메인 스레드 최적화 Imperative 렌더링**으로 그려집니다. | TopoJSON 형식 (`arcs`, `objects.roads`: 위계별 LineString). 렌더루프 내 O(1) 성능 달성을 위해 실시간 GeoJSON Parsing을 생략하고 d3 TopoJSON Feature 변환 후 직접 Paint합니다. |
 
 ### 7.4 데이터 영속성 (Data Persistence)
 
@@ -674,6 +670,26 @@ canvasLayerRefs?: RefObject<CanvasLayerHandle>[];
 - SVG 라벨: `font-size=14/k`가 최신 k로 계산되어 스냅 없이 고정 크기 유지
 
 ---
+
+### 8.6 AD-006: Mapshaper 탑재 및 데이터 빌드 파이프라인 (SSOT) 정규화
+
+**날짜**: 2026-04-14  
+**대상**: `scripts/build_vworld_levels.cjs` 및 지도 데이터 생성 로직
+
+#### 문제 (Context)
+
+기존에는 2018년도 통계청 `skorea-` json 파일들을 로드해 런타임에서 `turf.union`을 돌려 병합하거나, 단순 Python 스크립트로 분할 저장했습니다. 이는 브라우저 과부하(초기 로딩 시 버벅임)를 일으켰고, 무엇보다 복잡한 해안선(Sliver)이나 인접면과 좌표가 미세하게 어긋나며 검은 점·선율(Jagged Lines, Artifact Holes)이 그물처럼 나타나는 위상 구조 결함이 심각했습니다.
+
+#### 해결 방안 (Solution)
+
+1. **데이터 단일 진실 공급원(SSOT) 아키텍처 정립:** 원본(VWorld API) 읍면동 레벨만 관리하고, 광역(Level 1)/일반구(Level 2 Raw)/시군(Level 2 Merged) 데이터는 전부 빌드 시점에 스크립트가 파생시켜 100% 동기화를 보장합니다.
+2. **`Mapshaper` 도입 (-clean, -simplify):** 빌드 파이프라인 마지막에 외부 라이브러리인 CLI 도구 `mapshaper`를 태워 토폴로지 문제를 해결(-clean allow-overlaps)하고, 정밀도를 시각적으로 해치지 않는 20~30% 선형 단순화(-simplify)를 적용하여 전체 리소스 페이로드를 약 25MB(80% 이상) 경량화시켰습니다.
+
+#### 트러블슈팅: D3.js Spherical Inversion (무한 공간 클릭 버그) 수정
+
+* **증상**: Mapshaper 경량화 이후 지도의 빈 공간을 찍어도 전체 지역이 선택되어 동작 불능.
+* **원인 추적**: Mapshaper의 결과물 일부가 D3-geo 라이브러리가 취급하는 [구면(Spherical) 폴리곤]의 Winding Order 기준과 엇갈림. D3는 점들의 구성이 시계 방향(CW) 류로 들어올 시, 폴리곤 내부가 아닌 **'해당 폴리곤을 제외한 전 지구의 면적'**을 해당 요소의 내부 면적으로 인식해 화면 BBox 전체를 해당 구역으로 덮어버림(Inversion).
+* **조치**: 파이프라인 최하단에 `turf.rewind(f.geometry, { reverse: true })` 처리를 배치하여 GeoJSON 표준 규격인 Right-Hand Rule (Counter-Clockwise)를 강제 주입함으로서 완치됨.
 
 ## 9. 향후 확장 계획 (Roadmap)
 

@@ -800,7 +800,7 @@ const checkAnswer = (input: UserInput) => {
 - **React.memo**: DebugInfoPanel, GameInfoPanel에 적용
 - **useMemo**: pathGenerator, projection 계산
 - **useCallback**: 이벤트 핸들러 메모이제이션
-- **GeoJSON 필터링**: 경기도 지역만 로드 (563개)
+- **GeoJSON 필터링**: 현재 서울/인천/경기 지역 로드 (약 1,239개)
 
 ---
 

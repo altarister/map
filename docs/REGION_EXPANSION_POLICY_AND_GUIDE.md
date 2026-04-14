@@ -12,17 +12,15 @@
 
 > 실제 `public/data/` 폴더의 GeoJSON 파일을 분석하여, 정책 설계가 구현 가능한지 검증.
 
-### 0.1 보유 데이터 파일 (2025.3 기준)
+### 0.1 보유 데이터 파이프라인 파일 (V-World SSOT 기준)
 
 | 파일 (위치) | 피처 수 | 기준 | 커버 범위 | 용도 |
 |-----------|---------|------|-----------|------|
-| `mapData/merged_map.geojson` | **741개+** | 8자리 | 전국 단위 (현재 경기) | 인텔 데이터가 병합된 퀴즈용 읍면동 리스트 |
-| `mapData/korea-municipalities-merged.geojson` | **229개** | 5자리 | 전국 시/군/구 | 시/군 폴리곤 (초기 병합본) |
-| `mapData/seoul_incheon_dong.geojson` | 580개 | 7자리 | 서울/인천 읍면동 | 서울/인천 지역 코스 (추후 merged_map 편입 시 삭제 예정) |
-| `download/skorea-municipalities-2018-geo.json` | 250개 | 5자리 | 전국 시/군/구 | 전국 스케일업 시 활용 (원본) |
-| `download/skorea-provinces-2018-geo.json` | 17개 | 2자리 | 전국 광역 지자체 | 광역 코스 (선택 화면) 원본 |
-| `download/skorea-submunicipalities-2018-geo.json` | 3,504개 | 7자리 | 전국 읍/면/동 | 전국 스케일업 및 원본 보관용 |
-| `download/korea-roads-topo.json` | - | - | 전국 도로 | TopoJSON 압축 도로 레이어 |
+| `mapData/merged_map.geojson` | **1,239개** | 8자리 | 전국 단위 (현재 서울/인천/경기 병합) | 인텔 데이터가 병합된 퀴즈용 읍면동 Level 3 원본 데이터 |
+| `mapData/vworld_sig_merged.geojson` | **66개** | 5자리 | 서울/인천/경기 시군구 | 읍면동을 묶어 시/군 단위 폴리곤으로 자동 병합 (초기 병합본) Level 2 |
+| `mapData/vworld_sig.geojson` | **82개** | 5~6자리 | 서울/인천/경기 소단위 | 대도시 내 세부 구(일반구)까지 분리된 순정 Level 2 |
+| `mapData/vworld_provinces.geojson` | **3개** | 2자리 | 광역 지자체 | 광역 코스 (선택 화면) Level 1 |
+| `scripts/build_vworld_levels.cjs` | - | - | 빌드 파이프라인 | Level 3를 입력받아 Level 2, 1을 Turf로 파생하고 Mapshaper로 최적화하는 SSOT 단일 스크립트 |
 
 ### 0.2 핵심 데이터 구조 확인 (광역 자치단체/시·군·자치구/읍·면·법정동 계층 시스템)
 
@@ -32,7 +30,7 @@
 2. **시/군/자치구**: 앞 5자리 (`11010` 종로구, `41110` 수원시 등)
 3. **읍/면/법정동**: 7자리~8자리 (`1101053` 사직동 등)
 
-`gyeonggi_bupjeongdong.geojson`의 properties 필드:
+`merged_map.geojson` (VWorld 원본)의 properties 필드:
 
 ```json
 {
@@ -115,15 +113,11 @@ const quizPool = features.filter(f => f.properties._isEmdGroup === true);
 
 </details>
 
-### 0.7 전국 데이터 (`skorea-municipalities` / `skorea-submunicipalities`)
+### 0.7 전국 데이터 단위 변환 (VWORLD)
 
-- **시군구 레벨 (250개)**: 코드 5자리, 전국 커버
-  - 서울 25 자치구: 코드 `11010`~`11250`
-  - 경기도: 코드 `41` 시작 (단, 별도 확인 필요)
-- **읍면동 레벨 (3,504개)**: 코드 7자리, 전국 커버
-  - 단, 경기도 전용 파일(`gyeonggi_bupjeongdong`)과 구조가 다름 (리 병합 여부 등)
-  - 전국 확대 시 이 데이터를 기반으로 동일한 그룹핑 로직 적용 필요
-
+- **시군구 레벨**: 코드 5자리 (예: 11010 종로구)
+- **읍면동 레벨**: 코드 8자리
+  - 전국 확대 시 VWORLD에서 다운로드한 도/시/군 단위 GeoJSON을 파이프라인 원본(`merged_map.geojson`)에 합치기만 하면, 하위 Level 2, Level 1 데이터는 스크립트가 알아서 파생시킵니다.
 ---
 
 ## 1. 문제 정의 (Problem Statement)
@@ -140,12 +134,12 @@ const quizPool = features.filter(f => f.properties._isEmdGroup === true);
 
 * **[광역 자치단체] (코드 2자리)**
   * 예: 서울(`11`), 인천(`23`), 경기(`31`)
-  * **UI 취급**: 첫 진입 시 화면에 깔리는 가장 큰 땅입니다. (`seoul_incheon_level1.geojson`, `gyeonggi_level1_merged.geojson` 사용)
+  * **UI 취급**: 첫 진입 시 화면에 깔리는 가장 큰 땅입니다. (`vworld_provinces.geojson` 사용)
 
 * **[시/군/자치구] (코드 5자리)**
   * 예: 강남구(`11230`), 부평구(`23060`), 용인시 기흥구(`31192`)
   * **핵심 예외 처리 (수원/용인/고양 등 대도시 "일반구" 문제)**
-    * 데이터상 `skorea-municipalities-2018-geo.json` 파일에는 "용인시 전체"(`41460`) 폴리곤이 시/군/자치구 단위에 존재하지 **않습니다**.
+    * 데이터 원본에는 "용인시 전체"(`41460`) 폴리곤이 시/군/자치구 일반 구 단위로 찢어져 있습니다.
     * 하지만 전국 스케일(경상북도, 전라남도 등) 확장을 고려했을 때, 포항시 남/북구나 전주시 완산/덕진구 등을 처음부터 평면(Flat)에 노출하면 **유저의 지리적 상식(도 -> 시 -> 구)과 크게 충돌**합니다.
     * 따라서 시스템 및 UI 관점에서는 쪼개진 원본 데이터(처인구, 기흥구)를 코드로 강제 병합하여 **"용인시" 전체를 대표하는 단일 [시/군/자치구] 단위로 묶어서 취급**합니다.
   * **UI 취급**: [광역 자치단체]의 땅을 누르면 나타나는 하위 구역. "기본 코스"의 무대.
@@ -259,7 +253,7 @@ export type SelectionLevel =
          ↓
 [2. 시/군/자치구 선택 화면] 시/군/자치구 (렌더링 부하 억제)
          - 선택한 광역 단위 하위의 [시/군/자치구] 폴리곤만 화면에 렌더링함.
-         - ⚠️ 개발 수칙 1: 일반구를 소유한 거대 도시(용인, 수원 등)는 구 단위 조각 폴리곤을 그대로 렌더링하지 말고, **무조건 "용인시" 1개 덩어리로 유니온(Union)하여 렌더링**함.
+         - ⚠️ 개발 수칙 1: 일반구를 소유한 거대 도시(용인, 수원 등)는 구 단위 조각 폴리곤을 런타임에 직접 합치려 하지 말고, **빌드 파이프라인이 미리 생성해 둔 "용인시" 1개 덩어리 원본(\`vworld_sig_merged.geojson\`)을 그대로 렌더링**함.
          ↓
          원하는 지역(Ex. 용인시) 클릭
          ↓
@@ -297,9 +291,9 @@ const quizPool = features.filter(f =>
 
 | 단계 | 데이터 파일 | 추가 작업 |
 |------|------------|-----------|
-| 현재 (경기도) | `gyeonggi_bupjeongdong.geojson` | 완료 |
-| 전국 확대 | `skorea-submunicipalities-2018-geo.json` | 코드 구조 차이 확인 (7자리 vs 8자리), 리 병합 로직 동일 적용 필요 |
-| 서울 특화 | `skorea-municipalities` (자치구) + `submunicipalities` (동) | 동 수 많음 주의 (구당 최대 30개+) |
+| 현재 (수도권) | `vworld_sig.geojson` 등 SSOT 파생본 활용 | 완료 |
+| 전국 확대 | VWORLD 오픈 API 읍면동 Shape | 다운로드 후 GeoJSON 변환하여 `merged_map`에 병합 |
+| 서울/인천 특화 | (기반영 완료) | 동 수 많음 주의 (구당 20~30개 씩 포진) |
 
 ---
 
@@ -311,9 +305,9 @@ const quizPool = features.filter(f =>
 | 리(里) 제외 | 완전 제외 | ✅ 이미 데이터에서 병합 처리됨 |
 | 구있는시 감지 | SIG_KOR_NM 공백 패턴 | ✅ 데이터 실측 검증 완료 |
 | 군 감지 | SIG_KOR_NM '군'으로 끝남 | ✅ 검증 완료 |
-| 광역 코스 | 구 단위 출제 | ✅ `gyeonggi_level1_merged.geojson` 활용 가능 |
+| 광역 코스 | 구 단위 출제 | ✅ `vworld_provinces.geojson` 및 `vworld_sig_merged.geojson` 활용 가능 |
 | 지역 코스 | 시 내 읍/면/동 전체 | ✅ SIG_KOR_NM 필터링으로 구현 가능 |
-| 전국 확대 | `skorea-submunicipalities` | ⚠️ 코드 자릿수 7자리 (경기 전용은 8자리) 정합 작업 필요 |
+| 전국 확대 | VWORLD 오픈 API | ⚠️ 지역 간 코드 자릿수 정합(8자리 패딩 등) 스크립트 처리 필요 |
 
 ---
 
@@ -329,119 +323,57 @@ const quizPool = features.filter(f =>
 
 ---
 
-## 9. 실무: 지역 추가 확장 매뉴얼
+## 9. 실무: 지역 추가 확장 매뉴얼 (VWORLD SSOT 파이프라인)
 
-### 9.1 전국 확대 가능성: ✅ 확인 완료
+과거 여러 종류의 스크립트(`bake_nationwide...`, 파이썬 스크립트 등)를 혼용하던 아키텍처는 전면 폐기되었으며, 현재는 **단일 원본 (Level 3 데이터)에서 하위 레벨 데이터를 모두 추출하고, 위상(Topology) 정리를 수행하는 SSOT(Single Source of Truth) 스크립트 파이프라인**을 사용합니다.
 
-현재 `download/` 폴더의 원본 3개 파일이 **전국 17개 시도(코드 11~39)를 모두 포함**하고 있어, 경기도와 동일한 방식으로 어떤 시도든 추가 가능합니다.
+### 9.1 데이터 파이프라인 (SSOT Architecture)
 
-### 원본 데이터 소스 (download/notUsed/)
+![Data Pipeline]
+(VWORLD Data) → `merged_map.geojson` (원본)
+  │
+(Run Script)  → `node scripts/build_vworld_levels.cjs`
+  │
+ ├─ [Turf.js 병합] Level 2 일반 시군구 파생 (`vworld_sig.geojson`)
+ ├─ [Turf.js 병합] Level 2 특례시 묶음 파생 (`vworld_sig_merged.geojson`)
+ ├─ [Turf.js 병합] Level 1 광역시도 파생 (`vworld_provinces.geojson`)
+  │
+(Optimizations)
+ ├─ Tiny Artifact(미세 구멍 < 50sq.km) Turf 필터링 제거 (지도 내부 잡티 먼지 제거)
+ ├─ `Mapshaper` (-clean, -simplify 20~30%): 용량을 무려 80% 줄이고 해안선 아티팩트(Sliver)를 부드럽게 용접
+ └─ `Turf.rewind(reverse: true)`: D3.js 렌더링 엔진 폭발(경기를 누르면 지구 전체가 클릭되는 무한 볼륨 버그) 방지를 위해 폴리곤 좌표를 GeoJSON의 Right-Hand Rule(반시계 방향) 기준에 강제 체인(Chain).
 
-| 파일 | 계층 | 전국 피처 수 | 역할 |
-|------|------|-------------|------|
-| `skorea-provinces-2018-geo.json` | **광역 자치단체** (Provinces) | 17개 | 광역 폴리곤 추출 |
-| `skorea-municipalities-2018-geo.json` | **시/군/구** (Municipalities) | 250개 | 시/군 폴리곤 (실시간 fetch) |
-| `skorea-submunicipalities-2018-geo.json` | **읍/면/동** (Sub-municipalities) | 3,504개 | 퀴즈 출제 데이터 |
+### 9.2 새 지역 추가 절차 (Tutorial)
 
-### 시도 코드표
+**Step 1: 원본 구하기 (Level 3 추가)**
+1. VWORLD에서 타겟 지역의 읍/면/동/리 폴리곤(Shapefile 등)을 확보합니다.
+2. QGIS 등의 도구를 사용하거나 VWORLD API를 활용해 GeoJSON 형식으로 변환합니다.
+3. 이를 `public/mapData/merged_map.geojson` 파일의 `features` 배열 안에 밀어 넣습니다. (이때 `code`, `name`, `SIG_KOR_NM` 등 기존 프로퍼티 포맷과 맞추어야 합니다).
 
-| 코드 | 시도 | 시/군/구 수 | 읍/면/동 수 |
-|------|------|-----------|-----------|
-| `11` | 서울 | 25 | 424 |
-| `21` | 부산 | 16 | 220 |
-| `22` | 대구 | 8 | 139 |
-| `23` | 인천 | 10 | 151 |
-| `24` | 광주 | 5 | 97 |
-| `25` | 대전 | 5 | 79 |
-| `26` | 울산 | 5 | 60 |
-| `29` | 세종 | 1 | 1 |
-| `31` | 경기 | 42 | 545 |
-| `32` | 강원 | 18 | 195 |
-| `33` | 충북 | 14 | 153 |
-| `34` | 충남 | 16 | 206 |
-| `35` | 전북 | 15 | 240 |
-| `36` | 전남 | 22 | 356 |
-| `37` | 경북 | 24 | 332 |
-| `38` | 경남 | 22 | 305 |
-| `39` | 제주 | 2 | 1 |
+**Step 2: 인텔리전스 데이터 작성 (옵션)**
+- `scripts/data/intel/XXXXX_regionname.json` 에 문제 출제 힌트용 json 데이터를 작성합니다. (기존에 작성되어 있다면 통과)
+- `node scripts/merge_intel_to_geo.js` 를 돌려 `merged_map.geojson` 내부에 `properties.intel` 이 합쳐지도록 만듭니다.
 
----
-
-### 9.2 데이터 파이프라인 및 스크립트 역할
-
-```
-[원본 데이터]                        [가공 스크립트]                   [런타임 데이터]
-download/                           scripts/                        mapData/
-skorea-provinces-2018-geo.json  ─────────────────────────────────→  (필터링만, 별도 가공 불필요)
-skorea-municipalities-2018-geo  ──→ bake_nationwide_maps.js      →  korea-municipalities-merged.geojson
-download/notUsed/                   generate_gyeonggi_bjd_data.py →  public/temp/gyeonggi_bupjeongdong.geojson
-                                    merge_intel_to_geo.js         →  merged_map.geojson
-                                    fetch_roads.js                →  download/korea-roads-topo.json
-scripts/data/intel/*.json       ──→ merge_intel_to_geo.js (위 동일)
-```
-
-### 스크립트별 역할 정의
-
-| 스크립트 | 언제 실행? | 입력 | 출력 | 비고 |
-|---------|-----------|------|------|------|
-| `bake_nationwide_maps.js` | 원본 행정구역 데이터 변경 시 | `download/skorea-municipalities-2018-geo.json` | `mapData/korea-municipalities-merged.geojson` | 일반구(수원시 권선구 등) 병합. `node scripts/bake_nationwide_maps.js` |
-| `merge_intel_to_geo.js` | 새 지역 인텔 데이터 추가 시 | `public/temp/gyeonggi_bupjeongdong.geojson` + `scripts/data/intel/*.json` | `mapData/merged_map.geojson` | 퀴즈용 읍면동 폴리곤에 인텔 정보 주입. `node scripts/merge_intel_to_geo.js` |
-| `generate_gyeonggi_bjd_data.py` | 새 지역 읍면동 폴리곤 필요 시 | VWorld API (인터넷 연결 필요) | `public/temp/gyeonggi_bupjeongdong.geojson` | `merge_intel_to_geo.js`의 입력 원본 생성. `python scripts/generate_gyeonggi_bjd_data.py [API_KEY]` |
-| `fetch_roads.js` | 도로 데이터 갱신 시 | Overpass API (인터넷 연결 필요) | `download/korea-roads-topo.json` | 한국 주요 도로 (고속도로/국도/지방도) TopoJSON 생성. `node scripts/fetch_roads.js` |
-| `generate_bjd_data.py` | **(사용 안 함)** | VWorld API | `public/data/gwangju_bupjeongdong.geojson` | 광주시 단일 구역 시험용 레거시 스크립트. 삭제 예정 |
-
-> [!NOTE]
-> **`merged_map.geojson`에 전국 데이터를 다 넣어도 될까?**
-> 현재 `merged_map.geojson` 크기: 약 **18MB** (경기도 약 741개 폴리곤)
-> 서울(424) + 인천(151) + 경기(741) 전체를 합쳐도 **1,316개** 폴리곤으로, 크기는 약 **25~30MB** 예상입니다.
-> Vite의 코드 스플리팅과 브라우저 캐시(Cache-Control)를 사용하면 첫 로드 후 캐시되어 재요청이 없으므로 **허용 가능한 범위**입니다.
-> 단, 전국(17개 시도, ~3,000+ 폴리곤)으로 확장 시 **100MB+ 예상**이라 TopoJSON 압축 변환 또는 동적 로딩 전략이 필요합니다.
-
----
-
-### 9.3 새 지역 추가 절차
-
-### Step 1: 광역 자치단체 폴리곤
-`useGeoData.ts`의 `ACTIVE_REGION_PREFIXES` 배열에 시도 코드 추가 (예: 부산 `'21'`).
-- `skorea-provinces-2018-geo.json`에서 런타임 필터링하므로 **별도 파일 생성 불필요**.
-
-### Step 2: 시/군/구 폴리곤
-`skorea-municipalities-2018-geo.json`에 이미 전국 250개가 존재. `ACTIVE_REGION_PREFIXES` 추가만으로 자동 포함.
-- **단, `bake_nationwide_maps.js` 재실행 필요** (새 코드 기준으로 병합본 재생성).
-
-### Step 3: 읍/면/동 폴리곤 (퀴즈 데이터)
+**Step 3: 단일 맵 빌더 스크립트 실행 (가장 중요)**
 ```bash
-# 1. VWorld에서 해당 시도 읍면동 원본 수집
-python scripts/generate_gyeonggi_bjd_data.py [VWORLD_API_KEY]
-# (스크립트 내 attrFilter 코드를 추가 지역 코드로 수정 후 실행)
-
-# 2. 인텔 데이터 작성
-# scripts/data/intel/XXXXX_regionname.json 파일 작성
-
-# 3. 폴리곤 + 인텔 병합
-node scripts/merge_intel_to_geo.js
+node scripts/build_vworld_levels.cjs
 ```
+- 스크립트가 실행되면 터미널에 Level 1 단위부터 Level 2 자치구 단위들까지 모두 `turf.union` 을 수행하는 진행상황이 나옵니다.
+- 마지막으로 `Mapshaper` 패키지를 호출하여 용량을 줄이고 찌꺼기 구멍(Artifact Holes)을 지우는 작업을 수행합니다.
 
-### Step 4: 사이드 이펙트 없음 확인
-`npx tsc --noEmit` 로 타입 에러 없는지 확인 후 브라우저 테스트.
-
----
-
-### 9.4 파일 관리 기준
-
-| 폴더 | 내용 | 규칙 |
-|------|------|------|
-| `download/` | 런타임에 브라우저가 직접 fetch하는 원본 데이터 | **수정 금지**, 코드에서 직접 참조 |
-| `download/notUsed/` | 보관용 원본 (스크립트 입력용) | 브라우저에서 직접 로드 안 함 |
-| `mapData/` | 스크립트로 생성한 가공 데이터 | 스크립트로 **재생성 가능**해야 함 |
-| `scripts/data/intel/` | 인텔 소스 데이터 | 빌드 시점에만 사용, 브라우저 노출 안 됨 |
+**Step 4: 로컬 서버 확인 및 브라우저 강제 새로고침**
+`npm run dev` 를 통해 게임화면을 켭니다. 
+브라우저 캐시로 인해 오래된 Map이 보일 가능성이 높으므로 **Cmd + Shift + R** (완전 새로고침) 을 반드시 수행한 후 추가한 지역이 지도상에 뜨고, 클릭이 정상적으로 파티셔닝 되는지 체크합니다.
 
 ---
 
-### 9.5 현재 서비스 중인 지역 (2025.3 기준)
+### 9.3 현재 서비스 중인 지역 (2026.4 기준)
 
 | 코드 | 지역 | 상태 |
 |------|------|------|
+| `11` | 서울 | ✅ VWORLD 대응 완료 |
+| `28` | 인천 | ✅ VWORLD 대응 완료 |
+| `41` | 경기 | ✅ VWORLD 대응 완료 |---|------|------|
 | `11` | 서울 | ✅ 서비스 중 |
 | `23` | 인천 | ✅ 서비스 중 |
 | `31` / `41` | 경기도 (VWorld 코드 41로 런타임 변환) | ✅ 서비스 중 |
