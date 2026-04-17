@@ -48,7 +48,7 @@ export const generateStage3Question = (context: StageContext): EstimateDistanceQ
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
     type: 'ESTIMATE_DIST',
     start: {
       code: startFeature.properties.code,

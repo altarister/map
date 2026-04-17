@@ -17,10 +17,10 @@ export const generateCallBatch = (
   targetDestCode: string, // 예: "41610" (경기 광주시)
   currentStartCode?: string // 현재 하차한 위치 (꼬리물기용)
 ): CallFilterQuestion => {
-  const { mapData, currentLocCode, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM } = ctx;
+  const { mapData, currentLocCode, currentLocCoordinate, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM } = ctx;
 
   const { driverFeature, driverCentroid } = getMapContext(
-    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
+    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm, currentLocCoordinate
   );
 
   // 콜 생성은 useDispatchStreaming 단일 파이프라인에서 관리
@@ -38,37 +38,55 @@ export const generateCallBatch = (
   };
 };
 
-function getMapContext(mapData: RegionFeature[], targetDestCode: string, locTarget?: string, maxPickupDistanceKm: number = DEFAULT_MAX_PICKUP_DISTANCE_KM) {
-  // 1. 기사의 현위치 설정 (currentLocCode로 시작하는 지역 중 랜덤, 없으면 전체 랜덤)
-  let driverFeature = mapData.find(f => f.properties.code === locTarget);
-  
-  // 1.1 행정구역 코드가 구/동 단위일 때 0으로 끝나는 시 단위 코드(예: 성남시 41130)를 안전하게 찾기 위한 Prefix화
-  const locPrefix = locTarget ? locTarget.replace(/0+$/, '') : '';
+function getMapContext(
+  mapData: RegionFeature[], 
+  targetDestCode: string, 
+  locTarget?: string, 
+  maxPickupDistanceKm: number = DEFAULT_MAX_PICKUP_DISTANCE_KM,
+  currentLocCoordinate?: [number, number]
+) {
+  let driverFeature: any;
+  let driverCentroid: [number, number];
 
-  if (!driverFeature && locPrefix) {
-    const candidates = mapData.filter(f => f.properties.code.startsWith(locPrefix));
-    if (candidates.length > 0) {
-      driverFeature = candidates[Math.floor(Math.random() * candidates.length)];
+  if (currentLocCoordinate && (!locTarget || locTarget === 'ALL')) {
+    // 1-A. 외부에서 실제 GPS를 꽂아준 경우
+    driverCentroid = currentLocCoordinate;
+    driverFeature = { properties: { code: 'CURRENT_GPS', name: '현위치(GPS)', centroid: currentLocCoordinate }, geometry: null };
+  } else {
+    // 1-B. 기존 방식 (행정구역 코드로 가상 중심점 찾기)
+    driverFeature = mapData.find(f => f.properties.code === locTarget);
+    
+    // 1.1 행정구역 코드가 구/동 단위일 때 0으로 끝나는 시 단위 코드(예: 성남시 41130)를 안전하게 찾기 위한 Prefix화
+    const locPrefix = locTarget && locTarget !== 'ALL' ? locTarget.replace(/0+$/, '') : '';
+
+    if (!driverFeature && locPrefix) {
+      const candidates = mapData.filter(f => f.properties.code.startsWith(locPrefix));
+      if (candidates.length > 0) {
+        driverFeature = candidates[Math.floor(Math.random() * candidates.length)];
+      }
     }
-  }
 
-  if (!driverFeature) {
-    driverFeature = mapData[Math.floor(Math.random() * mapData.length)];
+    if (!driverFeature) {
+      driverFeature = mapData[Math.floor(Math.random() * mapData.length)];
+    }
+    driverCentroid = getCentroid(driverFeature);
   }
-  const driverCentroid = getCentroid(driverFeature);
 
   // 2. 하차지 그룹 (정답 방향 vs 오답 방향)
   const destPrefix = targetDestCode === 'ALL' ? '' : targetDestCode.replace(/0+$/, '');
   const matchDestGroup = destPrefix ? mapData.filter(f => f.properties.code.startsWith(destPrefix)) : mapData;
   const wrongDestGroup = destPrefix ? mapData.filter(f => !f.properties.code.startsWith(destPrefix)) : [];
 
-  // 3. 상차지(Pickup) 거리별 사전 분류
+  // 3. 상차지(Pickup) 거리별 사전 분류 및 오름차순 정렬 (가까운 곳 우선)
   const pickupCandidates = mapData.map(f => ({
     feature: f,
     dist: calculateDistanceKm(driverCentroid, getCentroid(f))
   }));
 
-  let validPickups = pickupCandidates.filter(p => p.dist <= maxPickupDistanceKm).map(p => p.feature);
+  let validPickups = pickupCandidates
+    .filter(p => p.dist <= maxPickupDistanceKm)
+    .sort((a, b) => a.dist - b.dist)
+    .map(p => p.feature);
 
   // Fallback 처리
   if (validPickups.length === 0) validPickups = mapData;
@@ -82,17 +100,20 @@ export const generateSingleCall = (
   currentStartCode?: string,
   isCorrectProb: number = PROB_CORRECT_ANSWER
 ): CallItem => {
-  const { mapData, currentLocCode, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM, minFare = DEFAULT_MIN_FARE } = ctx;
+  const { mapData, currentLocCode, currentLocCoordinate, maxPickupDistanceKm = DEFAULT_MAX_PICKUP_DISTANCE_KM, minFare = DEFAULT_MIN_FARE } = ctx;
 
   const { driverCentroid, matchDestGroup, wrongDestGroup, validPickups } = getMapContext(
-    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm
+    mapData, targetDestCode, currentStartCode || currentLocCode, maxPickupDistanceKm, currentLocCoordinate
   );
 
   const isAnswer = Math.random() < isCorrectProb;
   const destGroup = isAnswer && matchDestGroup.length > 0 ? matchDestGroup : (wrongDestGroup.length > 0 ? wrongDestGroup : matchDestGroup);
   
   const dest = destGroup[Math.floor(Math.random() * destGroup.length)];
-  const pickup = validPickups[Math.floor(Math.random() * validPickups.length)];
+
+  // 상차지 거리가 일정하게 가깝게 나오도록 확률 보정 (Math.pow 2.5제곱을 통해 Index 0인 가까운 곳으로 강한 편향을 줌)
+  const randSkew = Math.pow(Math.random(), 2.5);
+  const pickup = validPickups[Math.floor(randSkew * validPickups.length)];
 
   if (isAnswer) {
     return createCallItem(pickup, dest, driverCentroid, true, minFare, 'PERFECT', validPickups, destGroup);

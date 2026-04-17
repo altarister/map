@@ -83,6 +83,7 @@ export interface StageContext {
   targetRegion?: RegionFeature;
   targetDestCode?: string;
   currentLocCode?: string;
+  currentLocCoordinate?: [number, number]; // 실제 GPS 위경도 튜플 [lon, lat]
   maxPickupDistanceKm?: number;
   minFare?: number;
   autoDispatchFilter?: AutoDispatchFilter;

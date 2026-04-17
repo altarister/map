@@ -40,17 +40,28 @@ const findMatchingDetail = (regionHint: string | undefined, isDropdown: boolean)
     }
   }
 
-  // 매칭되는 시/군이 없으면 → 경기도 데이터 풀 내에서 랜덤 추출 (서울/부산 등 혼입 방지)
   const gyeonggiPool = MOCK_LOCATION_DETAILS.filter(m => (m.addressDetail || '').includes('경기'));
   const fallbackPool = gyeonggiPool.length > 0 ? gyeonggiPool : MOCK_LOCATION_DETAILS;
 
+  let fallbackDetail: LocationDetailInfo;
   if (isDropdown) {
-    const detail = fallbackPool[dropoffIdx % fallbackPool.length];
+    fallbackDetail = fallbackPool[dropoffIdx % fallbackPool.length];
     dropoffIdx++;
-    return detail;
   } else {
-    return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+    fallbackDetail = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
   }
+
+  // 매칭되는 시/군이 없어서 랜덤 데이터로 채우되, UI에 엉뚱한 동네가 표시되지 않도록 지역명은 원본을 유지합니다.
+  if (regionHint) {
+    const shortName = regionHint.split('/').pop()?.trim() || regionHint;
+    return {
+      ...fallbackDetail,
+      region: shortName,
+      addressDetail: `${regionHint} (임시 상세주소)`
+    };
+  }
+
+  return fallbackDetail;
 };
 
 export const getNextPickupDetail = (regionHint?: string): LocationDetailInfo => {

@@ -14,6 +14,9 @@ import { Stage2App } from './components/game/Stage2App';
 import { AdSlot } from './components/ui/AdSlot';
 import { StandaloneInseongView } from './components/game/StandaloneInseongView';
 
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { InseongSetupPage } from './pages/InseongSetupPage';
+import { InseongDispatchPage } from './pages/InseongDispatchPage';
 
 import { useState } from 'react';
 import { LoadingScreen } from './components/layout/LoadingScreen';
@@ -110,7 +113,8 @@ function GameContent() {
   );
 }
 
-function App() {
+/** 기존 지도 게임 앱 (변경 없음) */
+function GameApp() {
   const isStandalone = new URLSearchParams(window.location.search).get('mode') === 'standalone';
 
   return (
@@ -132,6 +136,21 @@ function App() {
         </MapProvider>
       </GeoDataProvider>
     </SettingsProvider>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* 시뮬레이터 전용 경로 (GameContext 의존성 없음) */}
+        <Route path="/inseong" element={<InseongSetupPage />} />
+        <Route path="/inseong/dispatch" element={<InseongDispatchPage />} />
+
+        {/* 기존 지도 게임 (변경 없음) */}
+        <Route path="/*" element={<GameApp />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

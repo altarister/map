@@ -4,6 +4,7 @@ import type { AnswerFeedback } from '../../../types/game';
 import type { LocationDetailInfo } from '../../../types/dispatch';
 import { formatRegionName, formatRegionFullName } from '../../../utils/format';
 import { InseongLocationDetailScreen } from './InseongLocationDetailScreen';
+import { InseongMemoDetailScreen } from './InseongMemoDetailScreen';
 import { getNextPickupDetail, getNextDropoffDetail } from '../../../data/mockLocationDetails';
 
 
@@ -18,8 +19,10 @@ interface Props {
 }
 
 export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel }: Props) => {
-  // 출발지/도착지 상세 팝업 상태
+  // 출발지/도착지 및 적요 상세 팝업 상태
   const [locationPopup, setLocationPopup] = useState<{ type: 'PICKUP' | 'DROPOFF'; detail: LocationDetailInfo } | null>(null);
+  const [showMemoPopup, setShowMemoPopup] = useState(false);
+
   const fareFormatted = call.fare.toLocaleString();
   const distPickup = call.pickupDistanceKm?.toFixed(1) || '0.0';
   const distDelivery = call.distanceKm.toFixed(1);
@@ -87,7 +90,7 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel 
         <div className="flex px-3 gap-2 h-[100px] mb-2">
           {/* Left buttons */}
           <div className="flex flex-col gap-1.5 w-[90px] shrink-0">
-            <button className="flex-1 bg-white border border-gray-300 flex items-center justify-center font-bold text-[14px] text-gray-800 shadow-sm active:bg-gray-50">
+            <button onClick={() => setShowMemoPopup(true)} className="flex-1 bg-white border border-gray-300 flex items-center justify-center font-bold text-[14px] text-gray-800 shadow-sm active:bg-gray-50">
               적요상세
             </button>
             <button className="flex-1 bg-white border border-gray-300 flex items-center justify-center font-bold text-[13px] text-gray-800 shadow-sm active:bg-gray-50">
@@ -152,6 +155,16 @@ export const InseongOngoingDetailScreen = ({ call, onClose, onConfirm, onCancel 
           type={locationPopup.type}
           detail={locationPopup.detail}
           onClose={() => setLocationPopup(null)}
+        />
+      )}
+
+      {/* 적요상세 팝업 오버레이 */}
+      {showMemoPopup && (
+        <InseongMemoDetailScreen
+          call={call}
+          distPickup={distPickup}
+          distDelivery={distDelivery}
+          onClose={() => setShowMemoPopup(false)}
         />
       )}
 

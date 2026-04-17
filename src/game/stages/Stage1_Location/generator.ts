@@ -15,7 +15,7 @@ export const generateStage1Question = (context: StageContext): LocateSingleQuest
   if (!targetRegion) {
     console.warn('[Stage1] No targetRegion found.');
     return {
-      id: crypto.randomUUID(),
+      id: (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
       type: 'LOCATE_SINGLE',
       target: {
         code: 'ERROR',
@@ -43,7 +43,7 @@ export const generateStage1Question = (context: StageContext): LocateSingleQuest
   const displayName = `${cityName} ${districtName}`.trim() || '알 수 없는 지역';
 
   return {
-    id: crypto.randomUUID(),
+    id: (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
     type: 'LOCATE_SINGLE',
     target: {
       code: props.code,
