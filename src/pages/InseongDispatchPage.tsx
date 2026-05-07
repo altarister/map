@@ -151,7 +151,7 @@ export function InseongDispatchPage() {
 
   return (
     <SimulationProvider initialDriver={driverLocation} initialConfig={simConfig}>
-      <div className="w-full h-dvh bg-[#111] overflow-hidden relative font-sans text-black">
+      <div className="w-full h-dvh py-10 bg-[#111] overflow-hidden relative font-sans text-black">
         <SimDispatchContent />
       </div>
     </SimulationProvider>
