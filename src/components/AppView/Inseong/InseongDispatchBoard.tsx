@@ -198,25 +198,25 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
 
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans tracking-tight text-black select-none">
+    <div className="relative w-full h-full flex flex-col bg-[#eef1f6] font-sans tracking-tight text-black select-none overflow-x-hidden">
 
       {/* 상단 파란색 탭 메뉴 */}
-      <div className="flex bg-[#0052a3] text-white text-[15px] font-bold border-b-2 border-slate-500 cursor-pointer">
+      <div className="flex bg-[#0052a3] text-white text-[14px] sm:text-[15px] font-bold border-b-2 border-slate-500 cursor-pointer shrink-0">
         <div
-          className={`flex-1 py-1.5 text-center transition-colors ${activeTab === 'ALL' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
+          className={`flex-1 py-1 text-center transition-colors ${activeTab === 'ALL' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
           onClick={() => onTabSelect('ALL')}
         >
           신규
         </div>
         <div
-          className={`flex-1 py-1.5 text-center transition-colors ${activeTab === 'CONFIRMED' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
+          className={`flex-1 py-1 text-center transition-colors ${activeTab === 'CONFIRMED' ? 'bg-[#0066cc] border-b-4 border-[#ffb400]' : 'bg-[#0052a3]'}`}
           onClick={() => onTabSelect('CONFIRMED')}
         >
           완료({confirmedCalls.length}/{batchTarget})
         </div>
-        <div className="flex-1 py-1.5 text-center bg-[#0052a3] text-gray-300">메시지함</div>
+        <div className="flex-1 py-1 text-center bg-[#0052a3] text-gray-300">메시지함</div>
         <div
-          className={`flex-1 py-1.5 text-center transition-colors cursor-pointer ${isGpsOn ? 'bg-[#0066cc] text-white border-b-4 border-green-400' : 'bg-[#0052a3] text-gray-300'}`}
+          className={`flex-1 py-1 text-center transition-colors cursor-pointer ${isGpsOn ? 'bg-[#0066cc] text-white border-b-4 border-green-400' : 'bg-[#0052a3] text-gray-300'}`}
           onClick={() => setIsGpsOn(!isGpsOn)}
         >
           GPS {isGpsOn ? 'ON' : 'OFF'}
@@ -225,23 +225,23 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
 
       {/* 서브 툴바 */}
       {activeTab === 'ALL' && (
-        <div className="flex bg-[#e4e4e4] border-b border-gray-400 text-xs text-gray-700 h-7 items-center px-1 gap-1">
-          <button className="bg-[#0052a3] text-white px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+        <div className="flex bg-[#e4e4e4] border-b border-gray-400 text-xs text-gray-700 h-7 items-center px-1 gap-0.5 sm:gap-1 overflow-x-auto whitespace-nowrap shrink-0 [&::-webkit-scrollbar]:hidden">
+          <button className="bg-[#0052a3] text-white px-1.5 sm:px-3 py-0.5 border border-gray-500 text-[10px] font-bold shrink-0" onClick={onSettingsClick}>
             원터치
           </button>
-          <button className="bg-[#0052a3] text-white px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+          <button className="bg-[#0052a3] text-white px-1.5 sm:px-3 py-0.5 border border-gray-500 text-[10px] font-bold shrink-0" onClick={onSettingsClick}>
             그룹공지
           </button>
-          <button className="bg-gray-200 px-3 py-0.5 border border-gray-400 text-[10px] font-bold text-gray-700">
+          <button className="bg-gray-200 px-1.5 sm:px-3 py-0.5 border border-gray-400 text-[10px] font-bold text-gray-700 shrink-0">
             장터게시판
           </button>
           <button
-            className={`px-3 py-0.5 border border-gray-400 text-[10px] font-bold ${isTimerPaused ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+            className={`px-1.5 sm:px-3 py-0.5 border border-gray-400 text-[10px] font-bold shrink-0 ${isTimerPaused ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={onToggleTimer}
           >
             {isTimerPaused ? '잠금해제' : '잠금'}
           </button>
-          <button className="bg-[#facc15] text-black px-3 py-0.5 border border-gray-500 text-[10px] font-bold" onClick={onSettingsClick}>
+          <button className="bg-[#facc15] text-black px-1.5 sm:px-3 py-0.5 border border-gray-500 text-[10px] font-bold shrink-0" onClick={onSettingsClick}>
             빠른설정
           </button>
         </div>
@@ -286,20 +286,22 @@ export const InseongDispatchBoard = ({ confirmedCalls, activeTab, onTabSelect,
 
       {/* 하단 페이지네이션 및 액션 바 (신규 탭 전용) */}
       {activeTab === 'ALL' && (
-        <div className="bg-[#e4e4e4] border-t-2 border-gray-400 p-1 flex justify-between items-center text-xs h-8">
-          <div className="flex items-center">
-            <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">◀</button>
-            <span className="mx-3 font-bold">1 / 1</span>
-            <button className="px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">▶</button>
+        <div className="bg-[#e4e4e4] border-t-2 border-gray-400 p-1 flex justify-between items-center text-xs h-8 shrink-0">
+          <div className="flex items-center shrink-0">
+            <button className="px-1.5 sm:px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">◀</button>
+            <span className="mx-1 sm:mx-3 font-bold text-[11px]">1 / 1</span>
+            <button className="px-1.5 sm:px-2 py-0.5 border border-gray-400 bg-white shadow-sm font-bold text-blue-600">▶</button>
           </div>
-          <button
-            className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold hover:bg-yellow-500 transition-colors"
-            onClick={onSettingsClick}
-          >
-            {maxPickupDistanceKm}km
-          </button>
-          <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">전체</button>
-          <button className="bg-[#facc15] text-black px-2 py-0.5 border border-gray-500 text-[10px] font-bold">리셋</button>
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+            <button
+              className="bg-[#facc15] text-black px-1.5 sm:px-2 py-0.5 border border-gray-500 text-[10px] font-bold hover:bg-yellow-500 transition-colors"
+              onClick={onSettingsClick}
+            >
+              {maxPickupDistanceKm}km
+            </button>
+            <button className="bg-[#facc15] text-black px-1.5 sm:px-2 py-0.5 border border-gray-500 text-[10px] font-bold">전체</button>
+            <button className="bg-[#facc15] text-black px-1.5 sm:px-2 py-0.5 border border-gray-500 text-[10px] font-bold">리셋</button>
+          </div>
         </div>
       )}
 
