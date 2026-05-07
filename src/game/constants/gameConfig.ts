@@ -1,4 +1,4 @@
-import type { Difficulty } from "../types/game";
+import type { Difficulty } from "../../types/game";
 
 export const GAME_CONFIG = {
   DIFFICULTY: {

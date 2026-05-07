@@ -292,6 +292,6 @@ function createCallItem(
     isMatchingRoute,
     violation
   };
-  console.log('[🚚 CallItem 생성]', result);
+
   return result;
 }

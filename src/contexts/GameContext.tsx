@@ -98,7 +98,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // 2. Mastery System Update
     if (layerVisibility.labels) {
-      console.log('Practice Mode: Score not saved.');
       return;
     }
 

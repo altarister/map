@@ -12,7 +12,6 @@ export default defineConfig({
         },
     },
     server: {
-        // SPA 히스토리 폴백: /inseong 등 직접 접근 시 index.html로 리디렉트
-        historyApiFallback: true,
+        host: true,
     },
 })

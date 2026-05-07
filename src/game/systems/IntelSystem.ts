@@ -52,8 +52,6 @@ export const getAdjacentRegions = (
     // Sort by distance (closest first)
     neighbors.sort((a, b) => a.dist - b.dist);
 
-    console.log(`IntelSystem: Neighbors for ${target.properties.name}`, neighbors);
-
     // Return top 3 closest unique names
     return Array.from(new Set(neighbors.map(n => n.name))).slice(0, 3);
 };

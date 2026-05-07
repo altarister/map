@@ -19,13 +19,6 @@ export const validateStage1Answer = (question: LocateSingleQuestion, input: User
   const isCorrect = input.regionCode === question.target.code ||
     input.regionCode.startsWith(question.target.code);
 
-  console.log('[DEBUG-Validation]', {
-    inputCode: input.regionCode,
-    targetCode: question.target.code,
-    targetName: question.target.name,
-    isCorrect
-  });
-
   // ✅ BUG-002 관련: 정답/오답 모두 feedback 객체 반환
   return {
     status: isCorrect ? 'CORRECT' : 'WRONG',

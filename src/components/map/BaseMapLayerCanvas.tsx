@@ -55,7 +55,6 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         theme,
         themeColors,
         getFillColor,
-        getStrokeColor,
         initialTransform,
         width,
         height,
@@ -126,7 +125,6 @@ export const BaseMapLayerCanvas = memo(forwardRef<BaseMapLayerHandle, BaseMapLay
         const baseStrokeWidth = 1 / k;
 
         // ── LOD (Level of Detail): 줌 레벨 기록용 (현재 alpha는 1로 고정)
-        const dongAlpha = 1;
         // ─────────────────────────────────────────────────────────────────────
 
         // ══════════════════════════════════════════════════════════════════

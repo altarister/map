@@ -24,7 +24,7 @@ export const InseongMemoDetailScreen = ({ call, distPickup, distDelivery, onClos
         <span className="text-[15px] font-bold text-gray-700 shrink-0 mb-2 px-1">적요 내용</span>
         <div className="bg-[#e0e0e0] border border-gray-300 rounded-sm px-4 py-4 font-bold text-[16px] text-gray-900 leading-relaxed min-h-[200px] shadow-inner whitespace-pre-wrap">
 *카고 입니다.
-세금계산서필 {call.pickupTime}상차. 마스크 카톤{call.itemDescription || '박스 10개'}명세서폐기. 현위치 ➔ 상차지 {distPickup}KM. 상차지 ➔ 하차지 {distDelivery}KM{call.pickups[0].memo ? `\n\n${call.pickups[0].memo}` : ''}
+세금계산서필 {call.pickupTime}상차. 마스크 카톤{call.itemDescription || '박스 10개'}명세서폐기. 현위치 ➔ 상차지 {distPickup}KM. 상차지 ➔ 하차지 {distDelivery}KM{call.pickupDetails?.[0]?.memo ? `\n\n${call.pickupDetails[0].memo}` : ''}
         </div>
       </div>
 

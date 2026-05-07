@@ -50,7 +50,7 @@ export const useMapStyles = ({ lastFeedback, answeredRegions, isBasicMode = fals
     return 'transparent';
   }, [lastFeedback, answeredRegions]);
 
-  const getStrokeColor = useCallback((feature: any, isHovered: boolean = false) => {
+  const getStrokeColor = useCallback((feature: any, _isHovered: boolean = false) => {
     const code = typeof feature === 'string' ? feature : feature?.properties?.code;
     
     // 1. Hover 상태

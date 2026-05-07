@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { CallItem } from '../game/core/types';
 import { generateSingleCall } from '../game/stages/Stage2_Route/generator';
 import { 
-  INITIAL_CALL_COUNT, PROB_CORRECT_ANSWER, MIN_CALL_DELAY_MS, MAX_CALL_DELAY_MS 
+  INITIAL_CALL_COUNT, PROB_CORRECT_ANSWER
 } from '../game/stages/Stage2_Route/constants';
 
 interface UseDispatchStreamingProps {
