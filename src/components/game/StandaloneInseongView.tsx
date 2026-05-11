@@ -74,7 +74,7 @@ export function StandaloneInseongView() {
     }
 
     return (
-        <div className="fixed inset-0 w-full h-full bg-[#111] overflow-hidden font-sans text-black" id="standalone-root">
+        <div className="fixed inset-0 w-screen h-[100dvh] bg-[#111] overflow-hidden font-sans text-black touch-none" id="standalone-root">
             <InseongApp simulationConfig={{ intervalMs: 5000, initialCount: 0 }} />
         </div>
     );
