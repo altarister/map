@@ -17,6 +17,8 @@ import { StandaloneInseongView } from './components/game/StandaloneInseongView';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { InseongSetupPage } from './pages/InseongSetupPage';
 import { InseongDispatchPage } from './pages/InseongDispatchPage';
+import { Hwamul24SetupPage } from './pages/Hwamul24SetupPage';
+import { Hwamul24DispatchPage } from './pages/Hwamul24DispatchPage';
 
 import { useState } from 'react';
 import { LoadingScreen } from './components/layout/LoadingScreen';
@@ -146,6 +148,8 @@ function App() {
         {/* 시뮬레이터 전용 경로 (GameContext 의존성 없음) */}
         <Route path="/inseong" element={<InseongSetupPage />} />
         <Route path="/inseong/dispatch" element={<InseongDispatchPage />} />
+        <Route path="/hwamul24" element={<Hwamul24SetupPage />} />
+        <Route path="/hwamul24/dispatch" element={<Hwamul24DispatchPage />} />
 
         {/* 기존 지도 게임 (변경 없음) */}
         <Route path="/*" element={<GameApp />} />

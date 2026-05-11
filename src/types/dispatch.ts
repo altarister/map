@@ -47,6 +47,19 @@ export interface CallItem {
     recipientName?: string;    // 수신인 이름 (도착지 표시용)
     isMatchingRoute: boolean; // 유저 목표와 일치하는가?
     violation?: 'BAD_FARE' | 'WRONG_DEST';
+
+    // ── 화물24시 전용 필드 (Optional, 인성앱에서는 무시됨) ──
+    tonnage?: string;             // 톤수 (예: "1톤", "2.5톤", "3.5톤")
+    vehicleSpec?: string;         // 차종 상세 (예: "전체", "윙", "탑", "카고", "광폭")
+    loadingType?: '독차' | '혼적'; // 독차/혼적 구분
+    tripType?: '편도' | '왕복';    // 운행방 (편도/왕복)
+    loadingMethod?: '당상' | '지상'; // 상차 방법 (당일상차/지정일상차)
+    unloadingMethod?: '당착' | '지착'; // 하차 방법
+    freightId?: string;           // 화물 번호 (예: "3-9483-2159")
+    registeredAt?: string;        // 등록 시간 (예: "05:18분")
+    receiptType?: '인수증' | '계산서'; // 증빙 타입 (화물24시 기준)
+    loadingWeight?: string;       // 적재중량 (예: "1톤")
+    itemSummary?: string;         // 화물 요약 (예: "59박스 수/수-A")
 }
 
 // 자동배차 설정 인터페이스 (인성 기본 UI 완전 동기화)
