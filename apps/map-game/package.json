@@ -13,6 +13,8 @@
     "merge:intel": "node scripts/merge_intel_to_geo.js"
   },
   "dependencies": {
+    "@altari/core-simulator": "workspace:*",
+    "@altari/ui-simulators": "workspace:*",
     "@types/d3-quadtree": "^3.0.6",
     "@types/topojson-client": "^3.1.5",
     "@vnedyalk0v/react19-simple-maps": "^2.0.2",
@@ -25,14 +27,12 @@
     "d3-zoom": "^3.0.0",
     "framer-motion": "^12.34.0",
     "postcss": "^8.5.6",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "react-router-dom": "^7.14.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.17",
-    "topojson-client": "^3.1.0",
-    "@altari/core-simulator": "workspace:*",
-    "@altari/ui-simulators": "workspace:*"
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

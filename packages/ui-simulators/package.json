@@ -15,7 +15,7 @@
     "@altari/core-simulator": "workspace:*"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "19.2.6"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",
